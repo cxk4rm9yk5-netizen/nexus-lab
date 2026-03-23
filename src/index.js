@@ -1,29 +1,31 @@
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import '@rainbow-me/rainbowkit/styles.css';
-import { getDefaultConfig, RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
+import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react';
 import { WagmiProvider } from 'wagmi';
-import { mainnet, bsc, polygon } from 'wagmi/chains';
-import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
-
-const config = getDefaultConfig({
-  appName: 'NEXUS LAB',
-  projectId: '4c424a5697793d2581c205364188b49e', // Official WalletConnect ID
-  chains: [mainnet, bsc, polygon],
-  ssr: true,
-});
+import { bsc, mainnet, polygon } from 'wagmi/chains';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
+const projectId = '4c424a5697793d2581c205364188b49e';
+
+const metadata = {
+  name: 'Nexus Lab',
+  description: 'Technical Recovery Portal',
+  url: 'https://nexus-lab-lxr9.vercel.app',
+  icons: ['https://avatars.githubusercontent.com/u/37784886']
+};
+
+const chains = [mainnet, bsc, polygon];
+const config = defaultWagmiConfig({ chains, projectId, metadata });
+
+createWeb3Modal({ wagmiConfig: config, projectId, chains, themeMode: 'dark' });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <WagmiProvider config={config}>
     <QueryClientProvider client={queryClient}>
-      <RainbowKitProvider theme={darkTheme({ accentColor: '#06b6d4' })}>
-        <App />
-      </RainbowKitProvider>
+      <App />
     </QueryClientProvider>
   </WagmiProvider>
 );
