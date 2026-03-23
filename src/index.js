@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react'; // Cleaned import
+import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react';
 import { WagmiProvider } from 'wagmi';
 import { bsc, mainnet, polygon } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -23,7 +23,10 @@ createWeb3Modal({
   wagmiConfig: config, 
   projectId, 
   enableAnalytics: false,
-  themeMode: 'dark' 
+  themeMode: 'dark',
+  themeVariables: {
+    '--w3m-accent': '#06b6d4'
+  }
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
