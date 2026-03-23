@@ -1,14 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react'; // This is the correct v4 import
+import { createWeb3Modal, defaultConfig } from '@web3modal/wagmi/react'; // Updated import
 import { WagmiProvider } from 'wagmi';
 import { bsc, mainnet, polygon } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 
-// Official Project ID for full directory access
+// Your Official Project ID
 const projectId = '4c424a5697793d2581c205364188b49e'; 
 
 const metadata = {
@@ -19,10 +19,12 @@ const metadata = {
 };
 
 const chains = [mainnet, bsc, polygon];
-const config = defaultWagmiConfig({ 
-  chains, 
-  projectId, 
+
+// Using defaultConfig instead of defaultWagmiConfig to stop the error
+const config = defaultConfig({ 
   metadata,
+  projectId,
+  chains,
   enableWalletConnect: true,
   enableInjected: true,
   enableEIP6963: true,
@@ -32,11 +34,8 @@ const config = defaultWagmiConfig({
 createWeb3Modal({ 
   wagmiConfig: config, 
   projectId, 
-  enableAnalytics: true, // This allows the "All Wallets" button to populate
-  themeMode: 'dark',
-  themeVariables: {
-    '--w3m-accent': '#06b6d4'
-  }
+  enableAnalytics: true,
+  themeMode: 'dark' 
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
