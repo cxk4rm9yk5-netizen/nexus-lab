@@ -1,6 +1,5 @@
 {
   "name": "nexus-lab",
-  "version": "0.1.0",
   "dependencies": {
     "@web3modal/wagmi": "^4.1.0",
     "wagmi": "^2.5.7",
