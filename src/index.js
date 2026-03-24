@@ -20,7 +20,7 @@ const metadata = {
   icons: ['https://avatars.githubusercontent.com/u/37784886'],
 };
 
-// 2. Manual Config - This forces the 530+ wallet list to load
+// 2. MANUAL CONFIG - This forces the 530+ wallet list to show up
 const config = createConfig({
   chains: [mainnet, bsc, polygon],
   transports: {
@@ -40,6 +40,7 @@ createWeb3Modal({
   wagmiConfig: config,
   projectId,
   enableAnalytics: true,
+  allWallets: 'SHOW', // This is the secret command for the full list
   themeMode: 'dark',
   themeVariables: {
     '--w3m-accent': '#06b6d4',
