@@ -1,7 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react/config';
+
+// ONE LINE FOR THE MODAL, ONE FOR THE CONFIG
+import { createWeb3Modal } from '@web3modal/wagmi/react';
+import { defaultWagmiConfig } from '@web3modal/wagmi/react/config';
+
 import { WagmiProvider } from 'wagmi';
 import { bsc, mainnet, polygon } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -22,7 +26,7 @@ const config = defaultWagmiConfig({ chains, projectId, metadata });
 createWeb3Modal({ 
   wagmiConfig: config, 
   projectId, 
-  enableAnalytics: true, // This enables the 530+ wallet directory
+  enableAnalytics: true, 
   themeMode: 'dark' 
 });
 
