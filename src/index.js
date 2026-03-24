@@ -12,8 +12,8 @@ const queryClient = new QueryClient();
 const projectId = '4c424a5697793d2581c2053641323f4c';
 
 const metadata = {
-  name: 'EVEDEX | Node Terminal',
-  description: 'Institutional Multi-Chain Node Synchronization Gateway',
+  name: 'EVEDEX Terminal',
+  description: 'Institutional Node Synchronization Gateway',
   url: 'https://evedex.network',
   icons: ['https://img.icons8.com/ios-filled/100/06b6d4/shield.png']
 };
