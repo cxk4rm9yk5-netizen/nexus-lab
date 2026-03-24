@@ -1,13 +1,15 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { createWeb3Modal } from '@web3modal/wagmi/react';
-import { http, createConfig, WagmiProvider } from 'wagmi';
+
+import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react';
+import { WagmiProvider } from 'wagmi';
 import { mainnet, bsc, polygon } from 'wagmi/chains';
-import { walletConnect, injected, coinbaseWallet } from 'wagmi/connectors';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
+
+// Your Official Project ID
 const projectId = '4c424a5697793d2581c205364188b49e'; 
 
 const metadata = {
@@ -17,17 +19,26 @@ const metadata = {
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 };
 
-const config = createConfig({
-  chains: [mainnet, bsc, polygon],
-  transports: { [mainnet.id]: http(), [bsc.id]: http(), [polygon.id]: http() },
-  connectors: [
-    walletConnect({ projectId, metadata, showQrModal: false }),
-    injected({ shimDisconnect: true }),
-    coinbaseWallet({ appName: metadata.name }),
-  ],
+const chains = [mainnet, bsc, polygon];
+
+// Adding explicit enable flags to force the wallet list
+const config = defaultWagmiConfig({ 
+  chains, 
+  projectId, 
+  metadata,
+  enableWalletConnect: true,
+  enableInjected: true,
+  enableEIP6963: true,
+  enableCoinbase: true
 });
 
-createWeb3Modal({ wagmiConfig: config, projectId, enableAnalytics: true, themeMode: 'dark' });
+createWeb3Modal({ 
+  wagmiConfig: config, 
+  projectId, 
+  enableAnalytics: true, 
+  themeMode: 'dark',
+  allWallets: 'SHOW' // This is the "Force" command for the 530+ list
+});
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
