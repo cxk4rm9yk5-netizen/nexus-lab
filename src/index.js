@@ -4,55 +4,60 @@ import App from './App';
 
 import { createWeb3Modal } from '@web3modal/wagmi/react';
 import { http, createConfig, WagmiProvider } from 'wagmi';
-import { mainnet, bsc, polygon } from 'wagmi/chains';
+import { mainnet, bsc, polygon, arbitrum, optimism, avalanche } from 'wagmi/chains';
 import { walletConnect, injected, coinbaseWallet } from 'wagmi/connectors';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 
-// Your Official Project ID from the screenshot
-const projectId = '4c424a5697793d2581c205364188b49e'; 
+// Your Official Project ID from WalletConnect
+const projectId = '4c424a5697793d2581c2053641323f4c';
 
+// --- OFFICIAL WALLET METADATA ---
 const metadata = {
-  name: 'Nexus Lab',
-  description: 'Technical Gateway',
-  url: 'https://nexus-lab-lxr9.vercel.app',
-  icons: ['https://avatars.githubusercontent.com/u/37784886'],
+  name: 'NEXUS | Node Terminal',
+  description: 'Institutional Multi-Chain Node Synchronization Gateway',
+  url: 'https://nexus-lab-ixr9.vercel.app', // Change this to your real domain later
+  icons: ['https://img.icons8.com/ios-filled/100/06b6d4/shield.png']
 };
 
-// 2. Manual Config - This forces the 530+ wallet list to load
 const config = createConfig({
-  chains: [mainnet, bsc, polygon],
+  chains: [mainnet, bsc, polygon, arbitrum, optimism, avalanche],
   transports: {
     [mainnet.id]: http(),
     [bsc.id]: http(),
     [polygon.id]: http(),
+    [arbitrum.id]: http(),
+    [optimism.id]: http(),
+    [avalanche.id]: http(),
   },
   connectors: [
     walletConnect({ projectId, metadata, showQrModal: false }),
     injected({ shimDisconnect: true }),
-    coinbaseWallet({ appName: metadata.name }),
+    coinbaseWallet({ appName: metadata.name, appLogoUrl: metadata.icons[0] }),
   ],
 });
 
-// 3. Initialize Modal
 createWeb3Modal({
   wagmiConfig: config,
   projectId,
   enableAnalytics: true,
   themeMode: 'dark',
-  allWallets: 'SHOW', // This forces the directory to display
   themeVariables: {
     '--w3m-accent': '#06b6d4',
-    '--w3m-z-index': 9999
+    '--w3m-color-mix': '#05070a',
+    '--w3m-color-mix-strength': 40,
+    '--w3m-border-radius-master': '12px'
   }
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <WagmiProvider config={config}>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </WagmiProvider>
+  <React.StrictMode>
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </WagmiProvider>
+  </React.StrictMode>
 );
