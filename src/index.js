@@ -1,12 +1,18 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react';
+
+// THESE TWO LINES ARE THE FIX FOR THE RED VERCEL ERROR
+import { createWeb3Modal } from '@web3modal/wagmi/react';
+import { defaultWagmiConfig } from '@web3modal/wagmi/react/config';
+
 import { WagmiProvider } from 'wagmi';
-import { mainnet, bsc, polygon } from 'wagmi/chains';
+import { bsc, mainnet, polygon } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
+
+// Official Project ID for the 530+ wallet directory
 const projectId = '4c424a5697793d2581c205364188b49e'; 
 
 const metadata = {
@@ -21,18 +27,19 @@ const config = defaultWagmiConfig({
   chains, 
   projectId, 
   metadata,
-  enableWalletConnect: true, // Forces the 500+ wallet list
-  enableInjected: true,      // Detects browser wallets like MetaMask
-  enableEIP6963: true        // Required for modern wallet discovery
+  enableWalletConnect: true,
+  enableInjected: true,
+  enableEIP6963: true
 });
 
 createWeb3Modal({ 
   wagmiConfig: config, 
   projectId, 
-  enableAnalytics: true, 
+  enableAnalytics: true, // This makes the "All Wallets" list work
   themeMode: 'dark',
   themeVariables: {
-    '--w3m-accent': '#06b6d4'
+    '--w3m-accent': '#06b6d4',
+    '--w3m-z-index': 9999
   }
 });
 
