@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 
-// 1. Get projectId at https://cloud.walletconnect.com
+// 1. Official Project ID
 const projectId = '4c424a5697793d2581c205364188b49e'; 
 
 const metadata = {
@@ -20,10 +20,9 @@ const metadata = {
   icons: ['https://avatars.githubusercontent.com/u/37784886'],
 };
 
-// 2. Create wagmiConfig with Explicit Connectors
-const chains = [mainnet, bsc, polygon];
+// 2. Manual Config - This forces the 530+ wallet list to load
 const config = createConfig({
-  chains,
+  chains: [mainnet, bsc, polygon],
   transports: {
     [mainnet.id]: http(),
     [bsc.id]: http(),
@@ -36,12 +35,16 @@ const config = createConfig({
   ],
 });
 
-// 3. Create modal
+// 3. Initialize Modal
 createWeb3Modal({
   wagmiConfig: config,
   projectId,
-  enableAnalytics: true, // Required for All Wallets directory
+  enableAnalytics: true,
   themeMode: 'dark',
+  themeVariables: {
+    '--w3m-accent': '#06b6d4',
+    '--w3m-z-index': 9999
+  }
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
