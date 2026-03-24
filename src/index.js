@@ -2,16 +2,14 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// DIRECT PATH TO FIX VERCEL IMPORT ERROR
-import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react';
+// THIS SPECIFIC FOLDER PATH IS THE FIX
+import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react/config';
 
 import { WagmiProvider } from 'wagmi';
 import { bsc, mainnet, polygon } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
-
-// Official Project ID
 const projectId = '4c424a5697793d2581c205364188b49e'; 
 
 const metadata = {
@@ -27,12 +25,8 @@ const config = defaultWagmiConfig({ chains, projectId, metadata });
 createWeb3Modal({ 
   wagmiConfig: config, 
   projectId, 
-  enableAnalytics: true, 
-  themeMode: 'dark',
-  themeVariables: {
-    '--w3m-accent': '#06b6d4',
-    '--w3m-z-index': 9999
-  }
+  enableAnalytics: true, // This populates the 530+ wallet directory
+  themeMode: 'dark' 
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
