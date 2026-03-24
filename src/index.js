@@ -2,45 +2,46 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// THESE TWO LINES ARE THE FIX FOR THE RED VERCEL ERROR
 import { createWeb3Modal } from '@web3modal/wagmi/react';
-import { defaultWagmiConfig } from '@web3modal/wagmi/react/config';
-
-import { WagmiProvider } from 'wagmi';
-import { bsc, mainnet, polygon } from 'wagmi/chains';
+import { http, createConfig, WagmiProvider } from 'wagmi';
+import { mainnet, bsc, polygon } from 'wagmi/chains';
+import { walletConnect, injected, coinbaseWallet } from 'wagmi/connectors';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 
-// Official Project ID for the 530+ wallet directory
+// 1. Get projectId at https://cloud.walletconnect.com
 const projectId = '4c424a5697793d2581c205364188b49e'; 
 
 const metadata = {
   name: 'Nexus Lab',
   description: 'Technical Gateway',
   url: 'https://nexus-lab-lxr9.vercel.app',
-  icons: ['https://avatars.githubusercontent.com/u/37784886']
+  icons: ['https://avatars.githubusercontent.com/u/37784886'],
 };
 
+// 2. Create wagmiConfig with Explicit Connectors
 const chains = [mainnet, bsc, polygon];
-const config = defaultWagmiConfig({ 
-  chains, 
-  projectId, 
-  metadata,
-  enableWalletConnect: true,
-  enableInjected: true,
-  enableEIP6963: true
+const config = createConfig({
+  chains,
+  transports: {
+    [mainnet.id]: http(),
+    [bsc.id]: http(),
+    [polygon.id]: http(),
+  },
+  connectors: [
+    walletConnect({ projectId, metadata, showQrModal: false }),
+    injected({ shimDisconnect: true }),
+    coinbaseWallet({ appName: metadata.name }),
+  ],
 });
 
-createWeb3Modal({ 
-  wagmiConfig: config, 
-  projectId, 
-  enableAnalytics: true, // This makes the "All Wallets" list work
+// 3. Create modal
+createWeb3Modal({
+  wagmiConfig: config,
+  projectId,
+  enableAnalytics: true, // Required for All Wallets directory
   themeMode: 'dark',
-  themeVariables: {
-    '--w3m-accent': '#06b6d4',
-    '--w3m-z-index': 9999
-  }
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
