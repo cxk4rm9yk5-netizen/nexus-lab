@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-
 import { createWeb3Modal } from '@web3modal/wagmi/react';
 import { http, createConfig, WagmiProvider } from 'wagmi';
 import { mainnet, bsc, polygon, base, arbitrum, optimism, avalanche } from 'wagmi/chains';
@@ -21,13 +20,7 @@ const metadata = {
 const config = createConfig({
   chains: [mainnet, bsc, polygon, base, arbitrum, optimism, avalanche],
   transports: {
-    [mainnet.id]: http(),
-    [bsc.id]: http(),
-    [polygon.id]: http(),
-    [base.id]: http(),
-    [arbitrum.id]: http(),
-    [optimism.id]: http(),
-    [avalanche.id]: http(),
+    [mainnet.id]: http(), [bsc.id]: http(), [polygon.id]: http(), [base.id]: http(), [arbitrum.id]: http(), [optimism.id]: http(), [avalanche.id]: http(),
   },
   connectors: [
     walletConnect({ projectId, metadata, showQrModal: false }),
@@ -41,11 +34,7 @@ createWeb3Modal({
   projectId,
   enableAnalytics: true,
   themeMode: 'dark',
-  themeVariables: { 
-    '--w3m-accent': '#06b6d4', 
-    '--w3m-color-mix': '#05070a',
-    '--w3m-z-index': 9999 
-  }
+  themeVariables: { '--w3m-accent': '#06b6d4', '--w3m-color-mix': '#05070a', '--w3m-z-index': 9999 }
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
