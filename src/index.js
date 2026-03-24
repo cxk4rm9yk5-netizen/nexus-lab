@@ -41,7 +41,11 @@ createWeb3Modal({
   projectId,
   enableAnalytics: true,
   themeMode: 'dark',
-  themeVariables: { '--w3m-accent': '#06b6d4', '--w3m-color-mix': '#05070a' }
+  themeVariables: { 
+    '--w3m-accent': '#06b6d4', 
+    '--w3m-color-mix': '#05070a',
+    '--w3m-z-index': 9999 
+  }
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
