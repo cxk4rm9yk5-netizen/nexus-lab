@@ -1,26 +1,24 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react'; // This is the standard v4 path
+import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react/config'; // FIXED IMPORT PATH
 import { WagmiProvider } from 'wagmi';
 import { bsc, mainnet, polygon } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 
-// Your Official Project ID
+// Official Project ID for full 530+ wallet access
 const projectId = '4c424a5697793d2581c205364188b49e'; 
 
 const metadata = {
   name: 'Nexus Lab',
-  description: 'Institutional Gateway',
+  description: 'Institutional Technical Gateway',
   url: 'https://nexus-lab-lxr9.vercel.app',
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 };
 
 const chains = [mainnet, bsc, polygon];
-
-// Correct configuration for Web3Modal v4/v5
 const config = defaultWagmiConfig({ 
   chains, 
   projectId, 
@@ -34,10 +32,11 @@ const config = defaultWagmiConfig({
 createWeb3Modal({ 
   wagmiConfig: config, 
   projectId, 
-  enableAnalytics: true, // This enables the full "500+ Wallets" list
+  enableAnalytics: true, 
   themeMode: 'dark',
   themeVariables: {
-    '--w3m-accent': '#06b6d4'
+    '--w3m-accent': '#06b6d4',
+    '--w3m-z-index': 9999
   }
 });
 
