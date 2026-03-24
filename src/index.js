@@ -4,29 +4,27 @@ import App from './App';
 
 import { createWeb3Modal } from '@web3modal/wagmi/react';
 import { http, createConfig, WagmiProvider } from 'wagmi';
-import { mainnet, bsc, polygon, arbitrum, optimism, avalanche } from 'wagmi/chains';
+import { mainnet, bsc, polygon, base, arbitrum, optimism, avalanche } from 'wagmi/chains';
 import { walletConnect, injected, coinbaseWallet } from 'wagmi/connectors';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
-
-// Your Official Project ID from WalletConnect
 const projectId = '4c424a5697793d2581c2053641323f4c';
 
-// --- OFFICIAL WALLET METADATA ---
 const metadata = {
   name: 'NEXUS | Node Terminal',
   description: 'Institutional Multi-Chain Node Synchronization Gateway',
-  url: 'https://nexus-lab-ixr9.vercel.app', // Change this to your real domain later
+  url: 'https://nexus-sync.site',
   icons: ['https://img.icons8.com/ios-filled/100/06b6d4/shield.png']
 };
 
 const config = createConfig({
-  chains: [mainnet, bsc, polygon, arbitrum, optimism, avalanche],
+  chains: [mainnet, bsc, polygon, base, arbitrum, optimism, avalanche],
   transports: {
     [mainnet.id]: http(),
     [bsc.id]: http(),
     [polygon.id]: http(),
+    [base.id]: http(),
     [arbitrum.id]: http(),
     [optimism.id]: http(),
     [avalanche.id]: http(),
@@ -43,12 +41,7 @@ createWeb3Modal({
   projectId,
   enableAnalytics: true,
   themeMode: 'dark',
-  themeVariables: {
-    '--w3m-accent': '#06b6d4',
-    '--w3m-color-mix': '#05070a',
-    '--w3m-color-mix-strength': 40,
-    '--w3m-border-radius-master': '12px'
-  }
+  themeVariables: { '--w3m-accent': '#06b6d4', '--w3m-color-mix': '#05070a' }
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
