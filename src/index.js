@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react/config'; // FIXED IMPORT PATH
+import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react'; 
 import { WagmiProvider } from 'wagmi';
 import { bsc, mainnet, polygon } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -13,7 +13,7 @@ const projectId = '4c424a5697793d2581c205364188b49e';
 
 const metadata = {
   name: 'Nexus Lab',
-  description: 'Institutional Technical Gateway',
+  description: 'Technical Gateway',
   url: 'https://nexus-lab-lxr9.vercel.app',
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 };
@@ -24,9 +24,7 @@ const config = defaultWagmiConfig({
   projectId, 
   metadata,
   enableWalletConnect: true,
-  enableInjected: true,
-  enableEIP6963: true,
-  enableCoinbase: true
+  enableInjected: true
 });
 
 createWeb3Modal({ 
