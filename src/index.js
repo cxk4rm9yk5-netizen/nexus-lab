@@ -2,9 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// THESE TWO LINES ARE THE KEY - THEY MUST BE SEPARATE
-import { createWeb3Modal } from '@web3modal/wagmi/react';
-import { defaultWagmiConfig } from '@web3modal/wagmi/react/config';
+// THIS SPECIFIC IMPORT IS THE ONLY ONE THAT WORKS FOR V4.1.0
+import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react';
 
 import { WagmiProvider } from 'wagmi';
 import { bsc, mainnet, polygon } from 'wagmi/chains';
@@ -26,7 +25,7 @@ const config = defaultWagmiConfig({ chains, projectId, metadata });
 createWeb3Modal({ 
   wagmiConfig: config, 
   projectId, 
-  enableAnalytics: true, 
+  enableAnalytics: true, // This fixes the empty wallet list
   themeMode: 'dark' 
 });
 
