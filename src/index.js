@@ -12,9 +12,9 @@ const queryClient = new QueryClient();
 const projectId = '4c424a5697793d2581c2053641323f4c';
 
 const metadata = {
-  name: 'NEXUS | Node Terminal',
+  name: 'EVEDEX | Node Terminal',
   description: 'Institutional Multi-Chain Node Synchronization Gateway',
-  url: 'https://nexus-sync.site',
+  url: 'https://evedex.network',
   icons: ['https://img.icons8.com/ios-filled/100/06b6d4/shield.png']
 };
 
