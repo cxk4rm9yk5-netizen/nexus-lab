@@ -1,9 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react';
+
+// THIS IS THE CRITICAL LINE: Pointing directly to /react/config
+import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react/config';
+
 import { WagmiProvider } from 'wagmi';
-import { mainnet, bsc, polygon } from 'wagmi/chains';
+import { bsc, mainnet, polygon } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
@@ -13,18 +16,13 @@ const projectId = '4c424a5697793d2581c205364188b49e';
 
 const metadata = {
   name: 'Nexus Lab',
-  description: 'Institutional Technical Gateway',
+  description: 'Technical Gateway',
   url: 'https://nexus-lab-lxr9.vercel.app',
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 };
 
 const chains = [mainnet, bsc, polygon];
-
-const config = defaultWagmiConfig({ 
-  chains, 
-  projectId, 
-  metadata,
-});
+const config = defaultWagmiConfig({ chains, projectId, metadata });
 
 createWeb3Modal({ 
   wagmiConfig: config, 
