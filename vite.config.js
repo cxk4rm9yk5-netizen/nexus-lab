@@ -5,10 +5,5 @@ export default defineConfig({
   plugins: [react()],
   define: {
     global: 'globalThis',
-  },
-  build: {
-    commonjsOptions: {
-      transformMixedEsModules: true,
-    },
-  },
+  }
 });
