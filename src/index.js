@@ -29,6 +29,7 @@ createAppKit({
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
+
 root.render(
   <WagmiProvider config={wagmiAdapter.wagmiConfig}>
     <QueryClientProvider client={queryClient}>
