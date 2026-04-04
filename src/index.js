@@ -11,14 +11,13 @@ const projectId = '4c424a5697793d2581c2053641323f4c';
 
 const metadata = {
   name: 'EVEDEX',
-  description: 'Terminal',
+  description: 'Node Terminal',
   url: 'https://evedex.network',
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 };
 
-const chains = [mainnet, bsc, polygon];
 const config = defaultWagmiConfig({ 
-  chains, 
+  chains: [mainnet, bsc, polygon], 
   projectId, 
   metadata,
   enableInjected: true,
@@ -29,8 +28,8 @@ const config = defaultWagmiConfig({
 createWeb3Modal({ 
   wagmiConfig: config, 
   projectId, 
-  enableAnalytics: false,
-  allWallets: 'SHOW'
+  allWallets: 'SHOW',
+  enableExplorer: true
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
