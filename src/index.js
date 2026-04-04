@@ -8,7 +8,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 
-// REPLACE THIS WITH YOUR ACTUAL PROJECT ID FROM REOWN DASHBOARD
+// YOUR PROJECT ID FROM DASHBOARD
 const projectId = '4c424a5697793d2581c2053641323f4c';
 
 const metadata = {
@@ -26,7 +26,7 @@ const config = defaultWagmiConfig({
   metadata,
   enableInjected: true,
   enableEIP6963: true,
-  enableCoinbase: false, // KILLS THE COINBASE HIJACK
+  enableCoinbase: false, // SHUTS DOWN COINBASE HIJACK
   enableWalletConnect: true,
 });
 
@@ -34,18 +34,14 @@ createWeb3Modal({
   wagmiConfig: config,
   projectId,
   enableAnalytics: false,
-  allWallets: 'SHOW', // FORCES TRUST/METAMASK SEARCH
+  allWallets: 'SHOW', // FORCES THE FULL LIST
   enableExplorer: true,
   themeMode: 'dark',
   themeVariables: {
     '--w3m-accent': '#06b6d4',
     '--w3m-color-mix': '#05070a',
     '--w3m-z-index': 9999
-  },
-  featuredWalletIds: [
-    'c57ca40633ba7d598d0a11a76813616e', // MetaMask
-    '4622a2b3d6bc5d963e07d79ef51d1618'  // Trust Wallet
-  ]
+  }
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
