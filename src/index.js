@@ -10,16 +10,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 const queryClient = new QueryClient();
 const projectId = '4c424a5697793d2581c2053641323f4c';
 
-const networks = [mainnet, bsc, polygon];
-
 const wagmiAdapter = new WagmiAdapter({
-  networks,
+  networks: [mainnet, bsc, polygon],
   projectId
 });
 
 createAppKit({
   adapters: [wagmiAdapter],
-  networks,
+  networks: [mainnet, bsc, polygon],
   projectId,
   metadata: {
     name: 'EVEDEX',
@@ -27,21 +25,14 @@ createAppKit({
     url: 'https://evedex.network',
     icons: ['https://img.icons8.com/ios-filled/100/06b6d4/shield.png']
   },
-  features: {
-    analytics: false,
-    email: false,
-    socials: false
-  },
   allWallets: 'SHOW'
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <React.StrictMode>
-    <WagmiProvider config={wagmiAdapter.wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
-    </WagmiProvider>
-  </React.StrictMode>
+  <WagmiProvider config={wagmiAdapter.wagmiConfig}>
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
+  </WagmiProvider>
 );
