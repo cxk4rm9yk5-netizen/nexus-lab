@@ -8,27 +8,24 @@ import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
-
-// YOUR VERIFIED PROJECT ID
 const projectId = '7a9898896e62061904fbceeb9d296eb1';
 const networks = [mainnet, bsc, polygon];
 
-// 1. Setup Wagmi Adapter with SSR enabled for better mobile stability
 const wagmiAdapter = new WagmiAdapter({
   networks,
   projectId,
   ssr: true
 });
 
-// 2. Create AppKit
 createAppKit({
   adapters: [wagmiAdapter],
   networks,
+  defaultNetwork: mainnet,
   projectId,
   metadata: {
     name: 'EVEDEX',
     description: 'Node Terminal',
-    url: 'https://evedex.network', // Must match your Reown Allowlist
+    url: 'https://evedex.network',
     icons: ['https://avatars.githubusercontent.com/u/37784886']
   },
   features: {
@@ -38,18 +35,14 @@ createAppKit({
     swaps: true,
     onramp: true
   },
-  allWallets: 'SHOW',
-  connectionMethods: ['wallet', 'email', 'social']
+  allWallets: 'SHOW'
 });
 
-// 3. Render App
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <React.StrictMode>
-    <WagmiProvider config={wagmiAdapter.wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
-    </WagmiProvider>
-  </React.StrictMode>
+  <WagmiProvider config={wagmiAdapter.wagmiConfig}>
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
+  </WagmiProvider>
 );
