@@ -8,19 +8,22 @@ import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
+
+// VERIFIED ID FROM YOUR SCREENSHOT
 const projectId = '7a9898896e62061904fbceeb9d296eb1';
 const networks = [mainnet, bsc, polygon];
 
+// 1. Setup Wagmi Adapter (Simplified for Mobile Handshake)
 const wagmiAdapter = new WagmiAdapter({
   networks,
   projectId,
-  ssr: true
+  ssr: false // Setting to false can help with mobile Safari redirects
 });
 
+// 2. Create AppKit
 createAppKit({
   adapters: [wagmiAdapter],
   networks,
-  defaultNetwork: mainnet,
   projectId,
   metadata: {
     name: 'EVEDEX',
@@ -34,10 +37,10 @@ createAppKit({
     analytics: true,
     swaps: true,
     onramp: true
-  },
-  allWallets: 'SHOW'
+  }
 });
 
+// 3. Render App
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <WagmiProvider config={wagmiAdapter.wagmiConfig}>
