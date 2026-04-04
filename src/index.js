@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react';
 import { WagmiProvider } from 'wagmi';
-import { mainnet, bsc, polygon } from 'wagmi/chains';
+import * as chains from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
@@ -16,10 +16,8 @@ const metadata = {
   icons: ['https://img.icons8.com/ios-filled/100/06b6d4/shield.png']
 };
 
-const chains = [mainnet, bsc, polygon];
-
 const config = defaultWagmiConfig({
-  chains,
+  chains: [chains.mainnet, chains.bsc, chains.polygon],
   projectId,
   metadata,
   enableInjected: true,
@@ -31,7 +29,8 @@ createWeb3Modal({
   wagmiConfig: config,
   projectId,
   allWallets: 'SHOW',
-  enableExplorer: true
+  enableExplorer: true,
+  themeMode: 'dark'
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
