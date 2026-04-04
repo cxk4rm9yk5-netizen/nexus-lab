@@ -1,6 +1,14 @@
-// ... (imports remain the same)
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react';
+import { WagmiProvider } from 'wagmi';
+import { mainnet, bsc, polygon, base, arbitrum } from 'wagmi/chains';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
+
+// REPLACE THIS WITH YOUR ACTUAL PROJECT ID FROM REOWN DASHBOARD
 const projectId = '4c424a5697793d2581c2053641323f4c';
 
 const metadata = {
@@ -10,30 +18,43 @@ const metadata = {
   icons: ['https://img.icons8.com/ios-filled/100/06b6d4/shield.png']
 };
 
-const config = createConfig({
-  chains: [mainnet, bsc, polygon, base, arbitrum, optimism, avalanche],
-  transports: {
-    [mainnet.id]: http(), [bsc.id]: http(), [polygon.id]: http(), [base.id]: http(), [arbitrum.id]: http(), [optimism.id]: http(), [avalanche.id]: http(),
-  },
-  connectors: [
-    // 1. Force WalletConnect first
-    walletConnect({ projectId, metadata, showQrModal: false }),
-    // 2. ONLY use injected with EIP6963 support to stop Coinbase dominance
-    injected({ shimDisconnect: true }), 
-    // REMOVED: coinbaseWallet() -> This is what was hijacking your modal
-  ],
+const chains = [mainnet, bsc, polygon, base, arbitrum];
+
+const config = defaultWagmiConfig({
+  chains,
+  projectId,
+  metadata,
+  enableInjected: true,
+  enableEIP6963: true,
+  enableCoinbase: false, // KILLS THE COINBASE HIJACK
+  enableWalletConnect: true,
 });
 
 createWeb3Modal({
   wagmiConfig: config,
   projectId,
-  enableAnalytics: false, // Cleaner logs
+  enableAnalytics: false,
+  allWallets: 'SHOW', // FORCES TRUST/METAMASK SEARCH
+  enableExplorer: true,
   themeMode: 'dark',
-  // --- ADD THESE TWO LINES TO SHOW TRUST/METAMASK ---
-  allWallets: 'SHOW', 
-  enableExplorer: true, 
-  // --------------------------------------------------
-  themeVariables: { '--w3m-accent': '#06b6d4', '--w3m-color-mix': '#05070a', '--w3m-z-index': 9999 }
+  themeVariables: {
+    '--w3m-accent': '#06b6d4',
+    '--w3m-color-mix': '#05070a',
+    '--w3m-z-index': 9999
+  },
+  featuredWalletIds: [
+    'c57ca40633ba7d598d0a11a76813616e', // MetaMask
+    '4622a2b3d6bc5d963e07d79ef51d1618'  // Trust Wallet
+  ]
 });
 
-// ... (render block remains the same)
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </WagmiProvider>
+  </React.StrictMode>
+);
