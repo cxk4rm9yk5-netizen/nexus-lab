@@ -25,18 +25,14 @@ createAppKit({
     description: 'Node Terminal',
     url: 'https://evedex.network',
     icons: ['https://img.icons8.com/ios-filled/100/06b6d4/shield.png']
-  },
-  features: { email: false, socials: false },
-  allWallets: 'SHOW'
+  }
 });
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <React.StrictMode>
-    <WagmiProvider config={wagmiAdapter.wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
-    </WagmiProvider>
-  </React.StrictMode>
+  <WagmiProvider config={wagmiAdapter.wagmiConfig}>
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
+  </WagmiProvider>
 );
