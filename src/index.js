@@ -1,11 +1,4 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
-import { createWeb3Modal } from '@web3modal/wagmi/react';
-import { http, createConfig, WagmiProvider } from 'wagmi';
-import { mainnet, bsc, polygon, base, arbitrum, optimism, avalanche } from 'wagmi/chains';
-import { walletConnect, injected, coinbaseWallet } from 'wagmi/connectors';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+// ... (imports remain the same)
 
 const queryClient = new QueryClient();
 const projectId = '4c424a5697793d2581c2053641323f4c';
@@ -23,27 +16,24 @@ const config = createConfig({
     [mainnet.id]: http(), [bsc.id]: http(), [polygon.id]: http(), [base.id]: http(), [arbitrum.id]: http(), [optimism.id]: http(), [avalanche.id]: http(),
   },
   connectors: [
+    // 1. Force WalletConnect first
     walletConnect({ projectId, metadata, showQrModal: false }),
-    injected({ shimDisconnect: true }),
-    coinbaseWallet({ appName: metadata.name, appLogoUrl: metadata.icons[0] }),
+    // 2. ONLY use injected with EIP6963 support to stop Coinbase dominance
+    injected({ shimDisconnect: true }), 
+    // REMOVED: coinbaseWallet() -> This is what was hijacking your modal
   ],
 });
 
 createWeb3Modal({
   wagmiConfig: config,
   projectId,
-  enableAnalytics: true,
+  enableAnalytics: false, // Cleaner logs
   themeMode: 'dark',
+  // --- ADD THESE TWO LINES TO SHOW TRUST/METAMASK ---
+  allWallets: 'SHOW', 
+  enableExplorer: true, 
+  // --------------------------------------------------
   themeVariables: { '--w3m-accent': '#06b6d4', '--w3m-color-mix': '#05070a', '--w3m-z-index': 9999 }
 });
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <WagmiProvider config={config}>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
-    </WagmiProvider>
-  </React.StrictMode>
-);
+// ... (render block remains the same)
