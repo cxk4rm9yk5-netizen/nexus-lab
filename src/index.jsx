@@ -9,21 +9,22 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 
-// VERIFIED ID FROM YOUR SCREENSHOT
+// YOUR VERIFIED PROJECT ID
 const projectId = '7a9898896e62061904fbceeb9d296eb1';
 const networks = [mainnet, bsc, polygon];
 
-// 1. Setup Wagmi Adapter (Simplified for Mobile Handshake)
+// 1. Setup Wagmi Adapter - EXPLICITLY DEFINE NETWORKS HERE
 const wagmiAdapter = new WagmiAdapter({
   networks,
   projectId,
-  ssr: false // Setting to false can help with mobile Safari redirects
+  ssr: true
 });
 
-// 2. Create AppKit
+// 2. Create AppKit - DEFINE DEFAULT NETWORK TO FIX "TAG:UNDEFINED"
 createAppKit({
   adapters: [wagmiAdapter],
   networks,
+  defaultNetwork: mainnet, // <--- THIS KILLS THE ERROR
   projectId,
   metadata: {
     name: 'EVEDEX',
@@ -37,7 +38,8 @@ createAppKit({
     analytics: true,
     swaps: true,
     onramp: true
-  }
+  },
+  allWallets: 'SHOW'
 });
 
 // 3. Render App
