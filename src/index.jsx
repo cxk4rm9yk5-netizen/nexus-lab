@@ -9,15 +9,18 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 const queryClient = new QueryClient();
 
-// UPDATED PROJECT ID FROM YOUR SCREENSHOT
+// YOUR VERIFIED PROJECT ID
 const projectId = '7a9898896e62061904fbceeb9d296eb1';
 const networks = [mainnet, bsc, polygon];
 
+// 1. Setup Wagmi Adapter with SSR enabled for better mobile stability
 const wagmiAdapter = new WagmiAdapter({
   networks,
-  projectId
+  projectId,
+  ssr: true
 });
 
+// 2. Create AppKit
 createAppKit({
   adapters: [wagmiAdapter],
   networks,
@@ -25,8 +28,8 @@ createAppKit({
   metadata: {
     name: 'EVEDEX',
     description: 'Node Terminal',
-    url: 'https://evedex.network',
-    icons: ['https://img.icons8.com/ios-filled/100/06b6d4/shield.png']
+    url: 'https://evedex.network', // Must match your Reown Allowlist
+    icons: ['https://avatars.githubusercontent.com/u/37784886']
   },
   features: {
     email: true,
@@ -36,18 +39,17 @@ createAppKit({
     onramp: true
   },
   allWallets: 'SHOW',
-  featuredWalletIds: [
-    'c5333d97631051a31ad31811354a0551798df2983b1a7e1742490df18901f4c7', // MetaMask
-    '4622a2b2d6af1c9844944291e5e7351a6aaad539b9ad3e203023932788399587', // Trust Wallet
-    'fd20dc426fb37566d803205b19bbc1d4096b248ac04544e3e9941394819c491b'  // Coinbase Wallet
-  ]
+  connectionMethods: ['wallet', 'email', 'social']
 });
 
+// 3. Render App
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <WagmiProvider config={wagmiAdapter.wagmiConfig}>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </WagmiProvider>
+  <React.StrictMode>
+    <WagmiProvider config={wagmiAdapter.wagmiConfig}>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </WagmiProvider>
+  </React.StrictMode>
 );
