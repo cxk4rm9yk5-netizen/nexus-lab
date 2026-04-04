@@ -6,13 +6,9 @@ import { WagmiProvider } from 'wagmi';
 import { mainnet, bsc, polygon, base, arbitrum } from 'wagmi/chains';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// 1. Setup QueryClient
 const queryClient = new QueryClient();
-
-// 2. ProjectId
 const projectId = '4c424a5697793d2581c2053641323f4c';
 
-// 3. Metadata
 const metadata = {
   name: 'EVEDEX | Node Terminal',
   description: 'Institutional Node Gateway',
@@ -22,7 +18,6 @@ const metadata = {
 
 const chains = [mainnet, bsc, polygon, base, arbitrum];
 
-// 4. Config - This kills the Coinbase hijack
 const config = defaultWagmiConfig({
   chains,
   projectId,
@@ -33,7 +28,6 @@ const config = defaultWagmiConfig({
   enableWalletConnect: true,
 });
 
-// 5. Modal - Forces Trust/MetaMask icons
 createWeb3Modal({
   wagmiConfig: config,
   projectId,
