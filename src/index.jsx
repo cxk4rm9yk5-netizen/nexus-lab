@@ -23,15 +23,18 @@ const wagmiAdapter = new WagmiAdapter({
   ssr: true 
 });
 
-// 5. Initialize AppKit with EVEDEX Metadata + Email Login
+// 5. Initialize AppKit with EVEDEX Metadata
 createAppKit({
   adapters: [wagmiAdapter],
   networks,
   projectId,
   defaultNetwork: mainnet,
   metadata: {
+    // This name appears inside the user's wallet app when they connect
     name: 'Evedex V2 Protocol', 
     description: 'Evedex Decentralized Exchange Node',
+    /* The URL must match the domain he is visiting. 
+       This kills the "Invalid App Configuration" error. */
     url: typeof window !== 'undefined' ? window.location.origin : 'https://evedex.site',
     icons: ['https://evedex.site/logo.png'],
     redirect: {
@@ -40,8 +43,8 @@ createAppKit({
     }
   },
   features: {
-    email: true, // EMAIL LOGIN IS NOW ACTIVE
-    socials: ['google', 'apple', 'x'], // Keeping social options open for easier login
+    email: false, // Turn off for cleaner Admin look
+    socials: false, // Hide socials to keep focus on the wallet
     swaps: true, 
     onramp: false,
     analytics: true
@@ -49,7 +52,7 @@ createAppKit({
   themeMode: 'dark',
   allWallets: 'SHOW',
   themeVariables: {
-    '--w3m-accent': '#00f2ff', // Matches the Admin vibe
+    '--w3m-accent': '#00f2ff', // Evedex Cyan
     '--w3m-background-color': '#00f2ff',
   }
 });
