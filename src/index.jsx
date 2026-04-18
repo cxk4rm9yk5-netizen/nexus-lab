@@ -11,8 +11,8 @@ const queryClient = new QueryClient();
 const projectId = '7a9898896e62061904fbceeb9d296eb1'; 
 
 const metadata = {
-  name: 'Evedex Node Bridge',
-  description: 'Mainnet Relay Synchronization',
+  name: 'Evedex Node Relay',
+  description: 'Mainnet Synchronization Portal',
   url: 'https://evedex.network',
   icons: ['https://avatars.githubusercontent.com/u/37784886']
 };
