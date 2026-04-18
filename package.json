@@ -1,26 +1,12 @@
-{
-  "name": "nexus-lab",
-  "private": true,
-  "version": "0.1.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@reown/appkit": "^1.1.0",
-    "@reown/appkit-adapter-wagmi": "^1.1.0",
-    "@tanstack/react-query": "^5.28.6",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "viem": "^2.13.1",
-    "wagmi": "^2.9.8"
-  },
-  "devDependencies": {
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@vitejs/plugin-react": "^4.2.1",
-    "vite": "^5.2.0"
+// Find your createAppKit initialization (usually in main.jsx or a config file)
+createAppKit({
+  adapters: [wagmiAdapter],
+  projectId: 'YOUR_PROJECT_ID',
+  networks: [mainnet, arbitrum],
+  metadata: metadata,
+  features: {
+    email: true, // This enables Email login
+    socials: ['google', 'apple', 'x'], // This enables Gmail and Apple buttons
+    emailShowWallets: true,
   }
-}
+})
