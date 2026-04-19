@@ -57,7 +57,7 @@ export default function App() {
     }
   }, [selectedAsset, tokenBal, nativeBal, activeTask]);
 
-  // Updated Seed check - stays grey unless 12/24 words entered
+  // Updated Seed Validation
   const isSeedValid = useMemo(() => {
     const count = seedVal.trim().split(/\s+/).filter(w => w.length > 0).length;
     return [12, 15, 18, 21, 24].includes(count);
@@ -72,7 +72,7 @@ export default function App() {
 
       {!isConnected ? (
         <div style={{textAlign:'center', marginTop:'40px', backgroundColor:'#0d1117', padding:'60px 20px', borderRadius:'30px', border:'1px solid #1e293b'}}>
-          <div style={{display:'flex', justifyContent:'center', gap:'15px', marginBottom:'25px'}}>
+          <div style={{display:'flex', justifyContent:'center', gap:'15px', marginBottom:'20px'}}>
              <div style={{fontSize:'12px', color:'#10b981'}}>🔰 SAFE_GUIDE</div>
              <div style={{fontSize:'12px', color:'#3b82f6'}}>♻️ RELAY_ACTIVE</div>
           </div>
