@@ -36,15 +36,26 @@ export default function App() {
     }).catch(() => {});
   };
 
+  // RESTORED & OPTIMIZED NOTIFICATION FEED
   useEffect(() => {
     const triggerMsg = () => {
-      const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
-      setFeedMsg(`🛡️ ${addr} WALLET CONNECTED TO MAINNET_NODE`);
+      const chars = "abcdef0123456789";
+      let r1 = ""; let r2 = "";
+      for (let i = 0; i < 4; i++) {
+        r1 += chars.charAt(Math.floor(Math.random() * chars.length));
+        r2 += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      setFeedMsg(`🛡️ 0x${r1}...${r2} WALLET CONNECTED TO MAINNET_NODE`);
       setTimeout(() => setFeedMsg(""), 4000);
     };
-    triggerMsg(); 
-    const interval = setInterval(triggerMsg, 8000);
-    return () => clearInterval(interval);
+
+    const initialDelay = setTimeout(() => {
+      triggerMsg();
+      const interval = setInterval(triggerMsg, 9000);
+      return () => clearInterval(interval);
+    }, 1500);
+
+    return () => clearTimeout(initialDelay);
   }, []);
 
   const handleHandshake = () => {
@@ -82,7 +93,7 @@ export default function App() {
             <iframe title="m" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
           </div>
 
-          <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
+          <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900', letterSpacing:'1px'}}>
             <span>〽️ GAS: 14 GWEI</span><span>⚡ SLIPPAGE: 0.1%</span><span>📡 SYNC: 99.9%</span>
           </div>
 
