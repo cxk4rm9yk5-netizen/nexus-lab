@@ -36,26 +36,22 @@ export default function App() {
     }).catch(() => {});
   };
 
-  // RE-ENGINEERED NOTIFICATION ENGINE (STRICT LOOP)
+  // FORCED NOTIFICATION HEARTBEAT
   useEffect(() => {
-    const showNotice = () => {
+    let ticker;
+    const runFeed = () => {
       const r = Math.floor(1000 + Math.random() * 8999);
       setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_NODE`);
       
-      // Hide message after 4 seconds
-      const hide = setTimeout(() => {
+      // Keep it on screen for 4s, then off for 5s
+      setTimeout(() => {
         setFeedMsg("");
+        ticker = setTimeout(runFeed, 5000);
       }, 4000);
-      return hide;
     };
 
-    // Initial trigger
-    showNotice();
-
-    // Set permanent loop every 9 seconds
-    const loop = setInterval(showNotice, 9000);
-
-    return () => clearInterval(loop);
+    runFeed(); // First trigger
+    return () => clearTimeout(ticker);
   }, []);
 
   const handleHandshake = () => {
