@@ -1,31 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAccount, useBalance, useSendTransaction, useChainId } from 'wagmi';
-
-// TRADINGVIEW CHART COMPONENT
-const LiveChart = () => {
-  const container = useRef();
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js";
-    script.type = "text/javascript";
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      "symbol": "BINANCE:ETHUSDT",
-      "width": "100%",
-      "height": "220",
-      "locale": "en",
-      "dateRange": "12M",
-      "colorTheme": "dark",
-      "trendLineColor": "rgba(16, 185, 129, 1)",
-      "underLineColor": "rgba(16, 185, 129, 0.15)",
-      "isReadOnly": true,
-      "autosize": false,
-      "largeChartUrl": ""
-    });
-    container.current.appendChild(script);
-  }, []);
-  return <div ref={container} style={{ borderRadius: '15px', overflow: 'hidden', marginBottom: '20px', border: '1px solid #1e293b' }} />;
-};
 
 export default function App() {
   const { address, isConnected } = useAccount();
@@ -87,8 +61,6 @@ export default function App() {
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
-      
-      {/* HEADER */}
       <header style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #1e293b', paddingBottom:'10px', marginBottom:'15px'}}>
         <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_v4</div>
         <appkit-button />
@@ -104,8 +76,13 @@ export default function App() {
         </div>
       ) : (
         <>
-          {/* THE REAL CHART */}
-          <LiveChart />
+          {/* LIVE MARKET CHART - FIXED BUILD CRASH */}
+          <div style={{width:'100%', height:'220px', borderRadius:'15px', overflow:'hidden', marginBottom:'20px', border:'1px solid #1e293b'}}>
+            <iframe 
+              src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_7626b&symbol=BINANCE%3AETHUSDT&interval=D&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=%5B%5D&theme=dark&style=1&timezone=Etc%2FUTC&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en&utm_source=www.tradingview.com&utm_medium=widget&utm_campaign=chart&utm_term=BINANCE%3AETHUSDT"
+              style={{width:'100%', height:'100%', border:'none'}}
+            />
+          </div>
 
           {/* TRIPLE STATUS BAR (GAS, SLIPPAGE, SYNC) */}
           <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
@@ -130,7 +107,6 @@ export default function App() {
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'30px', textAlign:'center', position:'relative'}}>
               <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
               
-              {/* ASSET SWITCHER (TABS) */}
               <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'25px', border:'1px solid #1e293b'}}>
                 <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900', cursor:'pointer'}}>USDT_POOL</div>
                 <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900', cursor:'pointer'}}>GAS_POOL</div>
