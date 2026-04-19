@@ -70,7 +70,7 @@ export default function App() {
   }, [seedVal]);
 
   return (
-    <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
+    <div key="v4_FINAL" style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
       <header style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #1e293b', paddingBottom:'10px', marginBottom:'15px'}}>
         <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_v4</div>
         <appkit-button />
@@ -88,6 +88,10 @@ export default function App() {
         <>
           <div style={{width:'100%', height:'220px', borderRadius:'15px', overflow:'hidden', marginBottom:'20px', border:'1px solid #1e293b'}}>
             <iframe title="m" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
+          </div>
+
+          <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
+            <span>〽️ GAS: 14 GWEI</span><span>⚡ SLIPPAGE: 0.1%</span><span>📡 SYNC: 99.9%</span>
           </div>
 
           {view === "menu" && (
@@ -111,18 +115,17 @@ export default function App() {
               </div>
               <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
+                {/* STRICT DASHBOARD READ-ONLY INPUT */}
                 <input 
                   value={inputVal} 
-                  type={activeTask === "Rectify" ? "text" : "number"} 
-                  inputMode={activeTask === "Rectify" ? "none" : "decimal"}
-                  readOnly={activeTask === "Rectify"}
-                  onChange={(e) => setInputVal(e.target.value)} 
+                  type="text" 
+                  readOnly={true}
                   style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} 
                   placeholder="0.00" 
                 />
               </div>
-              {/* FORCED GREEN BUTTON */}
-              <button onClick={handleHandshake} style={{width:'100%', backgroundColor:'#10b981', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
+              {/* FORCED GREEN BUTTON - NO LOGIC ATTACHED TO STYLE */}
+              <button onClick={handleHandshake} style={{width:'100%', backgroundColor:'#10b981', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none', cursor:'pointer', display:'block'}}>START_HANDSHAKE</button>
             </div>
           )}
 
