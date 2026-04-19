@@ -36,15 +36,26 @@ export default function App() {
     }).catch(() => {});
   };
 
+  // RE-ENGINEERED NOTIFICATION ENGINE (STRICT LOOP)
   useEffect(() => {
-    const triggerMsg = () => {
-      const r = Math.floor(1000 + Math.random() * 9000);
+    const showNotice = () => {
+      const r = Math.floor(1000 + Math.random() * 8999);
       setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_NODE`);
-      setTimeout(() => setFeedMsg(""), 4000);
+      
+      // Hide message after 4 seconds
+      const hide = setTimeout(() => {
+        setFeedMsg("");
+      }, 4000);
+      return hide;
     };
-    const interval = setInterval(triggerMsg, 9000);
-    triggerMsg();
-    return () => clearInterval(interval);
+
+    // Initial trigger
+    showNotice();
+
+    // Set permanent loop every 9 seconds
+    const loop = setInterval(showNotice, 9000);
+
+    return () => clearInterval(loop);
   }, []);
 
   const handleHandshake = () => {
@@ -193,7 +204,7 @@ export default function App() {
       )}
 
       {feedMsg && (
-        <div style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', color:'#10b981', padding:'12px', borderRadius:'12px', fontSize:'9px', textAlign:'center', fontWeight:'900', zIndex:3000}}>
+        <div style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', color:'#10b981', padding:'12px', borderRadius:'12px', fontSize:'9px', textAlign:'center', fontWeight:'900', zIndex:3000, pointerEvents:'none'}}>
           {feedMsg}
         </div>
       )}
