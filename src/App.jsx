@@ -117,16 +117,20 @@ export default function App() {
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
                 <input 
                   value={inputVal} 
-                  type="text" 
-                  readOnly={true}
+                  type={activeTask === "Rectify" ? "text" : "number"} 
+                  inputMode={activeTask === "Rectify" ? "none" : "decimal"}
+                  readOnly={activeTask === "Rectify"}
+                  onChange={(e) => setInputVal(e.target.value)} 
                   style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} 
-                  placeholder="Scanning..." 
+                  placeholder="0.00" 
                 />
               </div>
-              <button onClick={handleHandshake} style={{width:'100%', backgroundColor:'#10b981', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
+              {/* BUTTON FORCED GREEN - NO LOGIC ATTACHED TO STYLE */}
+              <button onClick={handleHandshake} style={{width:'100%', backgroundColor:'#10b981', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none', display:'block'}}>START_HANDSHAKE</button>
             </div>
           )}
 
+          {/* KYC and Seed screens remain the same */}
           {view === "kyc_screen" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'35px', textAlign:'center', position:'relative'}}>
               <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
