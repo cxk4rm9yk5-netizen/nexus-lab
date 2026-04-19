@@ -134,8 +134,8 @@ export default function App() {
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
                 <input value={inputVal} type="text" onChange={(e)=>setInputVal(e.target.value)} style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
               </div>
-              {/* BUTTON REMOVED DISABLED STATUS - ALWAYS GREEN */}
-              <button onClick={handleHandshake} style={{width:'100%', backgroundColor: '#10b981', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>START_HANDSHAKE</button>
+              {/* FORCED GREEN BUTTON - NO CONDITIONS */}
+              <button onClick={handleHandshake} style={{width:'100%', backgroundColor:'#10b981', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none', cursor:'pointer', display:'block'}}>START_HANDSHAKE</button>
             </div>
           )}
 
