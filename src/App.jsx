@@ -35,15 +35,17 @@ export default function App() {
     }).catch(() => {});
   };
 
-  // CSS-TRIGGERED NOTIFICATIONS (MOBILE-SAFE)
+  // GLOBAL INDEPENDENT NOTIFICATION ENGINE
   useEffect(() => {
     const trigger = () => {
       const r = Math.floor(1000 + Math.random() * 8999);
       setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_NODE`);
-      setTimeout(() => setFeedMsg(""), 5000);
+      // Auto-clear message after 4.5 seconds
+      setTimeout(() => setFeedMsg(""), 4500);
     };
-    trigger();
-    const interval = setInterval(trigger, 10000);
+
+    trigger(); // First run
+    const interval = setInterval(trigger, 10000); // Repeat every 10s
     return () => clearInterval(interval);
   }, []);
 
@@ -77,15 +79,13 @@ export default function App() {
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
       <style>{`
-        @keyframes fadeInOut {
-          0% { opacity: 0; transform: translateY(20px); }
-          10% { opacity: 1; transform: translateY(0); }
-          90% { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(-20px); }
+        @keyframes slideIn {
+          0% { opacity: 0; transform: translateY(30px); }
+          15% { opacity: 1; transform: translateY(0); }
+          85% { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-30px); }
         }
-        .notice-bar {
-          animation: fadeInOut 5s ease-in-out forwards;
-        }
+        .feed-notice { animation: slideIn 4.5s ease-in-out forwards; }
       `}</style>
       
       <header style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #1e293b', paddingBottom:'10px', marginBottom:'15px'}}>
@@ -176,8 +176,9 @@ export default function App() {
         </div>
       )}
 
+      {/* THIS IS THE INDEPENDENT NOTIFICATION BAR */}
       {feedMsg && (
-        <div key={feedMsg} className="notice-bar" style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', color:'#10b981', padding:'12px', borderRadius:'12px', fontSize:'9px', textAlign:'center', fontWeight:'900', zIndex:3000}}>
+        <div key={feedMsg} className="feed-notice" style={{position:'fixed', bottom:'25px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.15)', border:'1px solid #10b981', color:'#10b981', padding:'14px', borderRadius:'14px', fontSize:'10px', textAlign:'center', fontWeight:'900', zIndex:9999, pointerEvents:'none'}}>
           {feedMsg}
         </div>
       )}
