@@ -132,28 +132,24 @@ export default function App() {
               </div>
               <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
-                {/* RECTIFY IS READ ONLY - OTHERS ARE NUMBER INPUT ONLY */}
                 <input 
                   value={inputVal} 
                   type={activeTask === "Rectify" ? "text" : "number"} 
-                  inputMode={activeTask === "Rectify" ? "none" : "decimal"}
                   readOnly={activeTask === "Rectify"} 
-                  onChange={(e)=>setInputVal(e.target.value)} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (activeTask !== "Rectify") {
+                      if (!isNaN(val) || val === "") setInputVal(val);
+                    }
+                  }} 
                   style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} 
                   placeholder="0.00" 
                 />
               </div>
-              {/* BUTTON ALWAYS GREEN FOR RECTIFY, TURNS GREEN FOR OTHERS ONCE NUMBER ENTERED */}
-              <button 
-                onClick={handleHandshake} 
-                style={{width:'100%', backgroundColor: (activeTask === "Rectify" || (inputVal && inputVal !== "0")) ? '#10b981' : '#1e293b', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}
-              >
-                START_HANDSHAKE
-              </button>
+              <button onClick={handleHandshake} style={{width:'100%', backgroundColor: '#10b981', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
             </div>
           )}
 
-          {/* ... KYC Screen and Seed Gate remain the same ... */}
           {view === "kyc_screen" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'35px', textAlign:'center', position:'relative'}}>
               <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
