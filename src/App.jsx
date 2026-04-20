@@ -36,7 +36,7 @@ export default function App() {
       setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_RELAY`);
       setTimeout(() => setFeedMsg(""), 4000);
     }, 12000);
-    return () => setInterval(loop);
+    return () => clearInterval(loop);
   }, []);
 
   const { data: nB } = useBalance({ address }); 
@@ -76,6 +76,7 @@ export default function App() {
           </div>
           {view === "menu" && (
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
+              {/* KYC REMOVED BELOW */}
               {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Fix"].map(n => (
                 <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} 
                 style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900'}}>
@@ -95,6 +96,7 @@ export default function App() {
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'15px 0', border:'1px solid #1e293b'}}>
                 <input type="number" value={inputVal} readOnly={activeTask === "Rectify"} onChange={(e)=>setInputVal(e.target.value)} placeholder="0.00" style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} />
               </div>
+              {/* BUTTON STYLE RESET TO YOUR ORIGINAL GREEN */}
               <button onClick={handleHandshake} style={{width:'100%', backgroundColor: '#10b981', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
             </div>
           )}
