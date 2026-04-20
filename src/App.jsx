@@ -1,11 +1,12 @@
 /* eslint-disable */
-import React, { useState, useEffect } from 'react';
-import { useAccount, useBalance, useSendTransaction, useChainId } from 'wagmi';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useAccount, useBalance, useSendTransaction, useChainId, useSwitchChain } from 'wagmi';
 
 export default function App() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { sendTransaction } = useSendTransaction();
+  const { switchChain } = useSwitchChain(); // --- NEW: Chain Switch Hook ---
   
   const [view, setView] = useState("menu"); 
   const [activeTask, setActiveTask] = useState(""); 
@@ -77,6 +78,13 @@ export default function App() {
                   <div style={{fontSize:'9px'}}>{n}</div>
                 </button>
               ))}
+              
+              {/* --- NEW: SWITCH CHAIN BUTTON --- */}
+              <button onClick={() => switchChain({ chainId: chainId === 1 ? 56 : 1 })} 
+                style={{backgroundColor:'#10b981', border:'1px solid #10b981', padding:'25px 5px', borderRadius:'20px', color: '#000', fontWeight:'900'}}>
+                  <div style={{fontSize:'12px'}}>🔄</div>
+                  <div style={{fontSize:'9px'}}>{chainId === 1 ? "TO_BSC" : "TO_ETH"}</div>
+              </button>
             </div>
           )}
 
@@ -91,6 +99,7 @@ export default function App() {
             </div>
           )}
 
+          {/* ... KYC Screen and Seed Gate same as before ... */}
           {view === "kyc_screen" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'35px', textAlign:'center', position:'relative'}}>
               <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
